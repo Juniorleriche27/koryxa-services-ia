@@ -1,0 +1,26 @@
+services:
+  api:
+    build: .
+    environment:
+      SERVICE_IA_DATABASE_URL: postgresql+asyncpg://service_ia:service_ia@postgres:5432/service_ia
+      SERVICE_IA_CORS_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: service_ia
+      POSTGRES_USER: service_ia
+      POSTGRES_PASSWORD: service_ia
+    volumes:
+      - service_ia_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U service_ia -d service_ia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  service_ia_postgres:
