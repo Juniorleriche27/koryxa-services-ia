@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr" className={`${sans.variable} ${display.variable}`}>
       <body className="min-h-screen overflow-x-hidden bg-[var(--kx-page)] text-slate-950 antialiased">
-        <a href="#page-content" className="sr-only z-50 rounded bg-slate-950 px-3 py-2 text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-4">
+        <a href="#page-content" className="sr-only z-50 rounded bg-white px-3 py-2 text-[var(--kx-text)] focus:not-sr-only focus:absolute focus:left-4 focus:top-4">
           Aller au contenu
         </a>
         <RouteShell>{children}</RouteShell>

@@ -56,7 +56,7 @@ export default function SiteWebProfessionalPage({ service }: { service: ServiceD
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href={`/services/${service.pillarSlug}/${service.slug}/demande`}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#00a86b] px-6 font-black text-white shadow-[0_16px_36px_rgba(0,168,107,.22)] transition hover:bg-emerald-700"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#00a86b] px-6 font-black text-white shadow-[0_16px_36px_rgba(0,168,107,.22)] transition hover:bg-[#21c97b]"
               >
                 Créer mon site professionnel <ArrowRight className="h-4 w-4" />
               </Link>
@@ -65,11 +65,11 @@ export default function SiteWebProfessionalPage({ service }: { service: ServiceD
               </a>
             </div>
           </div>
-          <div className="rounded-[2rem] bg-slate-950 p-5 text-white sm:p-7">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="rounded-[2rem] bg-white p-5 text-[var(--kx-text)] sm:p-7">
+            <div className="flex items-center justify-between border-b border-emerald-100 pb-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[.18em] text-emerald-300">Parcours du visiteur</p>
-                <p className="mt-1 text-sm text-slate-400">Comprendre → croire → agir</p>
+                <p className="text-xs font-black uppercase tracking-[.18em] text-emerald-600">Parcours du visiteur</p>
+                <p className="mt-1 text-sm text-[var(--kx-muted)]">Comprendre → croire → agir</p>
               </div>
               <span className="h-3 w-3 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,.8)]" />
             </div>
@@ -79,10 +79,10 @@ export default function SiteWebProfessionalPage({ service }: { service: ServiceD
                 ["02", "Évaluer votre crédibilité", "Réalisations, méthode, équipe et preuves."],
                 ["03", "Choisir la bonne action", "Devis, appel, WhatsApp ou rendez-vous."],
               ].map(([number, title, text]) => (
-                <div key={number} className="rounded-2xl border border-white/10 bg-white/[.05] p-4">
+                <div key={number} className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
                   <div className="flex gap-4">
-                    <span className="font-black text-emerald-300">{number}</span>
-                    <div><strong className="text-sm">{title}</strong><p className="mt-1 text-xs leading-5 text-slate-400">{text}</p></div>
+                    <span className="font-black text-emerald-600">{number}</span>
+                    <div><strong className="text-sm">{title}</strong><p className="mt-1 text-xs leading-5 text-[var(--kx-muted)]">{text}</p></div>
                   </div>
                 </div>
               ))}
@@ -137,11 +137,11 @@ export default function SiteWebProfessionalPage({ service }: { service: ServiceD
         <div>
           <p className="text-xs font-black uppercase tracking-[.2em] text-emerald-700">Livraison</p>
           <h2 className="kx-display mt-4 text-3xl font-semibold tracking-[-.035em] text-slate-950">Ce que vous recevez concrètement.</h2>
-          <div className="mt-7 rounded-[2rem] bg-slate-950 p-6 text-white sm:p-8">
+          <div className="mt-7 rounded-[2rem] bg-white p-6 text-[var(--kx-text)] sm:p-8">
             <ol className="space-y-5">
               {service.deliverables.map((item, index) => (
-                <li key={item} className="flex gap-4 border-b border-white/10 pb-5 last:border-0 last:pb-0">
-                  <span className="font-black text-emerald-300">{String(index + 1).padStart(2, "0")}</span>
+                <li key={item} className="flex gap-4 border-b border-emerald-100 pb-5 last:border-0 last:pb-0">
+                  <span className="font-black text-emerald-600">{String(index + 1).padStart(2, "0")}</span>
                   <span className="text-sm leading-6 text-slate-200">{item}</span>
                 </li>
               ))}
@@ -193,14 +193,14 @@ export default function SiteWebProfessionalPage({ service }: { service: ServiceD
         </div>
       </section>
 
-      <section className="rounded-[2rem] bg-slate-950 px-6 py-10 text-white sm:px-10 lg:px-14">
+      <section className="rounded-[2rem] bg-white px-6 py-10 text-[var(--kx-text)] sm:px-10 lg:px-14">
         <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.2em] text-emerald-300">Votre futur site</p>
+            <p className="text-xs font-black uppercase tracking-[.2em] text-emerald-600">Votre futur site</p>
             <h2 className="kx-display mt-4 text-3xl font-semibold tracking-[-.035em] sm:text-4xl">Commençons par comprendre ce que votre site doit accomplir.</h2>
-            <p className="mt-4 max-w-2xl leading-7 text-slate-300">Le questionnaire dédié nous permet de préparer un premier cadrage autour de votre activité, vos contenus, vos cibles et vos objectifs.</p>
+            <p className="mt-4 max-w-2xl leading-7 text-[var(--kx-muted)]">Le questionnaire dédié nous permet de préparer un premier cadrage autour de votre activité, vos contenus, vos cibles et vos objectifs.</p>
           </div>
-          <Link href={`/services/${service.pillarSlug}/${service.slug}/demande`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#00a86b] px-6 font-black text-white transition hover:bg-emerald-600">
+          <Link href={`/services/${service.pillarSlug}/${service.slug}/demande`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#00a86b] px-6 font-black text-white transition hover:bg-[#21c97b]">
             Remplir le questionnaire <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

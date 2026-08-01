@@ -56,7 +56,7 @@ export default function EcommerceMarketplacePage({ service }: { service: Service
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href={`/services/${service.pillarSlug}/${service.slug}/demande`}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#00a86b] px-6 font-black text-white shadow-[0_16px_36px_rgba(0,168,107,.22)] transition hover:bg-emerald-700"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#00a86b] px-6 font-black text-white shadow-[0_16px_36px_rgba(0,168,107,.22)] transition hover:bg-[#21c97b]"
               >
                 Lancer mon projet e-commerce <ArrowRight className="h-4 w-4" />
               </Link>
@@ -66,13 +66,13 @@ export default function EcommerceMarketplacePage({ service }: { service: Service
             </div>
           </div>
 
-          <div className="rounded-[2rem] bg-slate-950 p-5 text-white sm:p-7">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="rounded-[2rem] bg-white p-5 text-[var(--kx-text)] sm:p-7">
+            <div className="flex items-center justify-between border-b border-emerald-100 pb-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[.18em] text-emerald-300">Tunnel commercial</p>
-                <p className="mt-1 text-sm text-slate-400">Du produit à la commande confirmée</p>
+                <p className="text-xs font-black uppercase tracking-[.18em] text-emerald-600">Tunnel commercial</p>
+                <p className="mt-1 text-sm text-[var(--kx-muted)]">Du produit à la commande confirmée</p>
               </div>
-              <ShoppingCart className="h-6 w-6 text-emerald-300" />
+              <ShoppingCart className="h-6 w-6 text-emerald-600" />
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {[
@@ -81,10 +81,10 @@ export default function EcommerceMarketplacePage({ service }: { service: Service
                 ["03", "Paiement", "Panier, livraison et règlement."],
                 ["04", "Suivi", "Confirmation, statut et support."],
               ].map(([number, title, text]) => (
-                <div key={number} className="rounded-2xl border border-white/10 bg-white/[.05] p-4">
-                  <span className="text-xs font-black text-emerald-300">{number}</span>
+                <div key={number} className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+                  <span className="text-xs font-black text-emerald-600">{number}</span>
                   <strong className="mt-5 block text-sm">{title}</strong>
-                  <p className="mt-1 text-xs leading-5 text-slate-400">{text}</p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--kx-muted)]">{text}</p>
                 </div>
               ))}
             </div>
@@ -128,17 +128,17 @@ export default function EcommerceMarketplacePage({ service }: { service: Service
         </div>
       </section>
 
-      <section className="rounded-[2rem] bg-slate-950 p-6 text-white sm:p-10">
-        <p className="text-xs font-black uppercase tracking-[.2em] text-emerald-300">Chaîne opérationnelle</p>
+      <section className="rounded-[2rem] bg-white p-6 text-[var(--kx-text)] sm:p-10">
+        <p className="text-xs font-black uppercase tracking-[.2em] text-emerald-600">Chaîne opérationnelle</p>
         <h2 className="kx-display mt-4 max-w-3xl text-3xl font-semibold tracking-[-.035em] sm:text-4xl">
           Le front-office et le back-office doivent fonctionner comme un seul système.
         </h2>
         <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {operationalBlocks.map(({ title, text, icon: Icon }) => (
-            <div key={title} className="rounded-2xl border border-white/10 bg-white/[.05] p-5">
-              <Icon className="h-5 w-5 text-emerald-300" />
+            <div key={title} className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5">
+              <Icon className="h-5 w-5 text-emerald-600" />
               <strong className="mt-5 block text-sm">{title}</strong>
-              <p className="mt-2 text-xs leading-5 text-slate-400">{text}</p>
+              <p className="mt-2 text-xs leading-5 text-[var(--kx-muted)]">{text}</p>
             </div>
           ))}
         </div>
@@ -204,14 +204,14 @@ export default function EcommerceMarketplacePage({ service }: { service: Service
         </div>
       </section>
 
-      <section className="rounded-[2rem] bg-slate-950 px-6 py-10 text-white sm:px-10 lg:px-14">
+      <section className="rounded-[2rem] bg-white px-6 py-10 text-[var(--kx-text)] sm:px-10 lg:px-14">
         <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.2em] text-emerald-300">Votre modèle commercial</p>
+            <p className="text-xs font-black uppercase tracking-[.2em] text-emerald-600">Votre modèle commercial</p>
             <h2 className="kx-display mt-4 text-3xl font-semibold tracking-[-.035em] sm:text-4xl">Décrivons les produits, paiements, stocks et opérations avant de parler technologie.</h2>
-            <p className="mt-4 max-w-2xl leading-7 text-slate-300">Le questionnaire dédié prépare un cadrage précis de votre boutique ou marketplace.</p>
+            <p className="mt-4 max-w-2xl leading-7 text-[var(--kx-muted)]">Le questionnaire dédié prépare un cadrage précis de votre boutique ou marketplace.</p>
           </div>
-          <Link href={`/services/${service.pillarSlug}/${service.slug}/demande`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#00a86b] px-6 font-black text-white transition hover:bg-emerald-600">
+          <Link href={`/services/${service.pillarSlug}/${service.slug}/demande`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#00a86b] px-6 font-black text-white transition hover:bg-[#21c97b]">
             Décrire mon projet e-commerce <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
