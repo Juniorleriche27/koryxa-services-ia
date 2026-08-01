@@ -37,9 +37,9 @@ const pwaResetScript = `
 `;
 
 export const metadata: Metadata = {
-  title: "KORYXA",
-  description: "Plateforme d’orchestration IA. Transparence • Équité • Impact.",
-  applicationName: "KORYXA",
+  title: { default: "KORYXA Service IA & Web", template: "%s" },
+  description: "Sites web, applications, intelligence artificielle et automatisations pour les entreprises.",
+  applicationName: "KORYXA Service IA & Web",
   manifest: "/manifest.webmanifest",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://innovaplus.africa"),
   openGraph: {

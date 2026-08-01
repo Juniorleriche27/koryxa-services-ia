@@ -1,45 +1,7 @@
-﻿"use client";
-
 import Link from "next/link";
 import BrandLogo from "@/components/layout/BrandLogo";
-import { IS_V1_SIMPLE } from "@/lib/env";
+import { navItems, pillars } from "@/components/marketing/ServiceMarketing";
 
 export default function Footer() {
-  const year = new Date().getFullYear();
-
-  return (
-    <footer className="border-t border-white/8 bg-slate-950/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-[var(--marketing-max-w)] flex-col gap-5 px-4 py-7 text-xs text-slate-500 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:text-sm">
-        <div className="flex items-center gap-3 text-slate-300">
-          <BrandLogo className="h-12 w-12 rounded-2xl" />
-          <div className="leading-tight">
-            <p className="font-semibold text-white">KORYXA</p>
-            <p className="mt-1 text-xs text-slate-400">
-              {IS_V1_SIMPLE
-                ? "Formation IA, Entreprise et Service IA dans un cadre simple et premium."
-                : "KORYXA, plateforme d'orchestration IA pour cadrer, piloter et activer."}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400 sm:text-sm">
-          <Link href="/services-ia" className="transition hover:text-sky-300">
-            Service IA
-          </Link>
-          <Link href="/about" className="transition hover:text-sky-300">
-            A propos
-          </Link>
-          <Link href="/legal/confidentialite" className="transition hover:text-sky-300">
-            Confidentialite
-          </Link>
-          <Link href="/legal/mentions" className="transition hover:text-sky-300">
-            Mentions legales
-          </Link>
-          <span className="text-slate-600">v1.0.0</span>
-        </div>
-
-        <p className="text-xs text-slate-500 sm:text-sm">Copyright {year} KORYXA. Tous droits reserves.</p>
-      </div>
-    </footer>
-  );
+  return <footer className="mt-20 bg-slate-950 text-white"><div className="mx-auto w-full max-w-[var(--marketing-max-w)] px-4 py-12 sm:px-6 lg:px-8 lg:py-16"><div className="grid gap-10 lg:grid-cols-[1.2fr_1fr_1fr]"><div className="max-w-md"><div className="flex items-center gap-3"><BrandLogo className="h-12 w-12 rounded-2xl" /><div><strong className="block text-xl tracking-[-0.04em]">KORYXA</strong><span className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">Service IA & Web</span></div></div><p className="mt-5 text-sm leading-6 text-slate-400">Nous concevons des sites, applications, systèmes IA et automatisations utiles, élégants et pensés pour durer.</p></div><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Explorer</p><div className="mt-4 grid grid-cols-2 gap-3">{navItems.map(item => <Link className="text-sm text-slate-300 transition hover:text-white" key={item.href} href={item.href}>{item.label}</Link>)}</div></div><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Expertises</p><div className="mt-4 grid gap-3">{pillars.slice(0,4).map(item => <Link className="text-sm text-slate-300 transition hover:text-white" key={item.slug} href={`/services#${item.slug}`}>{item.title}</Link>)}</div></div></div><div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between"><p>© {new Date().getFullYear()} KORYXA. Tous droits réservés.</p><div className="flex gap-5"><Link href="/legal/confidentialite">Confidentialité</Link><Link href="/legal/mentions">Mentions légales</Link></div></div></div></footer>;
 }

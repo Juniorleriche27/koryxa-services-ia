@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 /* Import shared design tokens and utility classes (buttons, chips, container) */
 @import "../styles/globals.css";
@@ -615,3 +615,18 @@ main#content > footer {
   }
 }
 
+
+
+/* KORYXA Service IA & Web — Chantier 1 tokens */
+:root {
+  --marketing-max-w: 1280px;
+  --kx-ink: #020617;
+  --kx-navy: #082f49;
+  --kx-cyan: #22d3ee;
+  --kx-sky: #0ea5e9;
+  --kx-surface: #f8fafc;
+}
+
+html { scroll-behavior: smooth; }
+body { background: var(--kx-surface); }
+::selection { background: rgba(34, 211, 238, .35); color: var(--kx-ink); }
