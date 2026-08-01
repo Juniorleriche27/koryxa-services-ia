@@ -38,6 +38,7 @@ function PublicShell({ children }: { children: ReactNode }) {
       <>
         <main
           id="page-content"
+          tabIndex={-1}
           className={
             isHome
               ? "relative flex-1"
@@ -74,7 +75,7 @@ function ConnectedShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-950 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
       <ConnectedHeader />
-      <main id="page-content" className="px-4 py-4 sm:px-6 lg:px-8">
+      <main id="page-content" tabIndex={-1} className="px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-[var(--app-max-w)]">{children}</div>
       </main>
       <FloatingNav />

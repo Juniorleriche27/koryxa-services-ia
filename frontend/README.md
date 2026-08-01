@@ -1,3 +1,15 @@
+# KORYXA Service IA & Web
+
+Le frontend transmet les formulaires à KORYXA Admin via une route serveur interne.
+
+Configurer cette variable uniquement côté serveur de déploiement :
+
+```bash
+KORYXA_ADMIN_API_URL=https://<domaine-api-koryxa-admin>
+```
+
+Elle ne doit pas être exposée au navigateur ni préfixée par `NEXT_PUBLIC_` en production.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

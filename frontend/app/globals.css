@@ -630,3 +630,38 @@ main#content > footer {
 html { scroll-behavior: smooth; }
 body { background: var(--kx-surface); }
 ::selection { background: rgba(34, 211, 238, .35); color: var(--kx-ink); }
+
+
+/* Chantier 4 — responsive, accessibility and premium UX */
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid rgba(6, 182, 212, 0.75);
+  outline-offset: 3px;
+}
+
+button, [role="button"], summary { -webkit-tap-highlight-color: transparent; }
+button, input, select, textarea { font: inherit; }
+textarea { resize: vertical; }
+summary::-webkit-details-marker { display: none; }
+
+@media (max-width: 430px) {
+  h1, h2, h3 { overflow-wrap: anywhere; }
+  .public-shell { min-width: 0; }
+}
+
+@media (hover: none) {
+  .kx-hover-lift:hover, .kx-glow-card:hover { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@supports (padding: max(0px)) {
+  .public-shell footer { padding-bottom: env(safe-area-inset-bottom); }
+}

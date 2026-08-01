@@ -1,5 +1,5 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Fraunces } from "next/font/google";
 
@@ -41,19 +41,29 @@ export const metadata: Metadata = {
   description: "Sites web, applications, intelligence artificielle et automatisations pour les entreprises.",
   applicationName: "KORYXA Service IA & Web",
   manifest: "/manifest.webmanifest",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://innovaplus.africa"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://services.koryxa.fr"),
   openGraph: {
-    title: "KORYXA",
-    description: "Plateforme d’orchestration IA. Transparence • Équité • Impact.",
+    title: "KORYXA Service IA & Web",
+    description: "Sites web, applications, intelligence artificielle et automatisations pour les entreprises.",
     url: "/",
-    siteName: "KORYXA",
+    siteName: "KORYXA Service IA & Web",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "KORYXA",
-    description: "Plateforme d’orchestration IA. Transparence • Équité • Impact.",
+    title: "KORYXA Service IA & Web",
+    description: "Sites web, applications, intelligence artificielle et automatisations pour les entreprises.",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+  ],
 };
 
 export default async function RootLayout(props: { children: ReactNode }) {
