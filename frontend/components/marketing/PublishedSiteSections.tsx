@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -28,7 +28,7 @@ export function PublishedHero(props: {
           backgroundSize: "28px 28px",
         }}
       />
-      <div aria-hidden className="absolute inset-y-0 right-[-8%] w-48 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.16),transparent_65%)] sm:w-[40%]" />
+      <div aria-hidden className="absolute inset-y-0 right-[-8%] w-48 bg-[radial-gradient(circle_at_center,rgba(55,211,138,0.16),transparent_65%)] sm:w-[40%]" />
       <div className="relative mx-auto w-full max-w-[var(--marketing-max-w)] px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="max-w-4xl">
           <h1 className="kx-display text-[2.35rem] font-semibold leading-[1.02] tracking-[-0.07em] sm:text-5xl lg:text-6xl">{title}</h1>
@@ -42,7 +42,7 @@ export function PublishedHero(props: {
                   className={
                     action.variant === "secondary"
                       ? "inline-flex w-full items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-6 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/16 sm:w-auto sm:px-7 sm:py-4 sm:text-lg"
-                      : "inline-flex w-full items-center justify-center rounded-2xl bg-sky-600 px-6 py-3.5 text-base font-semibold text-white shadow-[0_20px_52px_rgba(2,132,199,0.24)] transition hover:bg-sky-700 sm:w-auto sm:px-7 sm:py-4 sm:text-lg"
+                      : "inline-flex w-full items-center justify-center rounded-2xl bg-sky-600 px-6 py-3.5 text-base font-semibold text-white shadow-[0_20px_52px_rgba(0,139,88,0.24)] transition hover:bg-sky-700 sm:w-auto sm:px-7 sm:py-4 sm:text-lg"
                   }
                 >
                   {action.label}

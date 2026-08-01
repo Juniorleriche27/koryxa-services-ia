@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import clsx from "clsx";
 import Link from "next/link";
@@ -294,7 +294,7 @@ export default function Headbar() {
           <div className="flex items-center gap-3 min-w-0">
             <Link href="/" className="flex items-center gap-3 group">
               <div className="relative">
-                <div className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-500 shadow-[0_18px_34px_rgba(2,132,199,0.24)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_22px_40px_rgba(2,132,199,0.28)]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-500 shadow-[0_18px_34px_rgba(0,139,88,0.24)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_22px_40px_rgba(0,139,88,0.28)]">
                   <span className="text-white font-semibold text-xs">{IS_V1 ? "K" : "AI"}</span>
                 </div>
                 <div className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-emerald-400 ring-4 ring-white/80" />
@@ -331,7 +331,7 @@ export default function Headbar() {
                       className={clsx(
                         NAV_PILL_CLASS,
                         active || productMenuOpen
-                          ? "border-sky-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(224,242,254,0.96))] text-sky-700 shadow-[0_10px_24px_rgba(14,165,233,0.14)]"
+                          ? "border-sky-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(220,247,233,0.96))] text-sky-700 shadow-[0_10px_24px_rgba(0,168,107,0.14)]"
                           : "border-white/80 bg-white/62 text-slate-600 hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white/88 hover:text-sky-700"
                       )}
                     >
@@ -376,7 +376,7 @@ export default function Headbar() {
                   className={clsx(
                     NAV_PILL_CLASS,
                     active 
-                      ? "border-sky-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(224,242,254,0.96))] text-sky-700 shadow-[0_10px_24px_rgba(14,165,233,0.14)]"
+                      ? "border-sky-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(220,247,233,0.96))] text-sky-700 shadow-[0_10px_24px_rgba(0,168,107,0.14)]"
                       : "border-white/80 bg-white/62 text-slate-600 hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white/88 hover:text-sky-700"
                   )}
                 >
@@ -521,7 +521,7 @@ export default function Headbar() {
                 <Link
                   href={CONNECTED_ROUTES.signup}
                   prefetch={false}
-                    className={clsx(CTA_PILL_CLASS, "bg-[linear-gradient(135deg,#0f172a,#0284c7_58%,#38bdf8)] text-white shadow-[0_16px_30px_rgba(2,132,199,0.24)] hover:-translate-y-0.5 hover:brightness-105")}
+                    className={clsx(CTA_PILL_CLASS, "bg-[linear-gradient(135deg,#0f172a,#008b58_58%,#37d38a)] text-white shadow-[0_16px_30px_rgba(0,139,88,0.24)] hover:-translate-y-0.5 hover:brightness-105")}
                 >
                   <IconSparkles className="h-4 w-4" />
                   Créer un compte
@@ -611,7 +611,7 @@ export default function Headbar() {
               </Link>
               <Link
                 href={CONNECTED_ROUTES.signup}
-                className="hidden sm:inline-flex rounded-full bg-[linear-gradient(135deg,#0f172a,#0284c7_58%,#38bdf8)] px-3 py-2 text-[11px] font-semibold text-white shadow-[0_14px_24px_rgba(2,132,199,0.22)]"
+                className="hidden sm:inline-flex rounded-full bg-[linear-gradient(135deg,#0f172a,#008b58_58%,#37d38a)] px-3 py-2 text-[11px] font-semibold text-white shadow-[0_14px_24px_rgba(0,139,88,0.22)]"
               >
                 Créer
               </Link>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -67,7 +67,7 @@ function getFabContext(pathname: string): { Icon: LucideIcon; closedClass: strin
   if (pathname === "/") {
     return {
       Icon: Home,
-      closedClass: "bg-[linear-gradient(135deg,#0284c7_0%,#0ea5e9_60%,#38bdf8_100%)] text-white",
+      closedClass: "bg-[linear-gradient(135deg,#008b58_0%,#00a86b_60%,#37d38a_100%)] text-white",
       label: "Accueil",
     };
   }
@@ -81,7 +81,7 @@ function getFabContext(pathname: string): { Icon: LucideIcon; closedClass: strin
   if (pathname.startsWith("/entreprise")) {
     return {
       Icon: BriefcaseBusiness,
-      closedClass: "bg-[linear-gradient(135deg,#0f172a_0%,#0f3b67_55%,#0284c7_100%)] text-white",
+      closedClass: "bg-[linear-gradient(135deg,#0f172a_0%,#07583a_55%,#008b58_100%)] text-white",
       label: "Entreprise",
     };
   }
@@ -95,14 +95,14 @@ function getFabContext(pathname: string): { Icon: LucideIcon; closedClass: strin
   if (pathname.startsWith("/about") || pathname.startsWith("/a-propos")) {
     return {
       Icon: Info,
-      closedClass: "bg-[linear-gradient(135deg,#0f172a_0%,#1e3a8a_60%,#0284c7_100%)] text-white",
+      closedClass: "bg-[linear-gradient(135deg,#0f172a_0%,#006b43_60%,#008b58_100%)] text-white",
       label: "A propos",
     };
   }
 
   return {
     Icon: Compass,
-    closedClass: "bg-[linear-gradient(135deg,#0284c7_0%,#0ea5e9_60%,#38bdf8_100%)] text-white",
+    closedClass: "bg-[linear-gradient(135deg,#008b58_0%,#00a86b_60%,#37d38a_100%)] text-white",
     label: "Navigation",
   };
 }
@@ -171,7 +171,7 @@ export default function FloatingNav() {
                 className={clsx(
                   "flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-semibold transition",
                   activeGroup === g.id
-                  ? "bg-sky-600 text-white shadow-[0_4px_12px_rgba(2,132,199,0.25)]"
+                  ? "bg-sky-600 text-white shadow-[0_4px_12px_rgba(0,139,88,0.25)]"
                   : "text-slate-500 hover:bg-slate-100 hover:text-slate-800",
               )}
             >
@@ -224,7 +224,7 @@ export default function FloatingNav() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={clsx(
-          "flex h-14 w-14 items-center justify-center rounded-full shadow-[0_8px_30px_rgba(2,132,199,0.30)] transition-all duration-200 hover:scale-105 hover:shadow-[0_12px_36px_rgba(2,132,199,0.38)]",
+          "flex h-14 w-14 items-center justify-center rounded-full shadow-[0_8px_30px_rgba(0,139,88,0.30)] transition-all duration-200 hover:scale-105 hover:shadow-[0_12px_36px_rgba(0,139,88,0.38)]",
           open ? "rotate-45 bg-slate-900 text-white" : fabContext.closedClass,
         )}
         aria-label={open ? "Fermer la navigation" : "Ouvrir la navigation"}

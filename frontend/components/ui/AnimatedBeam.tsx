@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useRef } from "react";
 
 type Props = {
@@ -31,7 +31,7 @@ export default function AnimatedBeam({ className }: Props) {
       ctx.clearRect(0, 0, w, h);
 
       const beams = [
-        { x1: 0, y1: h * 0.3, x2: w, y2: h * 0.7, color: "rgba(56,189,248,0.18)" },
+        { x1: 0, y1: h * 0.3, x2: w, y2: h * 0.7, color: "rgba(55,211,138,0.18)" },
         { x1: w * 0.1, y1: 0, x2: w * 0.9, y2: h, color: "rgba(99,102,241,0.14)" },
       ];
 

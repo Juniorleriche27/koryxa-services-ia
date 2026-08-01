@@ -29,7 +29,7 @@ function PublicShell({ children }: { children: ReactNode }) {
       ) : null}
       {!isHome ? (
         <>
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[460px] bg-[radial-gradient(circle_at_top,rgba(186,230,253,0.58),transparent_62%)] dark:bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.26),transparent_56%)]" aria-hidden />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[460px] bg-[radial-gradient(circle_at_top,rgba(183,245,213,0.58),transparent_62%)] dark:bg-[radial-gradient(circle_at_top,rgba(0,168,107,0.26),transparent_56%)]" aria-hidden />
           <div className="pointer-events-none absolute left-[-120px] top-24 h-64 w-64 rounded-full bg-sky-200/35 blur-3xl dark:bg-sky-500/12" aria-hidden />
           <div className="pointer-events-none absolute bottom-20 right-[-80px] h-72 w-72 rounded-full bg-cyan-200/25 blur-3xl dark:bg-cyan-400/10" aria-hidden />
         </>

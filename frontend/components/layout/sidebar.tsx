@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import clsx from "clsx";
 import Link from "next/link";
@@ -98,7 +98,7 @@ export default function Sidebar({ className, style }: { className?: string; styl
             {collapsed ? "Ouvrir" : "Reduire"}
           </button>
           {!collapsed ? (
-            <div className="mt-3 rounded-[24px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(224,242,254,0.7))] p-4 shadow-sm">
+            <div className="mt-3 rounded-[24px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(220,247,233,0.7))] p-4 shadow-sm">
               <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-sky-700">Navigation</p>
               <p className="mt-2 text-sm font-semibold leading-6 text-slate-900">
                 {IS_V1_SIMPLE
@@ -120,7 +120,7 @@ export default function Sidebar({ className, style }: { className?: string; styl
                 className={clsx(
                   "group flex items-center gap-3 rounded-[22px] px-3 py-3 transition-all duration-200",
                   active
-                    ? "border border-sky-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(224,242,254,0.92))] text-sky-700 shadow-[0_14px_28px_rgba(14,165,233,0.14)]"
+                    ? "border border-sky-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(220,247,233,0.92))] text-sky-700 shadow-[0_14px_28px_rgba(0,168,107,0.14)]"
                     : "text-slate-600 hover:bg-white/88 hover:text-slate-900 hover:shadow-[0_10px_22px_rgba(148,163,184,0.16)]",
                   collapsed && "justify-center px-2",
                 )}
@@ -145,7 +145,7 @@ export default function Sidebar({ className, style }: { className?: string; styl
         <div className="border-t border-slate-200/70 p-4">
           {!collapsed ? (
             <div className="space-y-3">
-              <div className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 to-blue-50 p-3">
+              <div className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 p-3">
                 <div className="mb-2 flex items-center gap-2">
                   <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
                   <span className="text-[11px] font-medium text-slate-700">Systeme actif</span>

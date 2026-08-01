@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 import { SERVICE_IA_BLOCKS, SERVICE_IA_ITEMS, SERVICE_IA_MARKETING_POINTS } from "./data";
@@ -45,7 +45,7 @@ export default function ServicesIaPage() {
               backgroundSize: "28px 28px",
             }}
           />
-          <div aria-hidden className="absolute -right-16 top-0 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(56,189,248,0.2),transparent_65%)]" />
+          <div aria-hidden className="absolute -right-16 top-0 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(55,211,138,0.2),transparent_65%)]" />
 
           <div className="relative mx-auto max-w-4xl">
             <div className="kx-hero-badge-pulse inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">

@@ -10,13 +10,13 @@
   --font-display: "Aptos Display", Bahnschrift, "Trebuchet MS", "Segoe UI", sans-serif;
   --app-max-w: 1200px;
   --marketing-max-w: 1200px;
-  --kx-cyan: #38bdf8;
+  --kx-cyan: #37d38a;
   --kx-indigo: #6366f1;
   --kx-emerald: #10b981;
   --kx-surface: rgba(9, 19, 38, 0.72);
   --kx-surface-strong: rgba(9, 19, 38, 0.9);
-  --kx-border-dark: rgba(56, 189, 248, 0.12);
-  --kx-glow-cyan: rgba(56, 189, 248, 0.28);
+  --kx-border-dark: rgba(55, 211, 138, 0.12);
+  --kx-glow-cyan: rgba(55, 211, 138, 0.28);
   --kx-glow-indigo: rgba(99, 102, 241, 0.24);
   --content-pad: 0px;
   --content-pad-sm: 0px;
@@ -25,7 +25,7 @@
   --topbar-h: 56px;
   --kx-shell-bg:
     radial-gradient(circle at top left, rgba(125, 211, 252, 0.2), transparent 30%),
-    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 24%),
+    radial-gradient(circle at top right, rgba(55, 211, 138, 0.12), transparent 24%),
     linear-gradient(180deg, #f7fbff 0%, #eef4fb 42%, #f5f7fb 100%);
   --kx-shell-grid: rgba(148, 163, 184, 0.16);
   --kx-panel: rgba(255, 255, 255, 0.82);
@@ -39,8 +39,8 @@ html.dark {
   --foreground: #e2e8f0;
   color-scheme: dark;
   --kx-shell-bg:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 26%),
-    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 20%),
+    radial-gradient(circle at top left, rgba(0, 168, 107, 0.18), transparent 26%),
+    radial-gradient(circle at top right, rgba(55, 211, 138, 0.12), transparent 20%),
     linear-gradient(180deg, #020617 0%, #07111f 42%, #0b1323 100%);
   --kx-shell-grid: rgba(30, 41, 59, 0.5);
   --kx-panel: rgba(9, 19, 38, 0.8);
@@ -95,7 +95,7 @@ a {
 }
 
 html.dark ::selection {
-  background: rgba(56, 189, 248, 0.28);
+  background: rgba(55, 211, 138, 0.28);
 }
 
 /* Sidebar scrollbars (discrets) */
@@ -199,7 +199,7 @@ main#content > footer {
   top: -14%;
   height: 340px;
   width: 340px;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.28), transparent 68%);
+  background: radial-gradient(circle, rgba(55, 211, 138, 0.28), transparent 68%);
   animation: kx-orb-drift-a 18s ease-in-out infinite;
 }
 
@@ -226,7 +226,7 @@ main#content > footer {
   bottom: -10%;
   height: 280px;
   width: 280px;
-  background: radial-gradient(circle, rgba(14, 165, 233, 0.16), transparent 68%);
+  background: radial-gradient(circle, rgba(0, 168, 107, 0.16), transparent 68%);
   animation: kx-orb-drift-d 24s ease-in-out infinite;
 }
 
@@ -275,8 +275,8 @@ main#content > footer {
   height: 6px;
   width: 6px;
   border-radius: 9999px;
-  background: rgba(186, 230, 253, 0.68);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+  background: rgba(183, 245, 213, 0.68);
+  box-shadow: 0 0 12px rgba(55, 211, 138, 0.6);
   animation: kx-particle-float ease-in-out infinite;
 }
 
@@ -297,7 +297,7 @@ main#content > footer {
 }
 
 .kx-title-gradient-loop {
-  background-image: linear-gradient(92deg, #38bdf8 0%, #8b5cf6 42%, #22c55e 84%, #38bdf8 100%);
+  background-image: linear-gradient(92deg, #37d38a 0%, #8b5cf6 42%, #22c55e 84%, #37d38a 100%);
   background-size: 220% 220%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -349,11 +349,11 @@ main#content > footer {
   0%,
   100% {
     transform: scale(1);
-    box-shadow: 0 0 0 rgba(56, 189, 248, 0);
+    box-shadow: 0 0 0 rgba(55, 211, 138, 0);
   }
   50% {
     transform: scale(1.03);
-    box-shadow: 0 0 24px rgba(56, 189, 248, 0.34);
+    box-shadow: 0 0 24px rgba(55, 211, 138, 0.34);
   }
 }
 
@@ -397,11 +397,11 @@ main#content > footer {
   0%,
   100% {
     border-color: rgba(71, 85, 105, 0.8);
-    box-shadow: 0 0 0 rgba(56, 189, 248, 0);
+    box-shadow: 0 0 0 rgba(55, 211, 138, 0);
   }
   50% {
-    border-color: rgba(56, 189, 248, 0.7);
-    box-shadow: 0 0 28px rgba(56, 189, 248, 0.22);
+    border-color: rgba(55, 211, 138, 0.7);
+    box-shadow: 0 0 28px rgba(55, 211, 138, 0.22);
   }
 }
 
@@ -443,10 +443,10 @@ main#content > footer {
 @keyframes kx-cta-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 rgba(14, 165, 233, 0);
+    box-shadow: 0 0 0 rgba(0, 168, 107, 0);
   }
   50% {
-    box-shadow: 0 0 34px rgba(14, 165, 233, 0.44);
+    box-shadow: 0 0 34px rgba(0, 168, 107, 0.44);
   }
 }
 
@@ -560,14 +560,14 @@ main#content > footer {
 
 .kx-glow-card {
   position: relative;
-  border: 1px solid rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(55, 211, 138, 0.14);
   background: linear-gradient(160deg, rgba(9, 19, 38, 0.82), rgba(3, 10, 26, 0.7));
   backdrop-filter: blur(12px);
   transition: border-color 280ms ease, box-shadow 280ms ease, transform 280ms ease;
 }
 .kx-glow-card:hover {
-  border-color: rgba(56, 189, 248, 0.38);
-  box-shadow: 0 0 40px rgba(56, 189, 248, 0.14), 0 24px 48px rgba(2, 6, 23, 0.5);
+  border-color: rgba(55, 211, 138, 0.38);
+  box-shadow: 0 0 40px rgba(55, 211, 138, 0.14), 0 24px 48px rgba(2, 6, 23, 0.5);
   transform: translateY(-3px);
 }
 
@@ -621,20 +621,46 @@ main#content > footer {
 :root {
   --marketing-max-w: 1280px;
   --kx-ink: #020617;
-  --kx-navy: #082f49;
-  --kx-cyan: #22d3ee;
-  --kx-sky: #0ea5e9;
-  --kx-surface: #f8fafc;
+  --kx-navy: #006b43;
+  --kx-cyan: #00a86b;
+  --kx-sky: #37d38a;
+  --kx-surface: #f7fcf9;
+
+  /* Palette officielle de la plateforme mère KORYXA. Les écrans historiques
+     utilisent les familles Tailwind cyan/sky : elles héritent désormais toutes
+     de la même identité verte, sans divergence entre les parcours. */
+  --color-cyan-50: #f2fbf6;
+  --color-cyan-100: #dcf7e9;
+  --color-cyan-200: #b7f5d5;
+  --color-cyan-300: #7be8b4;
+  --color-cyan-400: #37d38a;
+  --color-cyan-500: #00a86b;
+  --color-cyan-600: #008b58;
+  --color-cyan-700: #006b43;
+  --color-cyan-800: #07583a;
+  --color-cyan-900: #06472f;
+  --color-cyan-950: #03291c;
+  --color-sky-50: #f2fbf6;
+  --color-sky-100: #dcf7e9;
+  --color-sky-200: #b7f5d5;
+  --color-sky-300: #7be8b4;
+  --color-sky-400: #37d38a;
+  --color-sky-500: #00a86b;
+  --color-sky-600: #008b58;
+  --color-sky-700: #006b43;
+  --color-sky-800: #07583a;
+  --color-sky-900: #06472f;
+  --color-sky-950: #03291c;
 }
 
 html { scroll-behavior: smooth; }
 body { background: var(--kx-surface); }
-::selection { background: rgba(34, 211, 238, .35); color: var(--kx-ink); }
+::selection { background: rgba(0, 168, 107, .28); color: var(--kx-ink); }
 
 
 /* Chantier 4 — responsive, accessibility and premium UX */
 :where(a, button, input, select, textarea, summary):focus-visible {
-  outline: 3px solid rgba(6, 182, 212, 0.75);
+  outline: 3px solid rgba(0, 168, 107, 0.72);
   outline-offset: 3px;
 }
 

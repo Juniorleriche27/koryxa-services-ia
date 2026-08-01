@@ -31,7 +31,7 @@ export default function LiveSignalBars() {
           <div className="text-xs font-semibold text-slate-500">{value}%</div>
           <div className="relative flex h-48 w-full items-end overflow-hidden rounded-2xl border border-sky-100 bg-slate-100 px-2 py-2">
             <div
-              className="w-full rounded-xl bg-[linear-gradient(180deg,#38bdf8_0%,#0284c7_58%,#0f172a_100%)] shadow-[0_8px_18px_rgba(2,132,199,0.24)] transition-all duration-700"
+              className="w-full rounded-xl bg-[linear-gradient(180deg,#37d38a_0%,#008b58_58%,#0f172a_100%)] shadow-[0_8px_18px_rgba(0,139,88,0.24)] transition-all duration-700"
               style={{ height: `${value}%` }}
             />
           </div>

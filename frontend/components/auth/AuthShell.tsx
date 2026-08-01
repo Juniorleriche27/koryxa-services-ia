@@ -31,9 +31,9 @@ export function AuthShell({
 }: AuthShellProps) {
   return (
     <main className="relative min-h-[calc(100vh-88px)] overflow-hidden px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.14),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(15,23,42,0.12),transparent_32%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(0,168,107,0.14),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(15,23,42,0.12),transparent_32%)]" />
       <div className="relative mx-auto grid w-full max-w-6xl overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/92 shadow-[0_24px_70px_rgba(15,23,42,0.10)] backdrop-blur sm:rounded-[32px] xl:grid-cols-[1.05fr_0.95fr]">
-        <section className="order-2 min-w-0 relative overflow-hidden bg-[linear-gradient(155deg,#0f172a_0%,#0f3b67_45%,#0284c7_100%)] px-5 py-6 text-white sm:px-10 sm:py-10 xl:order-1">
+        <section className="order-2 min-w-0 relative overflow-hidden bg-[linear-gradient(155deg,#0f172a_0%,#07583a_45%,#008b58_100%)] px-5 py-6 text-white sm:px-10 sm:py-10 xl:order-1">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_30%)]" />
           <div className="relative min-w-0">
             <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-100 sm:tracking-[0.26em]">

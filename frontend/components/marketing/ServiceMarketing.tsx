@@ -40,7 +40,7 @@ export function SectionHeading({ eyebrow, title, text, align = "left" }: { eyebr
 
 export function PillarGrid() {
   return <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{pillars.map(({ slug, title, description, icon: Icon }, index) => (
-    <Link key={slug} href={`/services/${slug}`} className="group relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition duration-300 hover:-translate-y-1 hover:border-cyan-300 hover:shadow-[0_28px_70px_rgba(8,145,178,0.14)] sm:p-7">
+    <Link key={slug} href={`/services/${slug}`} className="group relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition duration-300 hover:-translate-y-1 hover:border-cyan-300 hover:shadow-[0_28px_70px_rgba(0,139,88,0.14)] sm:p-7">
       <div className="flex items-start justify-between gap-4"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-cyan-300"><Icon className="h-5 w-5" /></span><span className="text-xs font-bold text-slate-300">0{index + 1}</span></div>
       <h3 className="mt-8 text-xl font-semibold tracking-[-0.03em] text-slate-950">{title}</h3>
       <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>

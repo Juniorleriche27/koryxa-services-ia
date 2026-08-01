@@ -33,7 +33,7 @@ export function FunnelStepStrip(props: {
             aria-current={isCurrent ? "step" : undefined}
             className={`rounded-[26px] border px-4 py-4 transition ${
               isCurrent
-                ? "border-sky-300 bg-sky-50/90 shadow-[0_16px_36px_rgba(14,165,233,0.12)]"
+                ? "border-sky-300 bg-sky-50/90 shadow-[0_16px_36px_rgba(0,168,107,0.12)]"
                 : isDone
                   ? "border-emerald-200 bg-emerald-50/80"
                   : "border-slate-200 bg-white/92"
@@ -79,14 +79,14 @@ export function FunnelOptionButton(props: {
       aria-checked={active}
       className={`group relative w-full overflow-hidden rounded-[18px] border px-3.5 py-2.5 text-left transition-all duration-200 ${
         active
-          ? "border-sky-400 bg-[linear-gradient(180deg,rgba(239,246,255,1),rgba(255,255,255,1))] shadow-[0_14px_28px_rgba(14,165,233,0.16)] ring-2 ring-sky-200"
+          ? "border-sky-400 bg-[linear-gradient(180deg,rgba(239,246,255,1),rgba(255,255,255,1))] shadow-[0_14px_28px_rgba(0,168,107,0.16)] ring-2 ring-sky-200"
           : "border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,1))] shadow-[0_8px_18px_rgba(148,163,184,0.07)] hover:border-sky-200 hover:shadow-[0_12px_24px_rgba(148,163,184,0.12)]"
       }`}
     >
       <span
         className={`absolute right-3 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border transition ${
           active
-            ? "border-sky-500 bg-sky-600 text-white shadow-[0_0_0_4px_rgba(186,230,253,0.9)]"
+            ? "border-sky-500 bg-sky-600 text-white shadow-[0_0_0_4px_rgba(183,245,213,0.9)]"
             : "border-slate-200 bg-white text-transparent group-hover:border-sky-200"
         }`}
       >
@@ -117,7 +117,7 @@ export function FunnelProgressPanel(props: {
 
   return (
     <aside className="grid gap-4 lg:sticky lg:top-24">
-      <section className="overflow-hidden rounded-[32px] border border-slate-900/80 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.16),transparent_34%),linear-gradient(180deg,#020617_0%,#0f172a_100%)] p-6 text-white shadow-[0_28px_70px_rgba(2,6,23,0.36)] sm:p-7">
+      <section className="overflow-hidden rounded-[32px] border border-slate-900/80 bg-[radial-gradient(circle_at_top_left,rgba(55,211,138,0.16),transparent_34%),linear-gradient(180deg,#020617_0%,#0f172a_100%)] p-6 text-white shadow-[0_28px_70px_rgba(2,6,23,0.36)] sm:p-7">
         <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200">{eyebrow}</p>
         <h1 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-[2rem]">{title}</h1>
         <p className="mt-3 text-sm leading-7 text-slate-300">{description}</p>
@@ -131,7 +131,7 @@ export function FunnelProgressPanel(props: {
           </div>
           <div className="mt-3 h-2 rounded-full bg-white/10">
             <div
-              className="h-2 rounded-full bg-[linear-gradient(90deg,#38bdf8,#7dd3fc)] transition-all duration-300"
+              className="h-2 rounded-full bg-[linear-gradient(90deg,#37d38a,#7be8b4)] transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>

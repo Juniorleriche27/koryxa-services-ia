@@ -256,7 +256,7 @@ export default function ServiceIaFunnelClient({ serviceSlug }: Props) {
 
       <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
         <div
-          className="h-full rounded-full bg-[linear-gradient(90deg,#0284c7,#38bdf8)] transition-all"
+          className="h-full rounded-full bg-[linear-gradient(90deg,#008b58,#37d38a)] transition-all"
           style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
         />
       </div>
