@@ -15,4 +15,4 @@ npm install
 npm run dev
 ```
 
-Ce dépôt est la maison autonome du produit Services IA.
+Ce dépôt héberge le produit autonome KORYXA Service IA & Web.
