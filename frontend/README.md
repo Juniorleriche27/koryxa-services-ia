@@ -1,5 +1,7 @@
 # KORYXA Service IA & Web
 
+Direction visuelle : identité KORYXA claire, verte et blanche, avec typographies Playfair/DM Sans, micro-interactions et animations sobres.
+
 Le frontend transmet les formulaires à KORYXA Admin via une route serveur interne.
 
 Configurer cette variable uniquement côté serveur de déploiement :
