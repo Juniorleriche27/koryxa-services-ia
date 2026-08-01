@@ -5,7 +5,7 @@ Produit autonome **Services IA** de l'écosystème KORYXA.
 ## Contenu
 
 - `frontend/` — interface Next.js extraite du site KORYXA.
-- Pages principales : `/services-ia`, `/services-ia/[slug]`, `/services-ia/demande`, `/services-ia/confirmation`.
+- Pages principales : `/services`, `/services/[pillar]`, `/services/[pillar]/[service]`.
 
 ## Démarrage
 
