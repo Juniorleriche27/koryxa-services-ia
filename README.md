@@ -15,4 +15,4 @@ npm install
 npm run dev
 ```
 
-Ce dépôt devient la maison autonome du produit Services IA.
+Ce dépôt est la maison autonome du produit Services IA.
