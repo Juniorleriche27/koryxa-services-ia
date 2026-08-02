@@ -1,4 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_SERVICE_IA_API_URL ?? "http://localhost:8080/api/v1";
+// The browser only calls the same-origin gateway. Trusted identity headers and
+// the backend secret are added server-side after KORYXA Identity validation.
+const API_BASE = "/api/service-ia";
 
 export class ServiceIaApiError extends Error {
   constructor(message: string, public status: number) {
@@ -6,23 +8,11 @@ export class ServiceIaApiError extends Error {
   }
 }
 
-function identityHeaders(): HeadersInit {
-  if (typeof document === "undefined") return {};
-  const tenant = document.documentElement.dataset.tenantId;
-  const user = document.documentElement.dataset.userId;
-  return {
-    "X-Tenant-ID": tenant || "demo-tenant",
-    "X-User-ID": user || "demo-user",
-    "X-Koryxa-Source": "koryxa-services-ia",
-  };
-}
-
 export async function serviceIaFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const isForm = init.body instanceof FormData;
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
-      ...identityHeaders(),
       ...(isForm ? {} : { "Content-Type": "application/json" }),
       ...init.headers,
     },
