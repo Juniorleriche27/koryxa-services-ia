@@ -1,1 +1,2 @@
-import { RegisterPage } from "@/components/app/RegisterPage"; import { procedures } from "@/lib/service-ia/demo"; export default function Page(){return <RegisterPage eyebrow="Registre" title="Procédures" description="Formalisez les méthodes de travail, responsables et dates de révision." items={procedures} cta="Nouvelle procédure"/>}
+import { LiveRegister } from "@/components/app/LiveData";
+export default function Page(){return <LiveRegister kind="procedures"/>}

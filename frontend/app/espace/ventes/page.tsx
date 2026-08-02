@@ -1,1 +1,2 @@
-import { RegisterPage } from "@/components/app/RegisterPage"; import { sales } from "@/lib/service-ia/demo"; export default function Page(){return <RegisterPage eyebrow="Registre" title="Ventes" description="Suivez les ventes, les paiements et les informations à compléter." items={sales} cta="Nouvelle vente"/>}
+import { LiveRegister } from "@/components/app/LiveData";
+export default function Page(){return <LiveRegister kind="sales"/>}
