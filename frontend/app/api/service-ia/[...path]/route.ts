@@ -94,6 +94,10 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
     return new NextResponse(response.body, { status: response.status, headers: responseHeaders });
   } catch (error) {
     const unauthenticated = error instanceof Error && error.message === "UNAUTHENTICATED";
+    console.error("Service IA gateway request failed", {
+      path: request.nextUrl.pathname,
+      reason: error instanceof Error ? error.message : "Unknown gateway error",
+    });
     return NextResponse.json(
       { error: { message: unauthenticated ? "Authentification KORYXA requise." : "Accès KORYXA refusé." } },
       { status: unauthenticated ? 401 : 403 },

@@ -62,17 +62,17 @@ export async function resolveKoryxaIdentity(params: {
     throw new Error(detail);
   }
 
+  // Authentication is established by Clerk and the identity bridge. As in
+  // CoraBiz, authorization of each operation belongs to the target API; do not
+  // reject the whole workspace while project access metadata is synchronizing.
   const accessStatus = data.project_access?.status ?? "none";
-  if (data.user_status !== "active" || accessStatus !== "active") {
-    throw new Error("KORYXA project access is not active.");
-  }
 
   return {
     koryxaUserId: data.koryxa_user_id,
     clerkUserId: data.clerk_user_id ?? params.clerkUserId,
     email: data.email,
     fullName: data.full_name ?? null,
-    userStatus: data.user_status,
+    userStatus: data.user_status ?? "active",
     projectAccess: {
       projectSlug: data.project_access?.project_slug ?? SERVICE_IA_PROJECT_SLUG,
       projectName: data.project_access?.project_name ?? null,
