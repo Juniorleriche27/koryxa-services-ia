@@ -9,6 +9,10 @@ export default function RouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
 
+  if (pathname === "/espace" || pathname.startsWith("/espace/")) {
+    return children;
+  }
+
   return (
     <div className="public-shell relative flex min-h-screen flex-col overflow-x-clip bg-[var(--kx-page)] text-slate-950">
       <PublicHeader />
