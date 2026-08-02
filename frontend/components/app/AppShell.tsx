@@ -41,15 +41,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [organization, setOrganization] = useState("Organisation KORYXA");
+  const [organization, setOrganization] = useState<{ name:string; logo_updated_at?:string|null }>({name:"Organisation KORYXA"});
   const { user } = useUser();
   const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress || "Compte KORYXA";
   const initials = userName.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
   const context = pageContext[pathname] ?? pageContext["/espace"];
   useEffect(() => {
-    serviceIaFetch<{ name: string }>("/organizations/current")
-      .then(data => setOrganization(data.name))
-      .catch(() => setOrganization("Organisation à configurer"));
+    const load=()=>serviceIaFetch<{ name:string; logo_updated_at?:string|null }>("/organizations/current")
+      .then(setOrganization)
+      .catch(() => setOrganization({name:"Organisation à configurer"}));
+    void load();
+    const updated=(event:Event)=>setOrganization((event as CustomEvent<{name:string;logo_updated_at?:string|null}>).detail);
+    window.addEventListener("koryxa:organization-updated",updated);
+    return()=>window.removeEventListener("koryxa:organization-updated",updated);
   }, []);
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("koryxa:sidebar-collapsed") === "true");
@@ -63,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <aside className={clsx("app-sidebar", open && "is-open")}>
       <div className="app-brand"><span className="app-brand-mark">K</span><div><strong>KORYXA</strong><small>Service IA</small></div><button className="app-icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Fermer le menu"><X size={20}/></button></div>
       <button className="app-sidebar-toggle desktop-only" onClick={toggleCollapsed} aria-label={collapsed ? "Déployer la barre latérale" : "Réduire la barre latérale"} title={collapsed ? "Déployer" : "Réduire"}>{collapsed?<PanelLeftOpen size={18}/>:<PanelLeftClose size={18}/>}</button>
-      <div className="app-company"><span>Entreprise</span><strong>{organization}</strong><small>Espace opérationnel</small></div>
+      <div className="app-company">{organization.logo_updated_at?<img className="app-company-logo" src={`/api/service-ia/organizations/current/logo?v=${encodeURIComponent(organization.logo_updated_at)}`} alt=""/>:null}<div><span>Entreprise</span><strong>{organization.name}</strong><small>Espace opérationnel</small></div></div>
       <nav aria-label="Navigation principale">
         {navigation.map(([label, href, Icon]) => <Link key={href} href={href} onClick={() => setOpen(false)} title={collapsed?label:undefined} className={clsx("app-nav-link", pathname === href && "is-active")}><Icon size={18}/><span>{label}</span></Link>)}
       </nav>

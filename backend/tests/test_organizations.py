@@ -27,3 +27,46 @@ def test_other_tenant_cannot_read_organization() -> None:
     with TestClient(app) as client:
         response = client.get("/api/v1/organizations/current", headers=headers)
     assert response.status_code == 404
+
+
+def test_owner_can_update_name_and_logo() -> None:
+    webp = b"RIFF" + (4).to_bytes(4, "little") + b"WEBP" + b"test"
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/v1/organizations",
+            headers=OWNER_HEADERS,
+            json={"name": "Ancien nom", "slug": "entreprise-branding"},
+        )
+        assert created.status_code == 201
+        updated = client.patch(
+            "/api/v1/organizations/current",
+            headers=OWNER_HEADERS,
+            json={"name": "Nouveau nom"},
+        )
+        logo = client.post(
+            "/api/v1/organizations/current/logo",
+            headers=OWNER_HEADERS,
+            files={"file": ("logo.webp", webp, "image/webp")},
+        )
+        downloaded = client.get("/api/v1/organizations/current/logo", headers=OWNER_HEADERS)
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "Nouveau nom"
+    assert logo.status_code == 200
+    assert logo.json()["logo_updated_at"] is not None
+    assert downloaded.status_code == 200
+    assert downloaded.content == webp
+
+
+def test_logo_rejects_non_image_content() -> None:
+    with TestClient(app) as client:
+        client.post(
+            "/api/v1/organizations",
+            headers=OWNER_HEADERS,
+            json={"name": "Entreprise logo", "slug": "entreprise-invalid-logo"},
+        )
+        response = client.post(
+            "/api/v1/organizations/current/logo",
+            headers=OWNER_HEADERS,
+            files={"file": ("logo.webp", b"not-an-image", "image/webp")},
+        )
+    assert response.status_code == 400

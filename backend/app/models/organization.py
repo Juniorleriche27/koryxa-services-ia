@@ -17,6 +17,9 @@ class Organization(Base):
     name: Mapped[str] = mapped_column(String(180), nullable=False)
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    logo_storage_key: Mapped[str | None] = mapped_column(String(500))
+    logo_content_type: Mapped[str | None] = mapped_column(String(100))
+    logo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by_user_id: Mapped[str] = mapped_column(String(128), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
