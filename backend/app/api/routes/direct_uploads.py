@@ -54,8 +54,11 @@ async def authorize_upload(
     }
     token, expires_at = DirectUploadTokenService().create(claims)
     route_name = "direct_import_upload" if data.kind == "import" else "direct_attachment_upload"
+    upload_url = str(request.url_for(route_name))
+    if get_settings().environment == "production" and upload_url.startswith("http://"):
+        upload_url = f"https://{upload_url.removeprefix('http://')}"
     return UploadAuthorizationRead(
-        upload_url=str(request.url_for(route_name)),
+        upload_url=upload_url,
         token=token,
         expires_at=datetime.fromtimestamp(expires_at, UTC),
     )
