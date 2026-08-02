@@ -8,7 +8,7 @@ from app.core.identity import KoryxaIdentity
 from app.models.member import MemberRole, OrganizationMember
 from app.models.organization import Organization
 from app.core.config import get_settings
-from app.schemas.organizations import OrganizationCreate, OrganizationUpdate
+from app.schemas.organizations import OrganizationCreate, OrganizationOnboarding, OrganizationUpdate
 from app.storage.local import LocalFileStorage
 
 LOGO_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -62,6 +62,23 @@ class OrganizationService:
         self, session: AsyncSession, organization: Organization, data: OrganizationUpdate
     ) -> Organization:
         organization.name = data.name.strip()
+        await session.commit()
+        await session.refresh(organization)
+        return organization
+
+    async def complete_onboarding(
+        self,
+        session: AsyncSession,
+        organization: Organization,
+        data: OrganizationOnboarding,
+    ) -> Organization:
+        organization.name = data.name.strip()
+        organization.sector = data.sector.strip() if data.sector else None
+        organization.country = data.country.strip() if data.country else None
+        organization.responsible_name = data.responsible_name.strip()
+        organization.responsible_role = data.responsible_role.strip()
+        organization.primary_goal = data.primary_goal
+        organization.onboarding_completed_at = datetime.now(UTC)
         await session.commit()
         await session.refresh(organization)
         return organization

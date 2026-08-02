@@ -20,6 +20,12 @@ class Organization(Base):
     logo_storage_key: Mapped[str | None] = mapped_column(String(500))
     logo_content_type: Mapped[str | None] = mapped_column(String(100))
     logo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sector: Mapped[str | None] = mapped_column(String(120))
+    country: Mapped[str | None] = mapped_column(String(120))
+    responsible_name: Mapped[str | None] = mapped_column(String(180))
+    responsible_role: Mapped[str | None] = mapped_column(String(120))
+    primary_goal: Mapped[str | None] = mapped_column(String(50))
+    onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by_user_id: Mapped[str] = mapped_column(String(128), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

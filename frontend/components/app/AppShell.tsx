@@ -8,6 +8,7 @@ import clsx from "clsx";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
+import { OrganizationOnboarding } from "./OrganizationOnboarding";
 
 const navigation = [
   ["Vue d’ensemble", "/espace", LayoutDashboard],
@@ -41,15 +42,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [organization, setOrganization] = useState<{ name:string; logo_updated_at?:string|null }>({name:"Organisation KORYXA"});
+  const [organization, setOrganization] = useState<{ name:string; logo_updated_at?:string|null; onboarding_completed_at?:string|null; created_by_user_id?:string }>({name:"Organisation KORYXA"});
+  const [organizationLoaded, setOrganizationLoaded] = useState(false);
   const { user } = useUser();
   const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress || "Compte KORYXA";
   const initials = userName.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
   const context = pageContext[pathname] ?? pageContext["/espace"];
   useEffect(() => {
-    const load=()=>serviceIaFetch<{ name:string; logo_updated_at?:string|null }>("/organizations/current")
+    const load=()=>serviceIaFetch<{ name:string; logo_updated_at?:string|null; onboarding_completed_at?:string|null; created_by_user_id?:string }>("/organizations/current")
       .then(setOrganization)
-      .catch(() => setOrganization({name:"Organisation à configurer"}));
+      .catch(() => setOrganization({name:"Organisation à configurer"}))
+      .finally(() => setOrganizationLoaded(true));
     void load();
     const updated=(event:Event)=>setOrganization((event as CustomEvent<{name:string;logo_updated_at?:string|null}>).detail);
     window.addEventListener("koryxa:organization-updated",updated);
@@ -63,7 +66,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.localStorage.setItem("koryxa:sidebar-collapsed", String(next));
     return next;
   });
+  const onboardingRequired = organizationLoaded && Boolean(user?.id) && organization.created_by_user_id === user?.id && !organization.onboarding_completed_at;
   return <div className={clsx("app-shell", collapsed && "is-sidebar-collapsed")}>
+    {onboardingRequired && <OrganizationOnboarding
+      organization={organization}
+      onComplete={updated => setOrganization(current => ({...current, ...updated}))}
+    />}
     <aside className={clsx("app-sidebar", open && "is-open")}>
       <div className="app-brand"><span className="app-brand-mark">K</span><div><strong>KORYXA</strong><small>Service IA</small></div><button className="app-icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Fermer le menu"><X size={20}/></button></div>
       <button className="app-sidebar-toggle desktop-only" onClick={toggleCollapsed} aria-label={collapsed ? "Déployer la barre latérale" : "Réduire la barre latérale"} title={collapsed ? "Déployer" : "Réduire"}>{collapsed?<PanelLeftOpen size={18}/>:<PanelLeftClose size={18}/>}</button>

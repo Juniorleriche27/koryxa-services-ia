@@ -70,3 +70,29 @@ def test_logo_rejects_non_image_content() -> None:
             files={"file": ("logo.webp", b"not-an-image", "image/webp")},
         )
     assert response.status_code == 400
+
+
+def test_owner_can_complete_organization_onboarding() -> None:
+    with TestClient(app) as client:
+        client.post(
+            "/api/v1/organizations",
+            headers=OWNER_HEADERS,
+            json={"name": "Entreprise à configurer", "slug": "entreprise-onboarding"},
+        )
+        response = client.post(
+            "/api/v1/organizations/current/onboarding",
+            headers=OWNER_HEADERS,
+            json={
+                "name": "Atelier Lumière",
+                "sector": "Architecture",
+                "country": "France",
+                "responsible_name": "Aminata Diallo",
+                "responsible_role": "Gérante",
+                "primary_goal": "documents",
+            },
+        )
+    assert response.status_code == 200
+    assert response.json()["name"] == "Atelier Lumière"
+    assert response.json()["responsible_name"] == "Aminata Diallo"
+    assert response.json()["primary_goal"] == "documents"
+    assert response.json()["onboarding_completed_at"] is not None

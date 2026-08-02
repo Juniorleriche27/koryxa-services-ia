@@ -9,7 +9,12 @@ from app.core.permissions import get_current_member, get_current_organization, r
 from app.db.session import get_session
 from app.models.member import OrganizationMember
 from app.models.organization import Organization
-from app.schemas.organizations import OrganizationCreate, OrganizationRead, OrganizationUpdate
+from app.schemas.organizations import (
+    OrganizationCreate,
+    OrganizationOnboarding,
+    OrganizationRead,
+    OrganizationUpdate,
+)
 from app.services.organizations import OrganizationService
 
 router = APIRouter()
@@ -37,6 +42,16 @@ async def update_current_organization(
     data: OrganizationUpdate, session: SessionDep, organization: OrganizationDep, _: ManageDep
 ) -> Organization:
     return await OrganizationService().update(session, organization, data)
+
+
+@router.post("/current/onboarding", response_model=OrganizationRead)
+async def complete_current_organization_onboarding(
+    data: OrganizationOnboarding,
+    session: SessionDep,
+    organization: OrganizationDep,
+    _: ManageDep,
+) -> Organization:
+    return await OrganizationService().complete_onboarding(session, organization, data)
 
 
 @router.post("/current/logo", response_model=OrganizationRead)
