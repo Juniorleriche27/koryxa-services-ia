@@ -18,7 +18,8 @@ class Settings(BaseSettings):
         default_factory=lambda: ["koryxa-gateway", "koryxa-admin", "koryxa-services-ia"]
     )
     file_storage_path: str = "storage/files"
-    max_upload_bytes: int = 10_485_760
+    max_upload_bytes: int = 104_857_600
+    proxy_secret: str = "change-me"
     knowlia_base_url: str = "http://localhost:8093"
     knowlia_timeout_seconds: float = 30.0
 

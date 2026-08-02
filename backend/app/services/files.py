@@ -10,6 +10,11 @@ from app.models.imports import Attachment
 from app.models.registers import Offer, Procedure, Sale
 from app.storage.local import LocalFileStorage
 
+ALLOWED_DOCUMENT_EXTENSIONS = {
+    "csv", "doc", "docx", "jpeg", "jpg", "json", "pdf", "png", "ppt", "pptx",
+    "txt", "webp", "xls", "xlsx", "zip",
+}
+
 
 class FileService:
     def __init__(self) -> None:
@@ -28,7 +33,14 @@ class FileService:
     ) -> Attachment:
         settings = get_settings()
         if len(content) > settings.max_upload_bytes:
-            raise ApplicationError("file_too_large", "Fichier trop volumineux", 413)
+            raise ApplicationError("file_too_large", "Le fichier dépasse la limite de 100 Mo", 413)
+        extension = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
+        if extension not in ALLOWED_DOCUMENT_EXTENSIONS or not self._has_valid_signature(extension, content):
+            raise ApplicationError(
+                "unsupported_file",
+                "Format non accepté ou contenu du fichier invalide",
+                415,
+            )
         await self._ensure_record_exists(
             session,
             organization_id,
@@ -50,6 +62,28 @@ class FileService:
         await session.commit()
         await session.refresh(attachment)
         return attachment
+
+    @staticmethod
+    def _has_valid_signature(extension: str, content: bytes) -> bool:
+        if not content:
+            return False
+        signatures = {
+            "pdf": lambda value: value.startswith(b"%PDF"),
+            "png": lambda value: value.startswith(b"\x89PNG\r\n\x1a\n"),
+            "jpg": lambda value: value.startswith(b"\xff\xd8\xff"),
+            "jpeg": lambda value: value.startswith(b"\xff\xd8\xff"),
+            "webp": lambda value: len(value) >= 12 and value[:4] == b"RIFF" and value[8:12] == b"WEBP",
+        }
+        if extension in signatures:
+            return signatures[extension](content)
+        if extension in {"docx", "xlsx", "pptx", "zip"}:
+            return content.startswith(b"PK\x03\x04")
+        if extension in {"doc", "xls", "ppt"}:
+            return content.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1")
+        if extension in {"csv", "json", "txt"}:
+            sample = content[:4096]
+            return b"\x00" not in sample
+        return False
 
     async def list(
         self,

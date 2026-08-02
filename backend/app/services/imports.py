@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
@@ -49,9 +50,19 @@ REQUIRED = {
 class ImportService:
     def parse(self, filename: str, content: bytes) -> list[dict[str, object]]:
         extension = filename.lower().rsplit(".", 1)[-1]
-        if extension == "csv":
+        if extension in {"csv", "tsv"}:
             text = content.decode("utf-8-sig")
-            return [dict(row) for row in csv.DictReader(io.StringIO(text))]
+            delimiter = "\t" if extension == "tsv" else ","
+            return [dict(row) for row in csv.DictReader(io.StringIO(text), delimiter=delimiter)]
+        if extension == "json":
+            payload = json.loads(content.decode("utf-8-sig"))
+            if not isinstance(payload, list) or not all(isinstance(row, dict) for row in payload):
+                raise ApplicationError(
+                    "invalid_json",
+                    "Le JSON doit contenir une liste d’objets",
+                    422,
+                )
+            return payload
         if extension == "xlsx":
             workbook = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
             worksheet = workbook.active
@@ -64,7 +75,7 @@ class ImportService:
             ]
         raise ApplicationError(
             "unsupported_file",
-            "Seuls les fichiers CSV et XLSX sont acceptés",
+            "Seuls les fichiers CSV, TSV, XLSX et JSON sont acceptés",
             415,
         )
 

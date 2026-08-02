@@ -103,7 +103,7 @@ def test_attachment_is_linked_to_current_tenant_record() -> None:
             "/api/v1/imports/attachments",
             headers=owner,
             data={"register_type": "offers", "record_id": offer_id},
-            files={"file": ("brochure.pdf", b"PDF demo", "application/pdf")},
+            files={"file": ("brochure.pdf", b"%PDF-1.7 demo", "application/pdf")},
         )
         assert uploaded.status_code == 200
         assert uploaded.json()["filename"] == "brochure.pdf"
@@ -122,3 +122,39 @@ def test_attachment_is_linked_to_current_tenant_record() -> None:
             params={"register_type": "offers", "record_id": offer_id},
         )
         assert hidden.status_code == 404
+
+
+def test_direct_upload_token_supports_tsv_import() -> None:
+    with TestClient(app) as client:
+        owner = create_org(client, "tenant-direct-import", "owner-direct-import")
+        authorization = client.post(
+            "/api/v1/direct-uploads/authorize",
+            headers=owner,
+            json={"kind": "import", "register_type": "offers"},
+        )
+        assert authorization.status_code == 200
+        payload = authorization.json()
+        preview = client.post(
+            payload["upload_url"],
+            data={"token": payload["token"]},
+            files={"file": ("offres.tsv", b"nom\tprix\nAudit\t2500\n", "text/tab-separated-values")},
+        )
+    assert preview.status_code == 200
+    assert preview.json()["row_count"] == 1
+    assert preview.json()["suggested_mapping"]["nom"] == "name"
+
+
+def test_direct_upload_rejects_tampered_token() -> None:
+    with TestClient(app) as client:
+        owner = create_org(client, "tenant-direct-invalid", "owner-direct-invalid")
+        authorization = client.post(
+            "/api/v1/direct-uploads/authorize",
+            headers=owner,
+            json={"kind": "import", "register_type": "offers"},
+        ).json()
+        response = client.post(
+            authorization["upload_url"],
+            data={"token": f"{authorization['token']}invalid"},
+            files={"file": ("offres.csv", b"nom\nAudit\n", "text/csv")},
+        )
+    assert response.status_code == 401
