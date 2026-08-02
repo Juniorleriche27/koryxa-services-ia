@@ -8,6 +8,7 @@ import clsx from "clsx";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
+import BrandLogo from "@/components/layout/BrandLogo";
 import { OrganizationOnboarding } from "./OrganizationOnboarding";
 
 const navigation = [
@@ -73,7 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       onComplete={updated => setOrganization(current => ({...current, ...updated}))}
     />}
     <aside className={clsx("app-sidebar", open && "is-open")}>
-      <div className="app-brand"><span className="app-brand-mark">K</span><div><strong>KORYXA</strong><small>Service IA</small></div><button className="app-icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Fermer le menu"><X size={20}/></button></div>
+      <div className="app-brand"><BrandLogo className="app-brand-logo"/><div><strong>KORYXA</strong><small>Service IA & Web</small></div><button className="app-icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Fermer le menu"><X size={20}/></button></div>
       <button className="app-sidebar-toggle desktop-only" onClick={toggleCollapsed} aria-label={collapsed ? "Déployer la barre latérale" : "Réduire la barre latérale"} title={collapsed ? "Déployer" : "Réduire"}>{collapsed?<PanelLeftOpen size={18}/>:<PanelLeftClose size={18}/>}</button>
       <div className="app-company">{organization.logo_updated_at?<img className="app-company-logo" src={`/api/service-ia/organizations/current/logo?v=${encodeURIComponent(organization.logo_updated_at)}`} alt=""/>:null}<div><span>Entreprise</span><strong>{organization.name}</strong><small>Espace opérationnel</small></div></div>
       <nav aria-label="Navigation principale">

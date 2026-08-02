@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { compressOrganizationLogo } from "@/lib/images/compressOrganizationLogo";
 import { serviceIaFetch } from "@/lib/service-ia/api";
+import BrandLogo from "@/components/layout/BrandLogo";
 
 export type OnboardingOrganization = {
   name: string;
@@ -91,7 +92,7 @@ export function OrganizationOnboarding({
   return <div className="onboarding-backdrop" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
     <section className="onboarding-card">
       <header className="onboarding-head">
-        <div className="onboarding-brand"><span>K</span><div><strong>KORYXA</strong><small>Mémoire opérationnelle</small></div></div>
+        <div className="onboarding-brand"><BrandLogo className="onboarding-brand-logo"/><div><strong>KORYXA</strong><small>Mémoire opérationnelle</small></div></div>
         <div className="onboarding-progress"><span>Étape {step} sur 3</span><div>{[1, 2, 3].map(item => <i key={item} className={item <= step ? "is-done" : ""}/>)}</div></div>
       </header>
 
