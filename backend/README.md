@@ -120,3 +120,17 @@ Le contexte KORYXA, l'identifiant de requête et les permissions Knowlia sont pr
 Radar applique des règles explicables et configurables sur les offres, ventes et procédures. Chaque exécution produit des scores de complétude, fraîcheur, cohérence et traçabilité, ainsi que des alertes persistées avec priorité, preuves, recommandation et niveau de confiance.
 
 Les doublons restent des suspicions soumises à validation humaine. Les écarts documentaires ne sont évalués que lorsqu'une donnée structurée provenant d'un document existe.
+
+### Validations, actions et audit
+
+- `POST /api/v1/workflow/validations`
+- `GET /api/v1/workflow/validations`
+- `POST /api/v1/workflow/validations/{validation_id}/decision`
+- `POST /api/v1/workflow/actions`
+- `GET /api/v1/workflow/actions`
+- `PATCH /api/v1/workflow/actions/{action_id}`
+- `POST /api/v1/workflow/actions/{action_id}/comments`
+- `GET /api/v1/workflow/actions/{action_id}/comments`
+- `GET /api/v1/workflow/audit`
+
+Les validations humaines permettent d'accepter, corriger ou rejeter une proposition en conservant l'ancienne valeur, la valeur proposée, la source, le décideur, la justification et la date. Une alerte Radar peut être transformée en action corrective avec responsable, échéance, priorité, commentaires et preuve de résolution. La clôture d'une action liée résout l'alerte correspondante.

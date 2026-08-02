@@ -19,9 +19,18 @@ from app.models.registers import (
     RecordStatus,
     Sale,
 )
+from app.models.workflow import (
+    ActionComment,
+    AuditEvent,
+    CorrectiveAction,
+    ValidationRequest,
+)
 
 __all__ = [
+    "ActionComment",
     "Attachment",
+    "AuditEvent",
+    "CorrectiveAction",
     "ImportJob",
     "ImportStatus",
     "InvitationStatus",
@@ -44,4 +53,5 @@ __all__ = [
     "RecordSource",
     "RecordStatus",
     "Sale",
+    "ValidationRequest",
 ]
