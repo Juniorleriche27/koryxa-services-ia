@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, CircleUserRound, Menu, X } from "lucide-react";
+import { ChevronDown, CircleUserRound, LayoutGrid, Menu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import BrandLogo from "@/components/layout/BrandLogo";
 import { navItems, pillars } from "@/components/marketing/ServiceMarketing";
@@ -50,8 +50,12 @@ export default function PublicHeader() {
         </div> : <Link key={item.href} href={item.href} className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200 ${active(item.href) ? "bg-white text-[var(--kx-text)]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"}`}>{item.label}</Link>)}
       </nav>
       <div className="ml-auto hidden items-center gap-2 lg:flex">
-        <Link href="/espace" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200" aria-label="Se connecter ou ouvrir mon espace KORYXA"><CircleUserRound className="h-5 w-5" /> Mon espace</Link>
         <Link href="/demarrer-un-projet" className="inline-flex min-h-11 items-center justify-center rounded-full bg-emerald-400 px-5 text-sm font-bold text-slate-950 shadow-[0_14px_32px_rgba(55,211,138,0.22)] transition hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200">Démarrer un projet</Link>
+        <Link href="/espace" className="inline-flex min-h-11 items-center gap-3 rounded-full border border-slate-200 bg-white py-1.5 pl-4 pr-2 text-sm font-bold text-slate-800 shadow-sm transition hover:border-emerald-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200" aria-label="Se connecter ou ouvrir mon espace KORYXA">
+          <LayoutGrid className="h-4 w-4" />
+          <span>Mon espace</span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><CircleUserRound className="h-5 w-5" /></span>
+        </Link>
       </div>
       <button onClick={() => setOpen(!open)} className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200 lg:hidden" aria-expanded={open} aria-controls="mobile-navigation" aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}>{open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</button>
     </div>
