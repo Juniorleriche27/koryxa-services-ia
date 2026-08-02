@@ -80,3 +80,14 @@ Les invitations n'ajoutent aucun mot de passe local. Elles rattachent un utilisa
 - `GET /api/v1/registers/{type}/{id}/history`
 
 Les listes prennent en charge la recherche, les filtres et la pagination. Toutes les requêtes restent isolées par organisation et tenant KORYXA.
+
+### Import, export et fichiers
+
+- `POST /api/v1/imports/preview`
+- `POST /api/v1/imports/{job_id}/confirm`
+- `POST /api/v1/imports/{job_id}/rollback`
+- `GET /api/v1/imports/export/{register_type}`
+- `POST /api/v1/imports/attachments`
+- `GET /api/v1/imports/attachments`
+
+Les imports acceptent CSV et XLSX, proposent une correspondance de colonnes, affichent un aperçu, signalent les doublons probables et produisent un rapport d'erreurs. Les pièces jointes utilisent une abstraction de stockage locale configurable et restent isolées par tenant.

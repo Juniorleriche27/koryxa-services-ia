@@ -1,3 +1,4 @@
+from app.models.imports import Attachment, ImportJob, ImportStatus
 from app.models.invitation import InvitationStatus, OrganizationInvitation
 from app.models.member import MemberRole, MemberStatus, OrganizationMember
 from app.models.organization import Organization
@@ -13,6 +14,9 @@ from app.models.registers import (
 )
 
 __all__ = [
+    "Attachment",
+    "ImportJob",
+    "ImportStatus",
     "InvitationStatus",
     "MemberRole",
     "MemberStatus",

@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://service_ia:change-me@localhost:5432/service_ia"
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
     require_koryxa_context: bool = True
+    file_storage_path: str = "storage/files"
+    max_upload_bytes: int = 10_485_760
 
 
 @lru_cache
