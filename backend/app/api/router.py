@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     health,
+    direct_uploads,
     identity,
     imports,
     invitations,
@@ -23,6 +24,7 @@ api_router.include_router(invitations.router, prefix="/invitations", tags=["invi
 api_router.include_router(registers.router, prefix="/registers", tags=["registers"])
 
 api_router.include_router(imports.router, prefix="/imports", tags=["imports-files"])
+api_router.include_router(direct_uploads.router, prefix="/direct-uploads", tags=["direct-uploads"])
 
 api_router.include_router(knowlia.router, prefix="/knowlia", tags=["knowlia"])
 
