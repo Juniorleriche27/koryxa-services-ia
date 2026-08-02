@@ -61,3 +61,22 @@ docker compose up --build
 - `POST /api/v1/invitations/accept`
 
 Les invitations n'ajoutent aucun mot de passe local. Elles rattachent un utilisateur déjà authentifié par KORYXA au tenant concerné.
+
+### Registres métier
+
+- `POST /api/v1/registers/offers`
+- `GET /api/v1/registers/offers`
+- `GET /api/v1/registers/offers/{id}`
+- `PATCH /api/v1/registers/offers/{id}`
+- `POST /api/v1/registers/sales`
+- `GET /api/v1/registers/sales`
+- `GET /api/v1/registers/sales/{id}`
+- `PATCH /api/v1/registers/sales/{id}`
+- `POST /api/v1/registers/procedures`
+- `GET /api/v1/registers/procedures`
+- `GET /api/v1/registers/procedures/{id}`
+- `PATCH /api/v1/registers/procedures/{id}`
+- `POST /api/v1/registers/{type}/{id}/archive`
+- `GET /api/v1/registers/{type}/{id}/history`
+
+Les listes prennent en charge la recherche, les filtres et la pagination. Toutes les requêtes restent isolées par organisation et tenant KORYXA.

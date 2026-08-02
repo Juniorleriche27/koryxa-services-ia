@@ -24,12 +24,21 @@ ROLE_PERMISSIONS: dict[MemberRole, frozenset[str]] = {
             "members:read",
             "members:manage",
             "invitations:manage",
+            "registers:read",
+            "registers:manage",
         }
     ),
     MemberRole.MANAGER: frozenset(
-        {"organization:read", "members:read", "members:manage", "invitations:manage"}
+        {
+            "organization:read",
+            "members:read",
+            "members:manage",
+            "invitations:manage",
+            "registers:read",
+            "registers:manage",
+        }
     ),
-    MemberRole.CONTRIBUTOR: frozenset({"organization:read", "members:read"}),
+    MemberRole.CONTRIBUTOR: frozenset({"organization:read", "members:read", "registers:read"}),
 }
 
 
