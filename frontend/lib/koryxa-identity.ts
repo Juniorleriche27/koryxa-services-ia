@@ -1,4 +1,5 @@
-export const SERVICE_IA_PROJECT_SLUG = "koryxa-services-ia";
+// This must match the canonical project slug stored in KORYXA Admin.
+export const SERVICE_IA_PROJECT_SLUG = "service-ia";
 
 export type KoryxaIdentity = {
   koryxaUserId: string;
