@@ -1,5 +1,6 @@
 from app.models.imports import Attachment, ImportJob, ImportStatus
 from app.models.invitation import InvitationStatus, OrganizationInvitation
+from app.models.knowlia import KnowliaSyncJob, KnowliaSyncStatus
 from app.models.member import MemberRole, MemberStatus, OrganizationMember
 from app.models.organization import Organization
 from app.models.registers import (
@@ -18,6 +19,8 @@ __all__ = [
     "ImportJob",
     "ImportStatus",
     "InvitationStatus",
+    "KnowliaSyncJob",
+    "KnowliaSyncStatus",
     "MemberRole",
     "MemberStatus",
     "Offer",

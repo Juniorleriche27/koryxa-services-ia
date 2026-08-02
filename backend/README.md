@@ -91,3 +91,19 @@ Les listes prennent en charge la recherche, les filtres et la pagination. Toutes
 - `GET /api/v1/imports/attachments`
 
 Les imports acceptent CSV et XLSX, proposent une correspondance de colonnes, affichent un aperçu, signalent les doublons probables et produisent un rapport d'erreurs. Les pièces jointes utilisent une abstraction de stockage locale configurable et restent isolées par tenant.
+
+### Connecteur Knowlia
+
+- `POST /api/v1/knowlia/sync`
+- `GET /api/v1/knowlia/sync/{sync_id}`
+- `POST /api/v1/knowlia/sync/{sync_id}/refresh`
+- `POST /api/v1/knowlia/sync/{sync_id}/retry`
+
+Le connecteur utilise le contrat réel de Knowlia : enregistrement d'une référence OpenCloud via `/v1/documents/opencloud-references`, puis lancement et suivi de l'ingestion via `/v1/documents/{document_id}/ingestions`.
+
+Configuration :
+
+- `SERVICE_IA_KNOWLIA_BASE_URL`
+- `SERVICE_IA_KNOWLIA_TIMEOUT_SECONDS`
+
+Le contexte KORYXA, l'identifiant de requête et les permissions Knowlia sont propagés côté serveur. Les synchronisations utilisent une clé d'idempotence, un journal d'état, un compteur de tentatives et une reprise contrôlée.

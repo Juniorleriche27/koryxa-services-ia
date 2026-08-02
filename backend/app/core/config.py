@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     require_koryxa_context: bool = True
     file_storage_path: str = "storage/files"
     max_upload_bytes: int = 10_485_760
+    knowlia_base_url: str = "http://localhost:8093"
+    knowlia_timeout_seconds: float = 30.0
 
 
 @lru_cache
