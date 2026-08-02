@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, Building2, FileCheck2, FileSpreadsheet, FolderSync, LayoutDashboard, Menu, Radar, ReceiptText, Settings, Tag, X, Zap } from "lucide-react";
 import clsx from "clsx";
-import { useUser } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 
@@ -42,11 +42,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav aria-label="Navigation principale">
         {navigation.map(([label, href, Icon]) => <Link key={href} href={href} onClick={() => setOpen(false)} className={clsx("app-nav-link", pathname === href && "is-active")}><Icon size={18}/><span>{label}</span></Link>)}
       </nav>
-      <div className="app-sidebar-foot"><div className="app-user-avatar">{initials}</div><div><strong>{userName}</strong><small>Compte KORYXA</small></div></div>
+      <div className="app-sidebar-foot"><div className="app-user-avatar">{user?.imageUrl ? <img src={user.imageUrl} alt="" className="h-full w-full rounded-full object-cover" /> : initials}</div><div><strong>{userName}</strong><small>Compte KORYXA</small></div></div>
     </aside>
     {open && <button className="app-overlay" aria-label="Fermer le menu" onClick={() => setOpen(false)}/>} 
     <main className="app-main">
-      <header className="app-topbar"><button className="app-icon-button mobile-only" onClick={() => setOpen(true)} aria-label="Ouvrir le menu"><Menu size={21}/></button><div><span className="app-eyebrow">Mémoire opérationnelle</span><strong>Registre + Radar</strong></div><div className="app-topbar-actions"><span className="app-live"><i/>API connectée</span><button className="app-avatar-button">{initials}</button></div></header>
+      <header className="app-topbar"><button className="app-icon-button mobile-only" onClick={() => setOpen(true)} aria-label="Ouvrir le menu"><Menu size={21}/></button><div><span className="app-eyebrow">Mémoire opérationnelle</span><strong>Registre + Radar</strong></div><div className="app-topbar-actions"><span className="app-live"><i/>API connectée</span><UserButton appearance={{elements:{avatarBox:"h-11 w-11"}}}/></div></header>
       <div className="app-content">{children}</div>
     </main>
   </div>
