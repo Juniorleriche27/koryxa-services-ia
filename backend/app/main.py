@@ -11,7 +11,8 @@ from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware
-from app.db.session import dispose_engine
+from app.db.base import Base
+from app.db.session import dispose_engine, engine
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -20,6 +21,9 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    if settings.environment == "test":
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
     logger.info("service_started", environment=settings.environment)
     yield
     await dispose_engine()

@@ -40,10 +40,24 @@ mypy app
 docker compose up --build
 ```
 
-## Endpoints de fondation
+## Endpoints disponibles
+
+### Fondations
 
 - `GET /api/v1/health/live`
 - `GET /api/v1/health/ready`
 - `GET /api/v1/context/me`
 
-Les modules métier seront ajoutés dans les chantiers suivants.
+### Organisations et membres
+
+- `POST /api/v1/organizations`
+- `GET /api/v1/organizations/current`
+- `GET /api/v1/members`
+- `PATCH /api/v1/members/{member_id}/role`
+- `PATCH /api/v1/members/{member_id}/status`
+- `POST /api/v1/invitations`
+- `GET /api/v1/invitations`
+- `POST /api/v1/invitations/{invitation_id}/revoke`
+- `POST /api/v1/invitations/accept`
+
+Les invitations n'ajoutent aucun mot de passe local. Elles rattachent un utilisateur déjà authentifié par KORYXA au tenant concerné.
