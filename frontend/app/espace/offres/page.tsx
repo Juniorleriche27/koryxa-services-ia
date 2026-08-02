@@ -1,0 +1,1 @@
+import { RegisterPage } from "@/components/app/RegisterPage"; import { offers } from "@/lib/service-ia/demo"; export default function Page(){return <RegisterPage eyebrow="Registre" title="Offres & tarifs" description="Conservez un tarif officiel, ses conditions et sa période de validité." items={offers} cta="Nouvelle offre"/>}
