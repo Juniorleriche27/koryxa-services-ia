@@ -23,6 +23,7 @@ type NextConfigWithTurbopack = NextConfig & {
 };
 
 const nextConfig: NextConfigWithTurbopack = {
+  output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
 

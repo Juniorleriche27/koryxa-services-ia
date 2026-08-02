@@ -36,6 +36,12 @@ async def require_koryxa_identity(
             detail="Contexte d'identité KORYXA manquant",
         )
 
+    if settings.environment == "production" and source not in settings.trusted_proxy_sources:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Source KORYXA non approuvée",
+        )
+
     parsed_permissions = frozenset(
         item.strip() for item in (permissions or "").split(",") if item.strip()
     )

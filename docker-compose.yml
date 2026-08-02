@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: service_ia
+      POSTGRES_USER: service_ia
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-before-production}
+    volumes:
+      - service_ia_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U service_ia -d service_ia"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      SERVICE_IA_ENVIRONMENT: production
+      SERVICE_IA_DATABASE_URL: postgresql+asyncpg://service_ia:${POSTGRES_PASSWORD:-change-me-before-production}@postgres:5432/service_ia
+      SERVICE_IA_CORS_ORIGINS: '["${FRONTEND_ORIGIN:-http://localhost:3000}"]'
+      SERVICE_IA_TRUSTED_PROXY_SOURCES: '["koryxa-gateway","koryxa-admin","koryxa-services-ia"]'
+      SERVICE_IA_KNOWLIA_BASE_URL: ${KNOWLIA_BASE_URL:-http://host.docker.internal:8093}
+      SERVICE_IA_FILE_STORAGE_PATH: /data/files
+    volumes:
+      - service_ia_files:/data/files
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/v1/health/live')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_SERVICE_IA_API_URL: ${PUBLIC_API_URL:-http://localhost:8080/api/v1}
+    environment:
+      NEXT_PUBLIC_SERVICE_IA_API_URL: ${PUBLIC_API_URL:-http://localhost:8080/api/v1}
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/espace"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  service_ia_postgres:
+  service_ia_files:
