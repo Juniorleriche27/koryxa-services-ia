@@ -51,13 +51,40 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
     for (const [key, value] of request.headers) {
       if (!BLOCKED_REQUEST_HEADERS.has(key.toLowerCase())) headers.set(key, value);
     }
-    headers.set("X-Tenant-ID", identity.projectAccess.projectSlug);
+    const tenantId = `service-ia-${identity.koryxaUserId}`;
+    headers.set("X-Tenant-ID", tenantId);
     headers.set("X-User-ID", identity.koryxaUserId);
     headers.set("X-Koryxa-Source", "koryxa-services-ia");
     headers.set("X-Koryxa-Auth-Provider", "koryxa-identity");
     headers.set("X-Koryxa-Role", identity.projectAccess.role || "member");
     headers.set("X-Koryxa-Permissions", "service-ia:read,service-ia:write");
     headers.set("X-Koryxa-Proxy-Secret", proxySecret);
+
+    // A newly authorized KORYXA user does not yet have a local Service IA
+    // organization. Provision one idempotently before serving the application.
+    const organizationResponse = await fetch(`${apiBase}/organizations/current`, {
+      headers,
+      cache: "no-store",
+    });
+    if (organizationResponse.status === 404) {
+      const provisionHeaders = new Headers(headers);
+      provisionHeaders.set("content-type", "application/json");
+      const slugSuffix = identity.koryxaUserId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const provisionResponse = await fetch(`${apiBase}/organizations`, {
+        method: "POST",
+        headers: provisionHeaders,
+        body: JSON.stringify({
+          name: identity.fullName?.trim() || identity.email.split("@")[0] || "Organisation KORYXA",
+          slug: `service-ia-${slugSuffix}`.slice(0, 100),
+        }),
+        cache: "no-store",
+      });
+      if (!provisionResponse.ok && provisionResponse.status !== 409) {
+        throw new Error(`Service IA provisioning responded with ${provisionResponse.status}`);
+      }
+    } else if (!organizationResponse.ok) {
+      throw new Error(`Service IA organization check responded with ${organizationResponse.status}`);
+    }
 
     const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
     const response = await fetch(target, { method: request.method, headers, body, cache: "no-store" });
