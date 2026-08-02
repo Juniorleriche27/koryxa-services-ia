@@ -1,25 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { koryxaAdminApiUrl } from "@/lib/koryxa-admin-url";
+
 const REQUEST_TIMEOUT_MS = 15_000;
 
-function getAdminApiBase(): string | null {
-  const value = (
-    process.env.KORYXA_ADMIN_API_URL ||
-    process.env.NEXT_PUBLIC_KORYXA_ADMIN_API_URL ||
-    ""
-  ).trim();
-  return value ? value.replace(/\/+$/, "") : null;
-}
-
 export async function POST(request: Request) {
-  const apiBase = getAdminApiBase();
-  if (!apiBase) {
-    return NextResponse.json(
-      { detail: "Le service de réception KORYXA Admin n’est pas configuré." },
-      { status: 503 },
-    );
-  }
-
   let payload: unknown;
   try {
     payload = await request.json();
@@ -31,7 +16,7 @@ export async function POST(request: Request) {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${apiBase}/api/v1/service-ia/requests`, {
+    const response = await fetch(koryxaAdminApiUrl("service-ia/requests"), {
       method: "POST",
       headers: {
         Accept: "application/json",

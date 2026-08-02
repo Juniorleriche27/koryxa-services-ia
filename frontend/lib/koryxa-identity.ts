@@ -1,4 +1,6 @@
 // This must match the canonical project slug stored in KORYXA Admin.
+import { koryxaAdminApiUrl } from "@/lib/koryxa-admin-url";
+
 export const SERVICE_IA_PROJECT_SLUG = "service-ia";
 
 export type KoryxaIdentity = {
@@ -36,11 +38,10 @@ export async function resolveKoryxaIdentity(params: {
   email: string;
   fullName?: string | null;
 }): Promise<KoryxaIdentity> {
-  const apiUrl = (process.env.KORYXA_ADMIN_API_URL || "").trim().replace(/\/$/, "");
   const bridgeKey = (process.env.KORYXA_IDENTITY_BRIDGE_KEY || "").trim();
-  if (!apiUrl || !bridgeKey) throw new Error("KORYXA Identity bridge is not configured.");
+  if (!bridgeKey) throw new Error("KORYXA Identity bridge is not configured.");
 
-  const response = await fetch(`${apiUrl}/api/v1/identity/resolve`, {
+  const response = await fetch(koryxaAdminApiUrl("identity/resolve"), {
     method: "POST",
     headers: {
       Accept: "application/json",
