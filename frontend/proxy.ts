@@ -2,14 +2,19 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const isPrivatePage = createRouteMatcher(["/espace(.*)"]);
-const isPrivateApi = createRouteMatcher(["/api/service-ia/(?!requests(?:/|$))(.*)"]);
+const isServiceIaApi = createRouteMatcher(["/api/service-ia(.*)"]);
+
+function isPublicProjectRequest(pathname: string) {
+  return pathname === "/api/service-ia/requests" || pathname.startsWith("/api/service-ia/requests/");
+}
 
 export default clerkMiddleware(async (auth, request) => {
-  if (!isPrivatePage(request) && !isPrivateApi(request)) return;
+  const isPrivateApi = isServiceIaApi(request) && !isPublicProjectRequest(request.nextUrl.pathname);
+  if (!isPrivatePage(request) && !isPrivateApi) return;
   const { userId } = await auth();
   if (userId) return;
 
-  if (isPrivateApi(request)) {
+  if (isPrivateApi) {
     return NextResponse.json({ error: { message: "Authentification KORYXA requise." } }, { status: 401 });
   }
 
