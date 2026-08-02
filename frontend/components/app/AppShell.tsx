@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Building2, FileCheck2, FileSpreadsheet, FolderSync, LayoutDashboard, Menu, Radar, ReceiptText, Settings, Tag, X, Zap } from "lucide-react";
+import { Activity, Building2, FileCheck2, FileSpreadsheet, FolderSync, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Radar, ReceiptText, Settings, Tag, X, Zap } from "lucide-react";
 import clsx from "clsx";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
@@ -26,6 +26,7 @@ const navigation = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [organization, setOrganization] = useState("Organisation KORYXA");
   const { user } = useUser();
   const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress || "Compte KORYXA";
@@ -35,12 +36,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       .then(data => setOrganization(data.name))
       .catch(() => setOrganization("Organisation à configurer"));
   }, []);
-  return <div className="app-shell">
+  useEffect(() => {
+    setCollapsed(window.localStorage.getItem("koryxa:sidebar-collapsed") === "true");
+  }, []);
+  const toggleCollapsed = () => setCollapsed(value => {
+    const next = !value;
+    window.localStorage.setItem("koryxa:sidebar-collapsed", String(next));
+    return next;
+  });
+  return <div className={clsx("app-shell", collapsed && "is-sidebar-collapsed")}>
     <aside className={clsx("app-sidebar", open && "is-open")}>
       <div className="app-brand"><span className="app-brand-mark">K</span><div><strong>KORYXA</strong><small>Service IA</small></div><button className="app-icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Fermer le menu"><X size={20}/></button></div>
+      <button className="app-sidebar-toggle desktop-only" onClick={toggleCollapsed} aria-label={collapsed ? "Déployer la barre latérale" : "Réduire la barre latérale"} title={collapsed ? "Déployer" : "Réduire"}>{collapsed?<PanelLeftOpen size={18}/>:<PanelLeftClose size={18}/>}</button>
       <div className="app-company"><span>Entreprise</span><strong>{organization}</strong><small>Espace opérationnel</small></div>
       <nav aria-label="Navigation principale">
-        {navigation.map(([label, href, Icon]) => <Link key={href} href={href} onClick={() => setOpen(false)} className={clsx("app-nav-link", pathname === href && "is-active")}><Icon size={18}/><span>{label}</span></Link>)}
+        {navigation.map(([label, href, Icon]) => <Link key={href} href={href} onClick={() => setOpen(false)} title={collapsed?label:undefined} className={clsx("app-nav-link", pathname === href && "is-active")}><Icon size={18}/><span>{label}</span></Link>)}
       </nav>
       <div className="app-sidebar-foot"><div className="app-user-avatar">{user?.imageUrl ? <img src={user.imageUrl} alt="" className="h-full w-full rounded-full object-cover" /> : initials}</div><div><strong>{userName}</strong><small>Compte KORYXA</small></div></div>
     </aside>
