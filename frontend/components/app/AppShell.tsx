@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Building2, FileCheck2, FileSpreadsheet, FolderSync, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Radar, ReceiptText, Settings, Tag, X, Zap } from "lucide-react";
+import { Activity, Building2, ExternalLink, FileCheck2, FileSpreadsheet, FolderSync, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Radar, ReceiptText, Settings, Tag, X, Zap } from "lucide-react";
 import clsx from "clsx";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
@@ -23,6 +23,20 @@ const navigation = [
   ["Paramètres", "/espace/parametres", Settings],
 ] as const;
 
+const pageContext: Record<string, { eyebrow: string; description: string }> = {
+  "/espace": { eyebrow: "Mémoire opérationnelle", description: "Pilotez l’essentiel de votre entreprise" },
+  "/espace/offres": { eyebrow: "Offres & tarifs", description: "Centralisez ce que vous vendez et à quel prix" },
+  "/espace/ventes": { eyebrow: "Suivi commercial", description: "Suivez vos ventes et vos encaissements" },
+  "/espace/procedures": { eyebrow: "Méthodes de travail", description: "Formalisez la façon dont votre entreprise fonctionne" },
+  "/espace/imports": { eyebrow: "Reprise de données", description: "Importez vos informations existantes en toute simplicité" },
+  "/espace/documents": { eyebrow: "Documents utiles", description: "Rassemblez les preuves et fichiers de votre activité" },
+  "/espace/radar": { eyebrow: "Qualité des informations", description: "Repérez ce qui manque, vieillit ou doit être vérifié" },
+  "/espace/validations": { eyebrow: "Contrôle humain", description: "Confirmez les corrections avant leur application" },
+  "/espace/actions": { eyebrow: "Amélioration continue", description: "Transformez les constats en actions concrètes" },
+  "/espace/organisation": { eyebrow: "Équipe", description: "Gérez les membres et leurs responsabilités" },
+  "/espace/parametres": { eyebrow: "Configuration", description: "Adaptez les contrôles aux besoins de votre entreprise" },
+};
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -31,6 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress || "Compte KORYXA";
   const initials = userName.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
+  const context = pageContext[pathname] ?? pageContext["/espace"];
   useEffect(() => {
     serviceIaFetch<{ name: string }>("/organizations/current")
       .then(data => setOrganization(data.name))
@@ -56,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </aside>
     {open && <button className="app-overlay" aria-label="Fermer le menu" onClick={() => setOpen(false)}/>} 
     <main className="app-main">
-      <header className="app-topbar"><button className="app-icon-button mobile-only" onClick={() => setOpen(true)} aria-label="Ouvrir le menu"><Menu size={21}/></button><div><span className="app-eyebrow">Mémoire opérationnelle</span><strong>Registre + Radar</strong></div><div className="app-topbar-actions"><span className="app-live"><i/>API connectée</span><UserButton appearance={{elements:{avatarBox:"h-11 w-11"}}}/></div></header>
+      <header className="app-topbar"><button className="app-icon-button mobile-only" onClick={() => setOpen(true)} aria-label="Ouvrir le menu"><Menu size={21}/></button><div className="app-topbar-context"><span className="app-eyebrow">{context.eyebrow}</span><strong>{context.description}</strong></div><div className="app-topbar-actions"><Link href="/" className="app-public-link" title="Retourner sur le site public"><ExternalLink size={15}/><span>Site public</span></Link><span className="app-live"><i/>API connectée</span><UserButton appearance={{elements:{avatarBox:"h-11 w-11"}}}/></div></header>
       <div className="app-content">{children}</div>
     </main>
   </div>
