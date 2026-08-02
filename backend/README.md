@@ -107,3 +107,16 @@ Configuration :
 - `SERVICE_IA_KNOWLIA_TIMEOUT_SECONDS`
 
 Le contexte KORYXA, l'identifiant de requête et les permissions Knowlia sont propagés côté serveur. Les synchronisations utilisent une clé d'idempotence, un journal d'état, un compteur de tentatives et une reprise contrôlée.
+
+### Knowlia Radar déterministe
+
+- `GET /api/v1/radar/rules`
+- `PUT /api/v1/radar/rules/{code}`
+- `POST /api/v1/radar/document-facts`
+- `POST /api/v1/radar/runs`
+- `GET /api/v1/radar/alerts`
+- `PATCH /api/v1/radar/alerts/{alert_id}`
+
+Radar applique des règles explicables et configurables sur les offres, ventes et procédures. Chaque exécution produit des scores de complétude, fraîcheur, cohérence et traçabilité, ainsi que des alertes persistées avec priorité, preuves, recommandation et niveau de confiance.
+
+Les doublons restent des suspicions soumises à validation humaine. Les écarts documentaires ne sont évalués que lorsqu'une donnée structurée provenant d'un document existe.

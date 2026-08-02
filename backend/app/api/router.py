@@ -8,6 +8,7 @@ from app.api.routes import (
     knowlia,
     members,
     organizations,
+    radar,
     registers,
 )
 
@@ -23,3 +24,5 @@ api_router.include_router(registers.router, prefix="/registers", tags=["register
 api_router.include_router(imports.router, prefix="/imports", tags=["imports-files"])
 
 api_router.include_router(knowlia.router, prefix="/knowlia", tags=["knowlia"])
+
+api_router.include_router(radar.router, prefix="/radar", tags=["radar"])
