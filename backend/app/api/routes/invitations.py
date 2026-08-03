@@ -57,10 +57,17 @@ async def revoke_invitation(
     return await InvitationService().revoke(session, organization.id, invitation_id)
 
 
+@router.post("/{invitation_id}/resend", response_model=InvitationCreated)
+async def resend_invitation(
+    invitation_id: str, session: SessionDep, organization: OrganizationDep, _: ManagePermission
+) -> InvitationCreated:
+    invitation, token = await InvitationService().resend(session, organization.id, invitation_id)
+    public_invitation = InvitationRead.model_validate(invitation)
+    return InvitationCreated(**public_invitation.model_dump(), token=token)
+
+
 @router.post("/accept", response_model=MemberRead)
 async def accept_invitation(
     data: InvitationAccept, session: SessionDep, identity: IdentityDep
 ) -> OrganizationMember:
-    return await InvitationService().accept(
-        session, identity.tenant_id, identity.user_id, data.token
-    )
+    return await InvitationService().accept(session, identity.user_id, identity.email, data.token)

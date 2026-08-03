@@ -4,7 +4,11 @@ from app.main import app
 
 
 def create_organization(client: TestClient, tenant_id: str, user_id: str) -> dict[str, str]:
-    headers = {"X-Tenant-ID": tenant_id, "X-User-ID": user_id}
+    headers = {
+        "X-Tenant-ID": tenant_id,
+        "X-User-ID": user_id,
+        "X-User-Email": f"{user_id}@example.com",
+    }
     response = client.post(
         "/api/v1/organizations",
         headers=headers,
@@ -26,8 +30,9 @@ def test_invitation_acceptance_and_member_permissions() -> None:
         token = invitation.json()["token"]
 
         member_headers = {
-            "X-Tenant-ID": "tenant-invite-a",
+            "X-Tenant-ID": "tenant-member-a",
             "X-User-ID": "member-a",
+            "X-User-Email": "member@example.com",
         }
         accepted = client.post(
             "/api/v1/invitations/accept",
@@ -47,7 +52,7 @@ def test_invitation_acceptance_and_member_permissions() -> None:
     assert forbidden.status_code == 403
 
 
-def test_invitation_cannot_cross_tenants() -> None:
+def test_invitation_requires_the_invited_email() -> None:
     with TestClient(app) as client:
         owner_headers = create_organization(client, "tenant-invite-b", "owner-b")
         invitation = client.post(
@@ -60,7 +65,11 @@ def test_invitation_cannot_cross_tenants() -> None:
 
         response = client.post(
             "/api/v1/invitations/accept",
-            headers={"X-Tenant-ID": "tenant-other", "X-User-ID": "member-b"},
+            headers={
+                "X-Tenant-ID": "tenant-other",
+                "X-User-ID": "member-b",
+                "X-User-Email": "other@example.com",
+            },
             json={"token": token},
         )
     assert response.status_code == 403

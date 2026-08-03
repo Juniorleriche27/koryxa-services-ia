@@ -9,6 +9,7 @@ from app.core.config import get_settings
 class KoryxaIdentity:
     tenant_id: str
     user_id: str
+    email: str | None
     source: str | None
     auth_provider: str | None
     role: str | None
@@ -18,6 +19,7 @@ class KoryxaIdentity:
 async def require_koryxa_identity(
     tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
     user_id: str | None = Header(default=None, alias="X-User-ID"),
+    email: str | None = Header(default=None, alias="X-User-Email"),
     source: str | None = Header(default=None, alias="X-Koryxa-Source"),
     auth_provider: str | None = Header(
         default=None,
@@ -48,6 +50,7 @@ async def require_koryxa_identity(
     return KoryxaIdentity(
         tenant_id=tenant_id or "anonymous",
         user_id=user_id or "anonymous",
+        email=email.strip().lower() if email else None,
         source=source,
         auth_provider=auth_provider,
         role=role,

@@ -7,10 +7,13 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.errors import ApplicationError
 from app.models.invitation import InvitationStatus, OrganizationInvitation
 from app.models.member import MemberStatus, OrganizationMember
+from app.models.organization import Organization
 from app.schemas.invitations import InvitationCreate
+from app.services.email import EmailService
 
 
 class InvitationService:
@@ -42,6 +45,38 @@ class InvitationService:
             expires_at=datetime.now(UTC) + timedelta(days=7),
         )
         session.add(invitation)
+        await session.flush()
+        organization = await session.get(Organization, organization_id)
+        assert organization is not None
+        link = f"{get_settings().public_app_url.rstrip('/')}/invitation/{token}"
+        try:
+            await EmailService().send_invitation(invitation.email, organization.name, link)
+        except Exception:
+            await session.rollback()
+            raise
+        await session.commit()
+        await session.refresh(invitation)
+        return invitation, token
+
+    async def resend(
+        self, session: AsyncSession, organization_id: str, invitation_id: str
+    ) -> tuple[OrganizationInvitation, str]:
+        invitation = await session.scalar(
+            select(OrganizationInvitation).where(
+                OrganizationInvitation.id == invitation_id,
+                OrganizationInvitation.organization_id == organization_id,
+                OrganizationInvitation.status == InvitationStatus.PENDING,
+            )
+        )
+        if invitation is None:
+            raise ApplicationError("invitation_not_found", "Invitation en attente introuvable", 404)
+        token = secrets.token_urlsafe(32)
+        invitation.token_hash = self._hash(token)
+        invitation.expires_at = datetime.now(UTC) + timedelta(days=7)
+        organization = await session.get(Organization, organization_id)
+        assert organization is not None
+        link = f"{get_settings().public_app_url.rstrip('/')}/invitation/{token}"
+        await EmailService().send_invitation(invitation.email, organization.name, link)
         await session.commit()
         await session.refresh(invitation)
         return invitation, token
@@ -77,7 +112,7 @@ class InvitationService:
         return invitation
 
     async def accept(
-        self, session: AsyncSession, tenant_id: str, user_id: str, token: str
+        self, session: AsyncSession, user_id: str, email: str | None, token: str
     ) -> OrganizationMember:
         invitation = await session.scalar(
             select(OrganizationInvitation).where(
@@ -94,26 +129,21 @@ class InvitationService:
             invitation.status = InvitationStatus.EXPIRED
             await session.commit()
             raise ApplicationError("invitation_expired", "Cette invitation a expiré", 410)
-        from app.models.organization import Organization
-
-        organization = await session.scalar(
-            select(Organization).where(
-                Organization.id == invitation.organization_id, Organization.tenant_id == tenant_id
-            )
-        )
-        if organization is None:
+        if not email or email.strip().lower() != invitation.email:
             raise ApplicationError(
-                "tenant_mismatch", "L'invitation ne correspond pas au tenant KORYXA courant", 403
+                "invitation_email_mismatch",
+                "Connectez-vous avec l’adresse e-mail qui a reçu l’invitation",
+                403,
             )
         member = await session.scalar(
             select(OrganizationMember).where(
-                OrganizationMember.organization_id == organization.id,
+                OrganizationMember.organization_id == invitation.organization_id,
                 OrganizationMember.user_id == user_id,
             )
         )
         if member is None:
             member = OrganizationMember(
-                organization_id=organization.id,
+                organization_id=invitation.organization_id,
                 user_id=user_id,
                 role=invitation.role,
                 invited_by_user_id=invitation.invited_by_user_id,
