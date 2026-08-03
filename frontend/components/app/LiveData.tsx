@@ -13,7 +13,7 @@ import { directUpload, prepareDocumentUpload } from "@/lib/files/directUpload";
 
 type ApiPage<T> = { items: T[]; total: number; page: number; page_size: number };
 type Offer = { id:string; name:string; category?:string|null; status:string; price?:string|null; currency:string; updated_at:string };
-type Sale = { id:string; reference:string; client_name?:string|null; payment_status:string; total_amount:string; currency:string; sale_date:string };
+type Sale = { id:string; reference:string; sale_date:string; client_name?:string|null; offer_id?:string|null; item_label:string; quantity:string; unit_price:string; discount:string; total_amount:string; currency:string; payment_method?:string|null; payment_status:string; seller_user_id?:string|null; sales_channel?:string|null; comment?:string|null; status:string; source:string; created_at?:string; updated_at?:string };
 type Procedure = { id:string; title:string; department?:string|null; status:string; version:number; next_review_date?:string|null };
 type Alert = { id:string; title:string; explanation:string; priority:string; dimension:string; status:string; confidence:number };
 type Action = { id:string; title:string; status:string; priority:string; responsible_user_id?:string|null; due_date?:string|null };
@@ -26,7 +26,15 @@ type Invitation = { id:string; email:string; role:string; status:string; expires
 
 function label(value: unknown) {
   if (value === null || value === undefined || value === "") return "—";
-  return String(value).replaceAll("_", " ");
+  const translations: Record<string, string> = {
+    unpaid: "Non payé", partial: "Partiellement payé", paid: "Payé", cancelled: "Annulé", refunded: "Remboursé",
+    draft: "Brouillon", to_verify: "À vérifier", validated: "Validé", obsolete: "Obsolète", archived: "Archivé", conflict: "En conflit",
+    manual: "Saisie manuelle", excel: "Excel", document: "Document", voice: "Voix", photo: "Photo", integration: "Intégration", ai: "Intelligence artificielle",
+    pending: "En attente", accepted: "Acceptée", rejected: "Rejetée", revoked: "Révoquée", expired: "Expirée", active: "Actif", inactive: "Inactif",
+    todo: "À faire", in_progress: "En cours", blocked: "Bloqué", completed: "Terminé", low: "Faible", normal: "Normale", high: "Élevée", critical: "Critique",
+  };
+  const key = String(value).toLowerCase();
+  return translations[key] ?? String(value).replaceAll("_", " ");
 }
 function money(value: string | null | undefined, currency: string) {
   if (value == null) return "Sur devis";
@@ -52,15 +60,22 @@ function State({loading,error,empty}:{loading:boolean;error:string;empty:boolean
 export function LiveRegister({kind}:{kind:"offers"|"sales"|"procedures"}) {
   const config={offers:["Offres & tarifs","Conservez un tarif officiel, ses conditions et sa période de validité."],sales:["Ventes","Suivez les ventes, les paiements et les informations à compléter."],procedures:["Procédures","Formalisez les méthodes de travail, responsables et dates de révision."]}[kind];
   const api=useApi<ApiPage<Offer|Sale|Procedure>>(`/registers/${kind}`);
-  const [creating,setCreating]=useState(false); const [query,setQuery]=useState("");
+  const [creating,setCreating]=useState(false); const [query,setQuery]=useState(""); const [selectedSale,setSelectedSale]=useState<Sale|null>(null);
   const items=useMemo<RegisterItem[]>(()=>api.data?.items.map(item=>{
     if(kind==="offers"){const x=item as Offer;return{id:x.id,title:x.name,subtitle:x.category||"Sans catégorie",status:label(x.status),meta:`Mis à jour le ${date(x.updated_at)}`,value:money(x.price,x.currency)}}
     if(kind==="sales"){const x=item as Sale;return{id:x.id,title:x.reference,subtitle:x.client_name||"Client non renseigné",status:label(x.payment_status),meta:date(x.sale_date),value:money(x.total_amount,x.currency)}}
     const x=item as Procedure;return{id:x.id,title:x.title,subtitle:x.department||"Sans département",status:label(x.status),meta:`Version ${x.version} · Révision ${date(x.next_review_date)}`};
   })??[],[api.data,kind]);
   const filtered=items.filter(item=>`${item.title} ${item.subtitle}`.toLowerCase().includes(query.toLowerCase()));
-  return <><PageHeader eyebrow="Registre" title={config[0]} description={config[1]} action={<button className="app-button app-button-primary" onClick={()=>setCreating(true)}><Plus size={16}/>Ajouter</button>}/><section className="app-panel"><div className="app-toolbar"><label className="app-search"><Search size={17}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Rechercher…"/></label><button className="app-button app-button-secondary" onClick={()=>void api.reload()}><RefreshCw size={15}/>Actualiser</button></div><State loading={api.loading} error={api.error} empty={!items.length}/>{filtered.length?<RegisterList items={filtered}/>:null}{items.length&&!filtered.length?<EmptyState title="Aucun résultat" detail="Modifiez votre recherche."/>:null}</section><RegisterCreateDialog kind={kind} open={creating} onClose={()=>setCreating(false)} onCreated={api.reload}/></>;
+  const sales = kind === "sales" ? (api.data?.items as Sale[] | undefined) ?? [] : [];
+  const filteredSales = sales.filter(sale=>Object.values(sale).some(value=>String(value??"").toLowerCase().includes(query.toLowerCase())));
+  const visibleCount = kind === "sales" ? filteredSales.length : filtered.length;
+  return <><PageHeader eyebrow="Registre" title={config[0]} description={config[1]} action={<button className="app-button app-button-primary" onClick={()=>setCreating(true)}><Plus size={16}/>Ajouter</button>}/><section className="app-panel"><div className="app-toolbar"><label className="app-search"><Search size={17}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Rechercher…"/></label><button className="app-button app-button-secondary" onClick={()=>void api.reload()}><RefreshCw size={15}/>Actualiser</button></div><State loading={api.loading} error={api.error} empty={!items.length}/>{kind==="sales"&&filteredSales.length?<SalesTable sales={filteredSales} onSelect={setSelectedSale}/>:null}{kind!=="sales"&&filtered.length?<RegisterList items={filtered}/>:null}{items.length&&!visibleCount?<EmptyState title="Aucun résultat" detail="Modifiez votre recherche."/>:null}</section><RegisterCreateDialog kind={kind} open={creating} onClose={()=>setCreating(false)} onCreated={api.reload}/><SaleDetails sale={selectedSale} onClose={()=>setSelectedSale(null)}/></>;
 }
+
+function SalesTable({sales,onSelect}:{sales:Sale[];onSelect:(sale:Sale)=>void}){return <div className="app-table-scroll"><table className="app-data-table"><thead><tr><th>Référence</th><th>Date</th><th>Client</th><th>Offre ou service</th><th>Quantité</th><th>Prix unitaire</th><th>Réduction</th><th>Total</th><th>Devise</th><th>État du paiement</th><th>Mode de paiement</th><th>Canal de vente</th><th>Statut</th><th>Commentaire</th></tr></thead><tbody>{sales.map(sale=><tr key={sale.id} onDoubleClick={()=>onSelect(sale)}><td><button className="app-table-link" onClick={()=>onSelect(sale)}>{sale.reference}</button></td><td>{date(sale.sale_date)}</td><td>{label(sale.client_name)}</td><td>{sale.item_label}</td><td className="app-number">{new Intl.NumberFormat("fr-FR",{maximumFractionDigits:3}).format(Number(sale.quantity))}</td><td className="app-number">{money(sale.unit_price,sale.currency)}</td><td className="app-number">{money(sale.discount,sale.currency)}</td><td className="app-number app-table-total">{money(sale.total_amount,sale.currency)}</td><td>{sale.currency}</td><td><StatusPill>{label(sale.payment_status)}</StatusPill></td><td>{label(sale.payment_method)}</td><td>{label(sale.sales_channel)}</td><td>{label(sale.status)}</td><td className="app-table-comment">{label(sale.comment)}</td></tr>)}</tbody></table></div>}
+
+function SaleDetails({sale,onClose}:{sale:Sale|null;onClose:()=>void}){if(!sale)return null;const fields=[["Date de vente",date(sale.sale_date)],["Client",label(sale.client_name)],["Offre ou service",sale.item_label],["Quantité",label(sale.quantity)],["Prix unitaire",money(sale.unit_price,sale.currency)],["Réduction",money(sale.discount,sale.currency)],["Devise",sale.currency],["État du paiement",label(sale.payment_status)],["Mode de paiement",label(sale.payment_method)],["Canal de vente",label(sale.sales_channel)],["Statut du registre",label(sale.status)],["Source",label(sale.source)],["Vendeur",label(sale.seller_user_id)],["Identifiant de l’offre",label(sale.offer_id)],["Créée le",date(sale.created_at)],["Dernière modification",date(sale.updated_at)]];return <Dialog open title={`Vente ${sale.reference}`} description="Vue détaillée de toutes les informations enregistrées." onClose={onClose}><div className="app-sale-summary"><div><span>Montant total</span><strong>{money(sale.total_amount,sale.currency)}</strong></div><StatusPill>{label(sale.payment_status)}</StatusPill></div><div className="app-detail-grid">{fields.map(([name,value])=><div key={name}><span>{name}</span><strong>{value}</strong></div>)}</div><div className="app-detail-comment"><span>Commentaire</span><p>{label(sale.comment)}</p></div><div className="app-form-actions"><button className="app-button app-button-primary" onClick={onClose}>Fermer</button></div></Dialog>}
 
 export function LiveDashboard(){
   const alerts=useApi<Alert[]>("/radar/alerts"); const actions=useApi<Action[]>("/workflow/actions");
