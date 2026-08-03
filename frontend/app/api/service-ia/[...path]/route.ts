@@ -62,9 +62,12 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
     headers.set("X-Koryxa-Permissions", "service-ia:read,service-ia:write");
     headers.set("X-Koryxa-Proxy-Secret", proxySecret);
 
-    // Accepting an invitation must happen before provisioning a personal space,
-    // otherwise the invited member would land in an unrelated organization.
-    if (cleanPath !== "invitations/accept") {
+    const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
+    let response = await fetch(target, { method: request.method, headers, body, cache: "no-store" });
+
+    // Provision only after a genuine missing-organization response. Healthy
+    // requests no longer pay for an organization preflight on every API call.
+    if (response.status === 404 && cleanPath !== "invitations/accept") {
       const organizationResponse = await fetch(`${apiBase}/organizations/current`, {
         headers,
         cache: "no-store",
@@ -85,14 +88,16 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
         if (!provisionResponse.ok && provisionResponse.status !== 409) {
           throw new Error(`Service IA provisioning responded with ${provisionResponse.status}`);
         }
-      } else if (!organizationResponse.ok) {
-        throw new Error(`Service IA organization check responded with ${organizationResponse.status}`);
+        response = await fetch(target, { method: request.method, headers, body, cache: "no-store" });
       }
     }
 
-    const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
-    const response = await fetch(target, { method: request.method, headers, body, cache: "no-store" });
-    const responseHeaders = new Headers({ "cache-control": "no-store" });
+    const backendCacheControl = response.headers.get("cache-control");
+    const responseHeaders = new Headers({
+      "cache-control": request.method === "GET" && cleanPath.endsWith("/logo") && backendCacheControl
+        ? backendCacheControl
+        : "no-store",
+    });
     const contentType = response.headers.get("content-type");
     if (contentType) responseHeaders.set("content-type", contentType);
     return new NextResponse(response.body, { status: response.status, headers: responseHeaders });
