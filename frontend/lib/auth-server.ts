@@ -5,17 +5,10 @@ import { resolveKoryxaIdentity, type KoryxaIdentity } from "@/lib/koryxa-identit
 
 export type ServiceIaIdentity = KoryxaIdentity;
 
-const resolveCachedServiceIdentity = unstable_cache(
-  async (clerkUserId: string) => {
-    const clerk = await clerkClient();
-    const user = await clerk.users.getUser(clerkUserId);
-    const email = (user.primaryEmailAddress?.emailAddress || user.emailAddresses[0]?.emailAddress || "")
-      .trim()
-      .toLowerCase();
-    if (!email) throw new Error("KORYXA Identity user has no email address.");
-    return resolveKoryxaIdentity({ clerkUserId, email, fullName: user.fullName });
-  },
-  ["service-ia-identity-v2"],
+const resolveCachedKoryxaIdentity = unstable_cache(
+  async (clerkUserId: string, email: string, fullName: string | null) =>
+    resolveKoryxaIdentity({ clerkUserId, email, fullName }),
+  ["service-ia-identity-v3"],
   { revalidate: 60 },
 );
 
@@ -23,5 +16,14 @@ export async function requireServiceIaIdentity(): Promise<ServiceIaIdentity> {
   const authContext = await auth();
   if (!authContext.userId) throw new Error("UNAUTHENTICATED");
 
-  return resolveCachedServiceIdentity(authContext.userId);
+  // Clerk reads request headers internally, so it must remain outside the
+  // Next.js cache scope. Only the header-independent KORYXA bridge is cached.
+  const clerk = await clerkClient();
+  const user = await clerk.users.getUser(authContext.userId);
+  const email = (user.primaryEmailAddress?.emailAddress || user.emailAddresses[0]?.emailAddress || "")
+    .trim()
+    .toLowerCase();
+  if (!email) throw new Error("KORYXA Identity user has no email address.");
+
+  return resolveCachedKoryxaIdentity(authContext.userId, email, user.fullName);
 }

@@ -108,8 +108,8 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
       reason: error instanceof Error ? error.message : "Unknown gateway error",
     });
     return NextResponse.json(
-      { error: { message: unauthenticated ? "Authentification KORYXA requise." : "Accès KORYXA refusé." } },
-      { status: unauthenticated ? 401 : 403 },
+      { error: { message: unauthenticated ? "Authentification KORYXA requise." : "Service KORYXA temporairement indisponible." } },
+      { status: unauthenticated ? 401 : 502 },
     );
   }
 }
