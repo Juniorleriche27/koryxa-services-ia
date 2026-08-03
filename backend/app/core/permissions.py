@@ -44,9 +44,14 @@ ROLE_PERMISSIONS: dict[MemberRole, frozenset[str]] = {
 
 async def get_current_organization(identity: IdentityDep, session: SessionDep) -> Organization:
     organization = await session.scalar(
-        select(Organization).where(
-            Organization.tenant_id == identity.tenant_id, Organization.is_active.is_(True)
+        select(Organization)
+        .join(OrganizationMember, OrganizationMember.organization_id == Organization.id)
+        .where(
+            OrganizationMember.user_id == identity.user_id,
+            OrganizationMember.status == MemberStatus.ACTIVE,
+            Organization.is_active.is_(True),
         )
+        .order_by(OrganizationMember.joined_at.desc())
     )
     if organization is None:
         raise ApplicationError(

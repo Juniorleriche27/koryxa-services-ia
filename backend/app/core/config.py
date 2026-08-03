@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     file_storage_path: str = "storage/files"
     max_upload_bytes: int = 104_857_600
     proxy_secret: str = "change-me"
+    smtp_host: str | None = None
+    smtp_port: int = 465
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_use_ssl: bool = True
+    email_from: str = "notifications@koryxa.fr"
+    public_app_url: str = "http://localhost:3000"
     knowlia_base_url: str = "http://localhost:8093"
     knowlia_timeout_seconds: float = 30.0
 

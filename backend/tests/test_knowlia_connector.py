@@ -45,6 +45,7 @@ async def test_knowlia_client_propagates_koryxa_context_and_contract() -> None:
     identity = KoryxaIdentity(
         tenant_id="tenant-a",
         user_id="user-a",
+        email="user-a@example.com",
         source="koryxa-admin",
         auth_provider="koryxa-admin",
         role="owner",
@@ -84,6 +85,7 @@ async def test_knowlia_client_maps_remote_error() -> None:
     identity = KoryxaIdentity(
         tenant_id="tenant-a",
         user_id="user-a",
+        email="user-a@example.com",
         source=None,
         auth_provider=None,
         role=None,
