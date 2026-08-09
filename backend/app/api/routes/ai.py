@@ -32,13 +32,13 @@ ai_service = AIEngineService()
 
 
 @router.get("/config", response_model=AIConfigRead)
-async def get_ai_config(o: OrgDep, _: ReadDep):
-    return ai_service.get_config(o.id)
+async def get_ai_config(s: SessionDep, o: OrgDep, _: ReadDep):
+    return await ai_service.get_config(s, o.id)
 
 
 @router.put("/config", response_model=AIConfigRead)
-async def update_ai_config(data: AIConfigUpdate, o: OrgDep, _: ManageDep):
-    return ai_service.update_config(o.id, data)
+async def update_ai_config(data: AIConfigUpdate, s: SessionDep, o: OrgDep, _: ManageDep):
+    return await ai_service.update_config(s, o.id, data)
 
 
 @router.post("/chat", response_model=AIChatResponse)

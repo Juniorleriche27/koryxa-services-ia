@@ -3,12 +3,15 @@
 import csv
 import io
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
+from app.core.errors import ApplicationError
 from app.core.identity import KoryxaIdentity, require_koryxa_identity
 from app.core.permissions import get_current_organization, require_permission
 from app.db.session import get_session
@@ -27,6 +30,16 @@ ReadDep = Annotated[OrganizationMember, Depends(require_permission("registers:re
 ManageDep = Annotated[OrganizationMember, Depends(require_permission("registers:manage"))]
 
 
+async def read_upload_limited(file: UploadFile) -> bytes:
+    limit = get_settings().max_upload_bytes
+    content = bytearray()
+    while chunk := await file.read(1024 * 1024):
+        content.extend(chunk)
+        if len(content) > limit:
+            raise ApplicationError("file_too_large", "Fichier trop volumineux", 413)
+    return bytes(content)
+
+
 @router.post("/preview", response_model=ImportPreview)
 async def preview(
     session: SessionDep,
@@ -36,7 +49,7 @@ async def preview(
     register_type: str = Form(...),
     file: UploadFile = File(...),
 ) -> ImportPreview:
-    content = await file.read()
+    content = await read_upload_limited(file)
     job, headers, mapping = await ImportService().preview(
         session,
         organization.id,
@@ -142,7 +155,7 @@ async def upload_attachment(
         record_id,
         file.filename or "file",
         file.content_type or "application/octet-stream",
-        await file.read(),
+        await read_upload_limited(file),
     )
     return AttachmentRead.model_validate(attachment)
 
@@ -162,3 +175,23 @@ async def list_attachments(
         record_id,
     )
     return [AttachmentRead.model_validate(item) for item in attachments]
+
+
+@router.get("/attachments/{attachment_id}", response_model=None)
+async def download_attachment(
+    attachment_id: str,
+    session: SessionDep,
+    organization: OrgDep,
+    _: ReadDep,
+) -> Response:
+    attachment, content = await FileService().download(
+        session,
+        organization.id,
+        attachment_id,
+    )
+    filename = quote(attachment.filename, safe="")
+    return Response(
+        content=content,
+        media_type=attachment.content_type,
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename}"},
+    )

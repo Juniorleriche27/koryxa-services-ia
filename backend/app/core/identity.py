@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from secrets import compare_digest
 
 from fastapi import Header, HTTPException, status
 
@@ -30,8 +31,16 @@ async def require_koryxa_identity(
         default=None,
         alias="X-Koryxa-Permissions",
     ),
+    proxy_secret: str | None = Header(default=None, alias="X-Koryxa-Proxy-Secret"),
 ) -> KoryxaIdentity:
     settings = get_settings()
+    if settings.proxy_secret and (
+        not proxy_secret or not compare_digest(proxy_secret, settings.proxy_secret)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentification de la passerelle KORYXA invalide",
+        )
     if settings.require_koryxa_context and (not tenant_id or not user_id):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

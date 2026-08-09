@@ -115,6 +115,21 @@ def test_attachment_is_linked_to_current_tenant_record() -> None:
         )
         assert listed.status_code == 200
         assert len(listed.json()) == 1
+        attachment_id = listed.json()[0]["id"]
+
+        downloaded = client.get(
+            f"/api/v1/imports/attachments/{attachment_id}",
+            headers=owner,
+        )
+        assert downloaded.status_code == 200
+        assert downloaded.content == b"PDF demo"
+        assert "brochure.pdf" in downloaded.headers["Content-Disposition"]
+
+        hidden_download = client.get(
+            f"/api/v1/imports/attachments/{attachment_id}",
+            headers=other,
+        )
+        assert hidden_download.status_code == 404
 
         hidden = client.get(
             "/api/v1/imports/attachments",

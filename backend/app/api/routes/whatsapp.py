@@ -1,6 +1,6 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.identity import KoryxaIdentity, require_koryxa_identity
@@ -22,30 +22,40 @@ service = WhatsAppService()
 
 @router.get("/webhook")
 async def verify_whatsapp_webhook(
+    s: SessionDep,
     hub_mode: str | None = Query(None, alias="hub.mode"),
     hub_verify_token: str | None = Query(None, alias="hub.verify_token"),
     hub_challenge: str | None = Query(None, alias="hub.challenge"),
 ):
     """Handshake de vérification pour Meta WhatsApp Cloud API."""
-    challenge = service.verify_webhook(hub_mode, hub_verify_token, hub_challenge)
+    challenge = await service.verify_webhook(s, hub_mode, hub_verify_token, hub_challenge)
     return Response(content=challenge, media_type="text/plain")
 
 
 @router.post("/webhook")
-async def handle_inbound_whatsapp(
-    payload: dict[str, Any], s: SessionDep, org_id: str | None = Query(None, alias="org_id")
-):
+async def handle_inbound_whatsapp(request: Request, s: SessionDep):
     """Réception et traitement automatique d'un message entrant WhatsApp."""
-    return await service.process_inbound_payload(s, payload, default_org=org_id)
+    raw_body = await request.body()
+    try:
+        payload: dict[str, Any] = await request.json()
+    except ValueError:
+        from app.core.errors import ApplicationError
+
+        raise ApplicationError("invalid_whatsapp_payload", "JSON WhatsApp invalide", 400) from None
+    return await service.process_inbound_payload(
+        s, raw_body, request.headers.get("X-Hub-Signature-256"), payload
+    )
 
 
 @router.get("/config", response_model=WhatsAppConfig)
-async def get_whatsapp_config(o: OrgDep, _: ManageDep):
+async def get_whatsapp_config(s: SessionDep, o: OrgDep, _: ManageDep):
     """Récupère la configuration WhatsApp de l'organisation courante."""
-    return service.get_config(o.id)
+    return await service.get_config(s, o.id)
 
 
 @router.put("/config", response_model=WhatsAppConfig)
-async def update_whatsapp_config(data: WhatsAppConfigUpdate, o: OrgDep, _: ManageDep):
+async def update_whatsapp_config(
+    data: WhatsAppConfigUpdate, s: SessionDep, o: OrgDep, _: ManageDep
+):
     """Met à jour les identifiants et numéros autorisés WhatsApp."""
-    return service.update_config(o.id, data)
+    return await service.update_config(s, o.id, data)

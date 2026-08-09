@@ -1,4 +1,5 @@
 .env
+.env.production.ready
 .venv/
 __pycache__/
 .pytest_cache/

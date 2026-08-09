@@ -30,7 +30,6 @@ api_router.include_router(whatsapp.router, prefix="/integrations/whatsapp", tags
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
 
 api_router.include_router(imports.router, prefix="/imports", tags=["imports-files"])
-
 api_router.include_router(direct_uploads.router, prefix="/direct-uploads", tags=["direct-uploads"])
 
 api_router.include_router(knowlia.router, prefix="/knowlia", tags=["knowlia"])
@@ -38,4 +37,3 @@ api_router.include_router(knowlia.router, prefix="/knowlia", tags=["knowlia"])
 api_router.include_router(radar.router, prefix="/radar", tags=["radar"])
 
 api_router.include_router(workflow.router, prefix="/workflow", tags=["workflow"])
-

@@ -14,6 +14,9 @@ Le service ne possède pas de système d'authentification local. L'identité est
 - `X-Koryxa-Permissions`
 
 En production, ces en-têtes doivent uniquement être injectés par la passerelle ou le service KORYXA de confiance.
+La passerelle doit également envoyer `X-Koryxa-Proxy-Secret`, correspondant à
+`SERVICE_IA_PROXY_SECRET`. Le navigateur ne doit jamais connaître ce secret ni fabriquer les
+en-têtes d'identité.
 
 ## Lancement local
 
@@ -33,6 +36,14 @@ pytest
 ruff check .
 mypy app
 ```
+
+Les migrations sont une opération de déploiement explicite :
+
+```bash
+alembic upgrade head
+```
+
+Le conteneur API ne lance pas automatiquement les migrations au démarrage.
 
 ## Docker
 
@@ -89,6 +100,7 @@ Les listes prennent en charge la recherche, les filtres et la pagination. Toutes
 - `GET /api/v1/imports/export/{register_type}`
 - `POST /api/v1/imports/attachments`
 - `GET /api/v1/imports/attachments`
+- `GET /api/v1/imports/attachments/{attachment_id}`
 
 Les imports acceptent CSV et XLSX, proposent une correspondance de colonnes, affichent un aperçu, signalent les doublons probables et produisent un rapport d'erreurs. Les pièces jointes utilisent une abstraction de stockage locale configurable et restent isolées par tenant.
 

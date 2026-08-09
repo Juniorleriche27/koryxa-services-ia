@@ -25,7 +25,8 @@ class KnowliaClient:
             "X-Koryxa-Auth-Provider": identity.auth_provider or "koryxa-admin",
             "X-Koryxa-Role": identity.role or "service",
             "X-Koryxa-Permissions": (
-                "knowlia.documents.write,knowlia.documents.read,knowlia.documents.ingest"
+                "knowlia.documents.write,knowlia.documents.read,knowlia.documents.ingest,"
+                "knowlia.assistants.read,knowlia.assistants.write,knowlia.chat.write"
             ),
         }
         if request_id:
@@ -100,4 +101,29 @@ class KnowliaClient:
     ) -> dict[str, object]:
         return await self._request(
             "GET", f"/v1/documents/{document_id}", identity, request_id=request_id
+        )
+
+    async def create_assistant(self, identity: KoryxaIdentity, name: str) -> dict[str, object]:
+        return await self._request(
+            "POST",
+            "/v1/assistants",
+            identity,
+            json={"name": name, "description": "Copilote opérationnel KORYXA Service IA"},
+        )
+
+    async def chat(
+        self, identity: KoryxaIdentity, assistant_id: str, message: str, model: str
+    ) -> dict[str, object]:
+        return await self._request(
+            "POST",
+            f"/v1/assistants/{assistant_id}/chat",
+            identity,
+            json={
+                "message": message,
+                "channel": "api",
+                "external_user_ref": identity.user_id,
+                "model": model,
+                "use_memory": True,
+                "memory_limit": 10,
+            },
         )

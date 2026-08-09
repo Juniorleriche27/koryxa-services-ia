@@ -8,7 +8,9 @@ COPY alembic.ini ./
 COPY migrations ./migrations
 COPY entrypoint.sh ./entrypoint.sh
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir .
-RUN chmod +x /app/entrypoint.sh && chown app:app /app/entrypoint.sh
+RUN mkdir -p /app/storage/files \
+    && chmod +x /app/entrypoint.sh \
+    && chown -R app:app /app/storage
 USER app
 EXPOSE 8080
 CMD ["/app/entrypoint.sh"]

@@ -10,12 +10,15 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import ApplicationError
+from app.core.identity import KoryxaIdentity
+from app.integrations.knowlia import KnowliaClient
+from app.models.organization import Organization
 from app.models.radar import AlertStatus, RadarAlert
-from app.models.registers import Expense, PaymentStatus, Procedure, RecordStatus, Sale
+from app.models.registers import Expense, PaymentStatus, Procedure, Sale
 from app.schemas.ai import (
     AIChatRequest,
     AIChatResponse,
-    AIConfigBase,
     AIConfigRead,
     AIConfigUpdate,
     AIProviderType,
@@ -28,114 +31,88 @@ from app.schemas.ai import (
     ProcedureStepDraft,
     SuggestedAction,
 )
+from app.services.integration_config import IntegrationConfigService
 
 
 # In-memory tenant AI configuration store with fallback to settings
-_TENANT_AI_CONFIGS: dict[str, dict[str, Any]] = {}
-
-
 class AIEngineService:
-    def get_config(self, org: str) -> AIConfigRead:
-        cfg = _TENANT_AI_CONFIGS.get(org, {})
-        provider = cfg.get("provider", AIProviderType.NATIVE)
+    def __init__(self, knowlia: KnowliaClient | None = None) -> None:
+        self.knowlia = knowlia or KnowliaClient()
+        self.configs = IntegrationConfigService()
+
+    async def get_config(self, s: AsyncSession, org: str) -> AIConfigRead:
+        cfg = await self.configs.get(s, org)
         return AIConfigRead(
-            provider=provider,
-            model_name=cfg.get("model_name", "koryxa-smart-v1"),
-            api_base_url=cfg.get("api_base_url"),
-            temperature=cfg.get("temperature", 0.3),
-            custom_system_prompt=cfg.get("custom_system_prompt"),
-            has_api_key=bool(cfg.get("api_key")),
+            provider=AIProviderType.KNOWLIA,
+            model_name=cfg.ai_model_name,
+            temperature=cfg.ai_temperature,
+            custom_system_prompt=cfg.ai_custom_system_prompt,
+            has_api_key=bool(cfg.ai_api_key_encrypted),
         )
 
-    def update_config(self, org: str, data: AIConfigUpdate) -> AIConfigRead:
-        current = _TENANT_AI_CONFIGS.get(org, {})
-        new_cfg = {
-            "provider": data.provider,
-            "model_name": data.model_name,
-            "api_base_url": data.api_base_url,
-            "temperature": data.temperature,
-            "custom_system_prompt": data.custom_system_prompt,
-        }
+    async def update_config(self, s: AsyncSession, org: str, data: AIConfigUpdate) -> AIConfigRead:
+        if data.provider != AIProviderType.KNOWLIA:
+            raise ApplicationError(
+                "knowlia_required", "Knowlia est l’unique source d’intelligence autorisée", 422
+            )
+        cfg = await self.configs.get(s, org)
+        cfg.ai_provider = AIProviderType.KNOWLIA.value
+        cfg.ai_model_name = data.model_name
+        cfg.ai_temperature = data.temperature
+        cfg.ai_custom_system_prompt = data.custom_system_prompt
         if data.api_key is not None:
-            new_cfg["api_key"] = data.api_key.strip()
-        else:
-            new_cfg["api_key"] = current.get("api_key")
+            cfg.ai_api_key_encrypted = self.configs.encrypt(data.api_key)
+        await s.commit()
+        return await self.get_config(s, org)
 
-        _TENANT_AI_CONFIGS[org] = new_cfg
-        return self.get_config(org)
+    async def _ask_knowlia(
+        self, s: AsyncSession, org: str, user: str, prompt: str
+    ) -> tuple[str, str]:
+        cfg = await self.configs.get(s, org)
+        organization = await s.get(Organization, org)
+        if organization is None:
+            raise ApplicationError("org_not_found", "Organisation introuvable", 404)
+        identity = KoryxaIdentity(
+            tenant_id=organization.tenant_id,
+            user_id=user,
+            email=None,
+            source="service-ia",
+            auth_provider="koryxa-admin",
+            role="admin",
+            permissions=frozenset(),
+        )
+        if not cfg.knowlia_assistant_id:
+            created = await self.knowlia.create_assistant(
+                identity, f"Service IA — {organization.name}"
+            )
+            cfg.knowlia_assistant_id = str(created.get("id") or created.get("assistant_id") or "")
+            if not cfg.knowlia_assistant_id:
+                raise ApplicationError(
+                    "knowlia_invalid_response", "Knowlia n’a pas retourné d’assistant", 502
+                )
+            await s.commit()
+        result = await self.knowlia.chat(
+            identity, cfg.knowlia_assistant_id, prompt, cfg.ai_model_name
+        )
+        answer = str(result.get("answer") or "").strip()
+        if not answer:
+            raise ApplicationError(
+                "knowlia_invalid_response", "Knowlia n’a pas retourné de réponse", 502
+            )
+        return answer, str(result.get("model") or cfg.ai_model_name)
 
     # ------------------ COPILOT CHAT ------------------
     async def chat(
         self, s: AsyncSession, org: str, user: str, request: AIChatRequest
     ) -> AIChatResponse:
-        cfg = _TENANT_AI_CONFIGS.get(org, {})
-        provider = cfg.get("provider", AIProviderType.NATIVE)
-        api_key = cfg.get("api_key")
-        model = cfg.get("model_name", "koryxa-smart-v1")
-        base_url = cfg.get("api_base_url")
-
-        # 1. Compile Organization Context
         context_data = await self._build_context(s, org, request)
-
-        # 2. Try Provider Dispatch
-        if provider == AIProviderType.GEMINI and api_key:
-            try:
-                reply = await self._call_gemini(api_key, model, request.messages, context_data)
-                return AIChatResponse(
-                    reply=reply,
-                    provider_used="Google Gemini",
-                    model_used=model,
-                    suggested_actions=self._extract_actions(context_data),
-                )
-            except Exception:
-                pass  # Fallback to native
-
-        elif provider == AIProviderType.OPENAI and api_key:
-            try:
-                reply = await self._call_openai(
-                    api_key, model, base_url or "https://api.openai.com/v1", request.messages, context_data
-                )
-                return AIChatResponse(
-                    reply=reply,
-                    provider_used="OpenAI",
-                    model_used=model,
-                    suggested_actions=self._extract_actions(context_data),
-                )
-            except Exception:
-                pass  # Fallback to native
-
-        elif provider == AIProviderType.COHERE and api_key:
-            try:
-                reply = await self._call_cohere(api_key, model, request.messages, context_data)
-                return AIChatResponse(
-                    reply=reply,
-                    provider_used="Cohere",
-                    model_used=model,
-                    suggested_actions=self._extract_actions(context_data),
-                )
-            except Exception:
-                pass  # Fallback to native
-
-        elif provider == AIProviderType.GATEWAY and base_url:
-            try:
-                reply = await self._call_openai(
-                    api_key or "no-key", model, base_url, request.messages, context_data
-                )
-                return AIChatResponse(
-                    reply=reply,
-                    provider_used="Custom AI Gateway / Serveur Privé",
-                    model_used=model,
-                    suggested_actions=self._extract_actions(context_data),
-                )
-            except Exception:
-                pass  # Fallback to native
-
-        # 3. Native Autonomous Reasoning Engine (Zero-dependency & Ultra-Smart)
-        reply = self._native_chat_reasoning(request.messages, context_data)
+        cfg = await self.configs.get(s, org)
+        prompt = f"{cfg.ai_custom_system_prompt or 'Tu es le copilote opérationnel KORYXA. Réponds en français, précisément et sans inventer.'}\nContexte réel de l’entreprise: {json.dumps(context_data, ensure_ascii=False)}\nHistorique: {json.dumps([m.model_dump() for m in request.messages], ensure_ascii=False)}"
+        reply, model = await self._ask_knowlia(s, org, user, prompt)
         return AIChatResponse(
             reply=reply,
-            provider_used="Moteur Autonome Koryxa (Intégré)",
-            model_used="koryxa-smart-v1",
+            provider_used="Knowlia Intelligence",
+            model_used=model,
             suggested_actions=self._extract_actions(context_data),
         )
 
@@ -143,6 +120,33 @@ class AIEngineService:
     async def generate_payment_reminder(
         self, s: AsyncSession, org: str, user: str, req: PaymentReminderRequest
     ) -> PaymentReminderResponse:
+        prompt = (
+            "Rédige une relance de paiement professionnelle en français. Réponds UNIQUEMENT en JSON avec les clés subject et body. Données: "
+            + req.model_dump_json()
+        )
+        answer, _ = await self._ask_knowlia(s, org, user, prompt)
+        try:
+            generated = json.loads(
+                answer.strip().removeprefix("```json").removesuffix("```").strip()
+            )
+            subject = str(generated.get("subject") or "Relance de paiement")
+            body = str(generated["body"])
+        except (ValueError, KeyError, TypeError) as exc:
+            raise ApplicationError(
+                "knowlia_invalid_response", "La relance produite par Knowlia est invalide", 502
+            ) from exc
+        whatsapp_url = (
+            f"https://api.whatsapp.com/send?text={urllib.parse.quote(body)}"
+            if req.channel == PaymentReminderChannel.WHATSAPP
+            else None
+        )
+        return PaymentReminderResponse(
+            subject=subject,
+            body=body,
+            provider_used="Knowlia Intelligence",
+            formatted_whatsapp_url=whatsapp_url,
+        )
+
         cfg = _TENANT_AI_CONFIGS.get(org, {})
         provider = cfg.get("provider", AIProviderType.NATIVE)
         api_key = cfg.get("api_key")
@@ -150,8 +154,12 @@ class AIEngineService:
         # Native generator with specialized French & African business recovery phrasing
         currency = req.currency or "XOF"
         amount_fmt = f"{req.amount:,.0f} {currency}".replace(",", " ")
-        days_str = f"depuis {req.overdue_days} jours" if req.overdue_days > 0 else "arrivée à échéance"
-        payment_info = req.payment_methods_info or "Wave / Orange Money / MTN MoMo ou Virement bancaire"
+        days_str = (
+            f"depuis {req.overdue_days} jours" if req.overdue_days > 0 else "arrivée à échéance"
+        )
+        payment_info = (
+            req.payment_methods_info or "Wave / Orange Money / MTN MoMo ou Virement bancaire"
+        )
 
         if req.tone == PaymentReminderTone.COURTEOUS:
             subject = f"Rappel amical : Règlement de la facture {req.reference}"
@@ -223,6 +231,22 @@ class AIEngineService:
     async def generate_procedure(
         self, s: AsyncSession, org: str, user: str, req: ProcedureGenerationRequest
     ) -> ProcedureGenerationResponse:
+        prompt = (
+            "Crée une procédure opérationnelle. Réponds UNIQUEMENT en JSON avec title, objective, department, prerequisites, steps, quality_checks; chaque étape contient step_number,title,description,role_responsible,input_required,output_produced. Données: "
+            + req.model_dump_json()
+        )
+        answer, _ = await self._ask_knowlia(s, org, user, prompt)
+        try:
+            generated = json.loads(
+                answer.strip().removeprefix("```json").removesuffix("```").strip()
+            )
+            generated["provider_used"] = "Knowlia Intelligence"
+            return ProcedureGenerationResponse.model_validate(generated)
+        except (ValueError, TypeError) as exc:
+            raise ApplicationError(
+                "knowlia_invalid_response", "La procédure produite par Knowlia est invalide", 502
+            ) from exc
+
         title = req.title.strip()
         desc = req.description.strip()
         dept = req.department or "Opérations"
@@ -287,7 +311,9 @@ class AIEngineService:
         )
 
     # ------------------ CONTEXT BUILDER ------------------
-    async def _build_context(self, s: AsyncSession, org: str, request: AIChatRequest) -> dict[str, Any]:
+    async def _build_context(
+        self, s: AsyncSession, org: str, request: AIChatRequest
+    ) -> dict[str, Any]:
         sales = list(
             (
                 await s.scalars(
@@ -336,7 +362,11 @@ class AIEngineService:
             Decimal("0.00"),
         )
         total_sales_unpaid = sum(
-            (sa.total_amount for sa in sales if sa.payment_status not in {PaymentStatus.PAID, "paid"}),
+            (
+                sa.total_amount
+                for sa in sales
+                if sa.payment_status not in {PaymentStatus.PAID, "paid"}
+            ),
             Decimal("0.00"),
         )
         total_exp_paid = sum(
@@ -361,12 +391,24 @@ class AIEngineService:
             "projected_30d_cash": str(projected_cash),
             "open_alerts_count": len(alerts),
             "critical_alerts": [
-                {"title": a.title, "explanation": a.explanation, "priority": str(a.priority.value if hasattr(a.priority, "value") else a.priority)}
+                {
+                    "title": a.title,
+                    "explanation": a.explanation,
+                    "priority": str(
+                        a.priority.value if hasattr(a.priority, "value") else a.priority
+                    ),
+                }
                 for a in alerts[:5]
             ],
             "unpaid_sales": [
-                {"ref": sa.reference, "client": sa.client_name or "Client anonyme", "amount": str(sa.total_amount), "date": str(sa.sale_date)}
-                for sa in sales if sa.payment_status != PaymentStatus.PAID
+                {
+                    "ref": sa.reference,
+                    "client": sa.client_name or "Client anonyme",
+                    "amount": str(sa.total_amount),
+                    "date": str(sa.sale_date),
+                }
+                for sa in sales
+                if sa.payment_status != PaymentStatus.PAID
             ][:5],
             "procedures_count": len(procedures),
         }
@@ -375,7 +417,9 @@ class AIEngineService:
     def _native_chat_reasoning(self, messages: list[Any], ctx: dict[str, Any]) -> str:
         last_msg = messages[-1].content.lower() if messages else ""
 
-        if any(w in last_msg for w in ["trésorerie", "solde", "cash", "argent", "banque", "disponible"]):
+        if any(
+            w in last_msg for w in ["trésorerie", "solde", "cash", "argent", "banque", "disponible"]
+        ):
             return (
                 f"📊 **Analyse de votre Trésorerie en Temps Réel** :\n\n"
                 f"• **Solde net actuel disponible** : **{ctx['net_cash_position']} XOF** (Encaissements effectifs : {ctx['total_sales_paid']} XOF − Décaissements réglés : {ctx['total_expenses_paid']} XOF)\n"
@@ -388,9 +432,12 @@ class AIEngineService:
         if any(w in last_msg for w in ["relance", "impayé", "créance", "débiteur", "qui me doit"]):
             if not ctx["unpaid_sales"]:
                 return "✅ Excellente nouvelle : Vous n'avez aucune créance client impayée actuellement enregistrée dans vos registres !"
-            
+
             unpaid_list = "\n".join(
-                [f"• **{s['client']}** ({s['ref']}) : **{s['amount']} XOF** (Date : {s['date']})" for s in ctx["unpaid_sales"]]
+                [
+                    f"• **{s['client']}** ({s['ref']}) : **{s['amount']} XOF** (Date : {s['date']})"
+                    for s in ctx["unpaid_sales"]
+                ]
             )
             return (
                 f"⚠️ **Priorités de Recouvrement ({ctx['total_sales_unpaid']} XOF au total)** :\n\n"
@@ -401,8 +448,10 @@ class AIEngineService:
         if any(w in last_msg for w in ["radar", "alerte", "problème", "anomalie", "risque"]):
             if ctx["open_alerts_count"] == 0:
                 return "🛡️ **Radar KORYXA est au vert** : Aucune anomalie, tarif expiré ou incohérence de procédure n'a été détectée."
-            
-            alerts_text = "\n".join([f"• 🔴 **{a['title']}** : {a['explanation']}" for a in ctx["critical_alerts"]])
+
+            alerts_text = "\n".join(
+                [f"• 🔴 **{a['title']}** : {a['explanation']}" for a in ctx["critical_alerts"]]
+            )
             return (
                 f"🚨 **Synthèse Sentinelle Radar ({ctx['open_alerts_count']} alerte(s) active(s))** :\n\n"
                 f"{alerts_text}\n\n"
@@ -429,16 +478,31 @@ class AIEngineService:
 
     def _extract_actions(self, ctx: dict[str, Any]) -> list[SuggestedAction]:
         actions = [
-            SuggestedAction(title="Consulter les Ventes", action_type="navigate", payload={"path": "/espace/ventes"}),
-            SuggestedAction(title="Voir la Trésorerie & Dépenses", action_type="navigate", payload={"path": "/espace/depenses"}),
+            SuggestedAction(
+                title="Consulter les Ventes",
+                action_type="navigate",
+                payload={"path": "/espace/ventes"},
+            ),
+            SuggestedAction(
+                title="Voir la Trésorerie & Dépenses",
+                action_type="navigate",
+                payload={"path": "/espace/depenses"},
+            ),
             SuggestedAction(title="Scanner avec Radar", action_type="run_radar", payload={}),
         ]
         if ctx.get("unpaid_sales"):
-            actions.insert(0, SuggestedAction(title="Relancer les créances impayées", action_type="send_reminder", payload={}))
+            actions.insert(
+                0,
+                SuggestedAction(
+                    title="Relancer les créances impayées", action_type="send_reminder", payload={}
+                ),
+            )
         return actions
 
     # ------------------ EXTERNAL API ADAPTERS ------------------
-    async def _call_gemini(self, api_key: str, model: str, messages: list[Any], ctx: dict[str, Any]) -> str:
+    async def _call_gemini(
+        self, api_key: str, model: str, messages: list[Any], ctx: dict[str, Any]
+    ) -> str:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         prompt = f"Tu es le copilote IA d'entreprise KORYXA. Voici le contexte financier réel : {json.dumps(ctx, ensure_ascii=False)}.\n\nDemande utilisateur: {messages[-1].content}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
@@ -465,12 +529,17 @@ class AIEngineService:
             data = resp.json()
             return str(data["choices"][0]["message"]["content"])
 
-    async def _call_cohere(self, api_key: str, model: str, messages: list[Any], ctx: dict[str, Any]) -> str:
+    async def _call_cohere(
+        self, api_key: str, model: str, messages: list[Any], ctx: dict[str, Any]
+    ) -> str:
         url = "https://api.cohere.com/v2/chat"
         payload = {
             "model": model,
             "messages": [
-                {"role": "system", "content": f"Tu es KORYXA Copilot. Données réelles: {json.dumps(ctx, ensure_ascii=False)}"},
+                {
+                    "role": "system",
+                    "content": f"Tu es KORYXA Copilot. Données réelles: {json.dumps(ctx, ensure_ascii=False)}",
+                },
                 {"role": "user", "content": messages[-1].content},
             ],
         }

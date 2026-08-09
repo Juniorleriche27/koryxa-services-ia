@@ -4,6 +4,9 @@ services:
     environment:
       SERVICE_IA_DATABASE_URL: postgresql+asyncpg://service_ia:service_ia@postgres:5432/service_ia
       SERVICE_IA_CORS_ORIGINS: '["http://localhost:3000"]'
+      SERVICE_IA_FILE_STORAGE_PATH: /app/storage/files
+    volumes:
+      - service_ia_files:/app/storage/files
     ports:
       - "8080:8080"
     depends_on:
@@ -24,3 +27,4 @@ services:
       retries: 10
 volumes:
   service_ia_postgres:
+  service_ia_files:

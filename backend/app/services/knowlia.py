@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.errors import ApplicationError
 from app.core.identity import KoryxaIdentity
 from app.integrations.knowlia import KnowliaClient
@@ -14,6 +15,13 @@ from app.schemas.knowlia import KnowliaSyncCreate
 class KnowliaSyncService:
     def __init__(self, client: KnowliaClient | None = None) -> None:
         self.client = client or KnowliaClient()
+
+    @staticmethod
+    def _document_path(storage_key: str) -> str:
+        shared_path = get_settings().knowlia_shared_storage_path
+        if not shared_path:
+            return storage_key
+        return f"{shared_path.rstrip('/')}/{storage_key.lstrip('/')}"
 
     async def create(
         self,
@@ -51,7 +59,7 @@ class KnowliaSyncService:
                 identity,
                 {
                     "display_name": attachment.filename,
-                    "path": attachment.storage_key,
+                    "path": self._document_path(attachment.storage_key),
                     "assistant_id": data.assistant_id,
                     "project_id": data.project_id,
                     "folder_id": data.folder_id,
@@ -149,7 +157,7 @@ class KnowliaSyncService:
                     identity,
                     {
                         "display_name": attachment.filename,
-                        "path": attachment.storage_key,
+                        "path": self._document_path(attachment.storage_key),
                         "mime_type": attachment.content_type,
                         "size_bytes": attachment.size_bytes,
                         "metadata": {"service_ia_attachment_id": attachment.id},

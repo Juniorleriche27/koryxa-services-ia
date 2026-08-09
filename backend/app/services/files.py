@@ -107,6 +107,28 @@ class FileService:
         )
         return list(result.all())
 
+    async def download(
+        self,
+        session: AsyncSession,
+        organization_id: str,
+        attachment_id: str,
+    ) -> tuple[Attachment, bytes]:
+        attachment = await session.scalar(
+            select(Attachment).where(
+                Attachment.id == attachment_id,
+                Attachment.organization_id == organization_id,
+            )
+        )
+        if attachment is None:
+            raise ApplicationError("attachment_not_found", "Pièce jointe introuvable", 404)
+        try:
+            content = self.storage.read(attachment.storage_key)
+        except (OSError, ValueError) as exc:
+            raise ApplicationError(
+                "attachment_unavailable", "Le fichier est indisponible", 404
+            ) from exc
+        return attachment, content
+
     async def _ensure_record_exists(
         self,
         session: AsyncSession,

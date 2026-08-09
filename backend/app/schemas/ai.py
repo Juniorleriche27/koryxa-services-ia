@@ -16,11 +16,11 @@ class AIProviderType(str, Enum):
 
 class AIConfigBase(BaseModel):
     provider: AIProviderType = Field(
-        default=AIProviderType.NATIVE,
-        description="Fournisseur d'intelligence actif (native, gemini, openai, cohere, gateway, knowlia)",
+        default=AIProviderType.KNOWLIA,
+        description="Knowlia, unique source d'intelligence du Service IA",
     )
     model_name: str = Field(
-        default="koryxa-smart-v1",
+        default="llama3.2:3b",
         description="Nom du modèle (ex: gemini-1.5-pro, gpt-4o, command-r-plus, custom-llama3)",
     )
     api_base_url: str | None = Field(
@@ -53,12 +53,7 @@ class AIConfigRead(AIConfigBase):
     )
     available_providers: list[dict[str, str]] = Field(
         default_factory=lambda: [
-            {"id": "native", "name": "Moteur Autonome Koryxa (Intégré, Zéro Dépendance)", "description": "Analyses financières expertes, calculs de trésorerie et rédaction de relances natives"},
-            {"id": "gemini", "name": "Google Gemini API", "description": "Modèles Gemini 1.5 Pro / Flash ultra-rapides et multimodaux"},
-            {"id": "openai", "name": "OpenAI API", "description": "Modèles GPT-4o / GPT-4o-mini avec raisonnement avancé"},
-            {"id": "cohere", "name": "Cohere API", "description": "Modèles Command R+ spécialisés en RAG et synthèse"},
-            {"id": "gateway", "name": "Serveur Privé / Custom AI Gateway", "description": "Votre passerelle interne (Ollama, vLLM, LiteLLM, serveur d'entreprise)"},
-            {"id": "knowlia", "name": "Moteur Knowlia Intelligence", "description": "Connecteur natif vers la base documentaire d'entreprise"},
+            {"id": "knowlia", "name": "Knowlia Intelligence", "description": "Mémoire et intelligence d'entreprise via la passerelle IA KORYXA"},
         ]
     )
 

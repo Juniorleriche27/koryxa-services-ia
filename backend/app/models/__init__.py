@@ -1,5 +1,6 @@
 from app.models.imports import Attachment, ImportJob, ImportStatus
 from app.models.invitation import InvitationStatus, OrganizationInvitation
+from app.models.integrations import OrganizationIntegrationConfig, WhatsAppWebhookEvent
 from app.models.knowlia import KnowliaSyncJob, KnowliaSyncStatus
 from app.models.member import MemberRole, MemberStatus, OrganizationMember
 from app.models.organization import Organization
@@ -41,6 +42,7 @@ __all__ = [
     "Offer",
     "Organization",
     "OrganizationInvitation",
+    "OrganizationIntegrationConfig",
     "OrganizationMember",
     "PaymentStatus",
     "Procedure",
@@ -54,4 +56,5 @@ __all__ = [
     "RecordStatus",
     "Sale",
     "ValidationRequest",
+    "WhatsAppWebhookEvent",
 ]

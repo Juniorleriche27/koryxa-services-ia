@@ -34,8 +34,14 @@ class DirectUploadTokenService:
         return payload
 
     def _sign(self, value: str) -> str:
+        settings = get_settings()
+        secret = settings.proxy_secret
+        if not secret and settings.environment != "production":
+            secret = "service-ia-development-only-secret"
+        if not secret:
+            raise ApplicationError("upload_signing_unavailable", "Signature d’envoi indisponible", 503)
         digest = hmac.new(
-            get_settings().proxy_secret.encode(),
+            secret.encode(),
             value.encode(),
             hashlib.sha256,
         ).digest()
