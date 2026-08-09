@@ -66,6 +66,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const recognitionRef = useRef<any>(null);
+  const finalTranscriptRef = useRef("");
 
   // Initialize Speech Recognition if available in browser
   useEffect(() => {
@@ -79,16 +80,31 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
         recognition.lang = "fr-FR";
 
         recognition.onresult = (event: any) => {
-          let current = "";
+          let interim = "";
           for (let i = event.resultIndex; i < event.results.length; i++) {
-            current += event.results[i][0].transcript;
+            const text = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscriptRef.current = `${finalTranscriptRef.current} ${text}`.trim();
+            } else {
+              interim += text;
+            }
           }
-          setTranscript(current);
+          setTranscript(`${finalTranscriptRef.current} ${interim}`.trim());
         };
 
         recognition.onerror = (event: any) => {
           console.error("Speech recognition error", event.error);
           setIsRecording(false);
+          const messages: Record<string, string> = {
+            "not-allowed":
+              "Accès au microphone refusé. Autorisez le micro pour service-ia.koryxa.fr dans votre navigateur.",
+            "service-not-allowed":
+              "Le service de reconnaissance vocale est bloqué par le navigateur.",
+            "audio-capture": "Aucun microphone utilisable n’a été détecté.",
+            network: "La reconnaissance vocale est momentanément indisponible.",
+            "no-speech": "Aucune parole détectée. Rapprochez-vous du microphone et réessayez.",
+          };
+          setError(messages[event.error] || "La capture vocale a échoué. Réessayez.");
         };
 
         recognition.onend = () => {
@@ -103,16 +119,9 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
   const toggleRecording = () => {
     setError("");
     if (!recognitionRef.current) {
-      // Fallback if browser doesn't support Web Speech API
-      if (!isRecording) {
-        setIsRecording(true);
-        // Simulate sample prompt for demo/testing
-        if (!transcript) {
-          setTranscript("Vente de 5 cartons de savon à 25000 FCFA pour le client M. Traoré payé par Wave");
-        }
-      } else {
-        setIsRecording(false);
-      }
+      setError(
+        "La reconnaissance vocale n’est pas disponible dans ce navigateur. Utilisez Chrome ou Edge, ou saisissez la phrase manuellement.",
+      );
       return;
     }
 
@@ -121,12 +130,14 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
       setIsRecording(false);
     } else {
       setTranscript("");
+      finalTranscriptRef.current = "";
       setParseResult(null);
       try {
         recognitionRef.current.start();
         setIsRecording(true);
-      } catch (err) {
+      } catch {
         setIsRecording(false);
+        setError("Le microphone est déjà utilisé ou n’a pas pu démarrer.");
       }
     }
   };
@@ -238,7 +249,10 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
               <button
                 type="button"
                 className="app-text-button kx-btn-xs"
-                onClick={() => setTranscript("")}
+                onClick={() => {
+                  finalTranscriptRef.current = "";
+                  setTranscript("");
+                }}
               >
                 Effacer
               </button>
@@ -248,7 +262,10 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
             className="kx-voice-textarea"
             rows={3}
             value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
+            onChange={(e) => {
+              finalTranscriptRef.current = e.target.value;
+              setTranscript(e.target.value);
+            }}
             placeholder="Ex : « Vente de 3 sacs de riz à 15 000 FCFA à M. Koffi payé par Wave »"
           />
         </div>
