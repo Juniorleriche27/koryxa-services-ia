@@ -103,10 +103,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setOrganization((event as CustomEvent<{ name: string; logo_updated_at?: string | null }>).detail);
     window.addEventListener("koryxa:organization-updated", updated);
     return () => window.removeEventListener("koryxa:organization-updated", updated);
-  }, []);
-
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("koryxa:sidebar-collapsed") === "true");
+  }, []);
+
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
 
@@ -124,6 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
 
   const toggleCollapsed = () =>
     setCollapsed((value) => {

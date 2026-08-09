@@ -14,13 +14,14 @@ import { Dialog, FormError } from "./Dialog";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 
 interface ProcedureStepDraft {
-  step_number: int;
+  step_number: number;
   title: string;
   description: string;
   role_responsible: string;
   input_required?: string | null;
   output_produced?: string | null;
 }
+
 
 interface GeneratedProcedure {
   title: string;

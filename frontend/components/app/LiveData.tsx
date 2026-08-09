@@ -32,9 +32,12 @@ import {
   SaleItem,
   formatMoney,
   formatDate,
+  formatLabel,
+} from "./RegistersTable";
 import { ExecutiveDashboard } from "./ExecutiveDashboard";
 import { ProcedureGeneratorModal } from "./ProcedureGeneratorModal";
 import { AIProviderSettings } from "./AIProviderSettings";
+
 
 
 type ApiPage<T> = { items: T[]; total: number; page: number; page_size: number };
