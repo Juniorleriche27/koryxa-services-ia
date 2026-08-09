@@ -177,7 +177,7 @@ export function PaymentReminderDialog({
           <div className="kx-preview-header">
             <div className="kx-preview-meta">
               <Sparkles size={14} className="kx-icon-emerald" />
-              <span>Texte généré par {generatedResult?.provider_used || "Koryxa IA"}</span>
+              <span>Texte généré par {generatedResult?.provider_used || "Cora"}</span>
             </div>
             {generatedResult && (
               <button

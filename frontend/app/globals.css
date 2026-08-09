@@ -391,9 +391,12 @@
 /* ------------------ PHASE 4: COPILOT & AI STYLES ------------------ */
 
 /* Topbar Copilot Button */
-.kx-topbar-copilot-btn{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:12px;background:linear-gradient(135deg,#00a86b,#00794b);color:#fff;border:1px solid #72dfa8;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,168,107,.25);transition:all .2s ease}
+.kx-topbar-copilot-btn{display:inline-flex;align-items:center;gap:9px;min-height:42px;padding:5px 12px 5px 6px;border-radius:13px;background:linear-gradient(135deg,#00aa6c,#007548);color:#fff;border:1px solid #72dfa8;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(0,168,107,.3);transition:all .2s ease}
 .kx-topbar-copilot-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,168,107,.35);filter:brightness(1.05)}
 .kx-topbar-copilot-btn kbd{background:rgba(255,255,255,.22);color:#fff;padding:2px 5px;border-radius:4px;font-size:10px;font-weight:800}
+.kx-cora-robot{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:0 0 30px;border-radius:9px;background:#fff;color:#008b58;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.kx-cora-label{display:inline-flex;align-items:baseline;gap:4px;color:#fff!important;font-weight:850;letter-spacing:.01em;white-space:nowrap}
+.kx-cora-label small{color:#d8ffeb;font-size:9px;font-weight:900;letter-spacing:.12em}
 
 /* Copilot Drawer */
 .kx-copilot-backdrop{position:fixed;inset:0;background:rgba(10,35,22,.4);backdrop-filter:blur(4px);z-index:9000;display:flex;justify-content:flex-end;animation:kxFadeIn .2s ease}
@@ -508,7 +511,6 @@
 .kx-gen-step-body p{margin:0;font-size:12px;color:#456758;line-height:1.45}
 .kx-gen-step-meta{display:flex;flex-wrap:wrap;gap:10px;padding-top:6px;font-size:11px;color:#00794b;font-weight:700}
 .kx-gen-step-meta span{display:inline-flex;align-items:center;gap:4px}
-
 
 
 

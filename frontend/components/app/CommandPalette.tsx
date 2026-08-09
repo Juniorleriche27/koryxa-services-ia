@@ -60,7 +60,7 @@ export function CommandPalette({
       // Actions Rapides
       {
         id: "open-copilot",
-        title: "Ouvrir le Copilote IA KORYXA (Demandez à l'IA)",
+        title: "Ouvrir Cora, votre assistante IA",
         category: "Actions Rapides",
         icon: Sparkles,
         shortcut: "⌘J",

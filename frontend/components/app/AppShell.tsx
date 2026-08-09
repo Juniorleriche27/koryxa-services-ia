@@ -25,7 +25,7 @@ import {
   Building,
   X,
   Zap,
-  Sparkles,
+  Bot,
 } from "lucide-react";
 
 import clsx from "clsx";
@@ -263,10 +263,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               type="button"
               className="kx-topbar-copilot-btn"
               onClick={() => setCopilotOpen(true)}
-              title="Ouvrir le Copilote IA KORYXA (Cmd + J / Ctrl + J)"
+              title="Ouvrir Cora, votre assistante IA (Cmd + J / Ctrl + J)"
+              aria-label="Ouvrir Cora, votre assistante IA"
             >
-              <Sparkles size={15} />
-              <span className="kx-topbar-search-text">Koryxa IA</span>
+              <span className="kx-cora-robot" aria-hidden="true">
+                <Bot size={18} strokeWidth={2.4} />
+              </span>
+              <span className="kx-cora-label">Cora <small>IA</small></span>
               <kbd className="kx-cmd-kbd">⌘J</kbd>
             </button>
 
@@ -312,4 +315,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

@@ -176,7 +176,7 @@ export function ProcedureGeneratorModal({
             </button>
             <button className="app-button app-button-primary" disabled={loading}>
               <Sparkles size={16} />
-              <span>{loading ? "Génération de la procédure…" : "Générer avec Koryxa IA"}</span>
+              <span>{loading ? "Génération de la procédure…" : "Générer avec Cora"}</span>
             </button>
           </div>
         </form>

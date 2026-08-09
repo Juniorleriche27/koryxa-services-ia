@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Sparkles,
   X,
   Send,
   Bot,
@@ -56,12 +55,12 @@ export function AICopilotDrawer({
     {
       role: "assistant",
       content:
-        "👋 **Bonjour ! Je suis votre Copilote IA KORYXA.**\n\nJe suis connecté en direct à vos registres (Ventes, Dépenses, Trésorerie, Radar de conformité et Procédures). Comment puis-je vous aider aujourd'hui ?",
+        "👋 **Bonjour ! Je suis Cora, votre assistante IA.**\n\nJe suis connectée en direct à vos registres (Ventes, Dépenses, Trésorerie, Radar de conformité et Procédures). Comment puis-je vous aider aujourd'hui ?",
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [providerUsed, setProviderUsed] = useState("Moteur Autonome Koryxa");
+  const [providerUsed, setProviderUsed] = useState("Knowlia Intelligence");
   const [actions, setActions] = useState<SuggestedAction[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -143,10 +142,10 @@ export function AICopilotDrawer({
         <div className="kx-copilot-header">
           <div className="kx-copilot-title-group">
             <div className="kx-copilot-badge-icon">
-              <Sparkles size={18} />
+              <Bot size={20} />
             </div>
             <div>
-              <h3>KORYXA Copilot</h3>
+              <h3>Cora</h3>
               <span className="kx-copilot-provider-tag">Source : {providerUsed}</span>
             </div>
           </div>
@@ -159,7 +158,7 @@ export function AICopilotDrawer({
                 onClose();
                 router.push("/espace/parametres");
               }}
-              title="Configurer les sources d'intelligence (Gemini, OpenAI, Cohere, Passerelle)"
+              title="Configurer Cora et sa source d'intelligence Knowlia"
             >
               <Settings2 size={16} />
             </button>
@@ -253,7 +252,7 @@ export function AICopilotDrawer({
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Posez une question sur vos ventes, dépenses, trésorerie ou procédures…"
+              placeholder="Demandez à Cora quelque chose sur votre entreprise…"
               disabled={loading}
               autoFocus
             />
