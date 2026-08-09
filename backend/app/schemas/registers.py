@@ -95,6 +95,8 @@ class SaleCreate(SaleBase):
 
 
 class SaleUpdate(BaseModel):
+    reference: str | None = Field(default=None, min_length=1, max_length=100)
+    sale_date: date | None = None
     client_name: str | None = None
     offer_id: str | None = None
     item_label: str | None = None
@@ -312,4 +314,3 @@ class CashflowSummary(BaseModel):
     estimated_gross_margin: Decimal
     primary_currency: str = "XOF"
     recent_expenses: list[ExpenseRead] = Field(default_factory=list)
-

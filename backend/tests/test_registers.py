@@ -65,6 +65,16 @@ def test_offer_sale_procedure_crud_filters_history_and_tenant_isolation() -> Non
         )
         assert sale.status_code == 201
         assert sale.json()["total_amount"] == "650000.00"
+        sale_id = sale.json()["id"]
+
+        edited_sale = client.patch(
+            f"/api/v1/registers/sales/{sale_id}",
+            headers=owner,
+            json={"reference": "V-001-B", "sale_date": "2026-08-03", "client_name": "Kalo SARL"},
+        )
+        assert edited_sale.status_code == 200
+        assert edited_sale.json()["reference"] == "V-001-B"
+        assert edited_sale.json()["sale_date"] == "2026-08-03"
 
         procedure = client.post(
             "/api/v1/registers/procedures",
@@ -173,4 +183,3 @@ def test_registers_summary_and_sale_payment_status_quick_update() -> None:
         assert summary_after.status_code == 200
         assert Decimal(str(summary_after.json()["total_paid_amount"])) == Decimal("150000")
         assert Decimal(str(summary_after.json()["total_unpaid_amount"])) == Decimal("0")
-

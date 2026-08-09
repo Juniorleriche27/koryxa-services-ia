@@ -14,6 +14,8 @@ import {
   Building,
   Tag,
   FileText,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { StatusPill } from "./Ui";
 import { Dialog, FormError } from "./Dialog";
@@ -377,10 +379,12 @@ export function ExpenseCreateDialog({
   open,
   onClose,
   onCreated,
+  expense,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  expense?: ExpenseItem | null;
 }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -392,7 +396,7 @@ export function ExpenseCreateDialog({
     const form = new FormData(e.currentTarget);
     try {
       const payload = {
-        reference: `DEP-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${Math.floor(
+        reference: expense?.reference || `DEP-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${Math.floor(
           1000 + Math.random() * 9000
         )}`,
         expense_date: String(form.get("expense_date") || new Date().toISOString().slice(0, 10)),
@@ -406,8 +410,8 @@ export function ExpenseCreateDialog({
         comment: String(form.get("comment") || "") || null,
       };
 
-      await serviceIaFetch("/registers/expenses", {
-        method: "POST",
+      await serviceIaFetch(`/registers/expenses${expense ? `/${expense.id}` : ""}`, {
+        method: expense ? "PUT" : "POST",
         body: JSON.stringify(payload),
       });
 
@@ -425,7 +429,7 @@ export function ExpenseCreateDialog({
   return (
     <Dialog
       open
-      title="Enregistrer une Dépense"
+      title={expense ? `Modifier ${expense.reference}` : "Enregistrer une Dépense"}
       description="Ajoutez une facture fournisseur, un loyer, salaire ou achat opérationnel."
       onClose={onClose}
     >
@@ -437,13 +441,13 @@ export function ExpenseCreateDialog({
               name="expense_date"
               type="date"
               required
-              defaultValue={new Date().toISOString().slice(0, 10)}
+              defaultValue={expense?.expense_date || new Date().toISOString().slice(0, 10)}
             />
           </label>
 
           <label>
             Catégorie *
-            <select name="category" required defaultValue="Marchandises">
+            <select name="category" required defaultValue={expense?.category || "Marchandises"}>
               <option value="Marchandises">Achats & Marchandises</option>
               <option value="Loyer">Loyer & Locaux</option>
               <option value="Salaires">Salaires & Rémunérations</option>
@@ -460,18 +464,19 @@ export function ExpenseCreateDialog({
             <input
               name="beneficiary"
               required
+              defaultValue={expense?.beneficiary || ""}
               placeholder="Ex : Sodeci, Bailleur Immobilier, Société ABC…"
             />
           </label>
 
           <label>
             Montant *
-            <input name="amount" type="number" step="any" min="1" required placeholder="Ex : 50000" />
+            <input name="amount" type="number" step="any" min="1" required placeholder="Ex : 50000" defaultValue={expense?.amount || ""}/>
           </label>
 
           <label>
             Devise
-            <select name="currency" defaultValue="XOF">
+            <select name="currency" defaultValue={expense?.currency || "XOF"}>
               <option value="XOF">FCFA (XOF)</option>
               <option value="EUR">Euro (€)</option>
               <option value="USD">Dollar ($)</option>
@@ -480,7 +485,7 @@ export function ExpenseCreateDialog({
 
           <label>
             État du règlement
-            <select name="payment_status" defaultValue="paid">
+            <select name="payment_status" defaultValue={expense?.payment_status || "paid"}>
               <option value="paid">Payé / Réglé</option>
               <option value="unpaid">En attente / Non payé</option>
               <option value="partial">Partiel (Acompte)</option>
@@ -489,17 +494,17 @@ export function ExpenseCreateDialog({
 
           <label>
             Mode de paiement
-            <input name="payment_method" placeholder="Ex : Wave, Virement, Espèces…" />
+            <input name="payment_method" placeholder="Ex : Wave, Virement, Espèces…" defaultValue={expense?.payment_method || ""}/>
           </label>
 
           <label className="app-form-span">
             N° de Facture / Justificatif
-            <input name="invoice_number" placeholder="Ex : FAC-2026-089" />
+            <input name="invoice_number" placeholder="Ex : FAC-2026-089" defaultValue={expense?.invoice_number || ""}/>
           </label>
 
           <label className="app-form-span">
             Commentaire
-            <textarea name="comment" placeholder="Précisions sur cette dépense…" />
+            <textarea name="comment" placeholder="Précisions sur cette dépense…" defaultValue={expense?.comment || ""}/>
           </label>
         </div>
 
@@ -510,7 +515,7 @@ export function ExpenseCreateDialog({
             Annuler
           </button>
           <button className="app-button app-button-primary" disabled={saving}>
-            {saving ? "Enregistrement…" : "Enregistrer la dépense"}
+            {saving ? "Enregistrement…" : expense ? "Enregistrer les modifications" : "Enregistrer la dépense"}
           </button>
         </div>
       </form>
@@ -521,9 +526,13 @@ export function ExpenseCreateDialog({
 export function ExpenseDetailsDialog({
   expense,
   onClose,
+  onEdit,
+  onDeleted,
 }: {
   expense: ExpenseItem | null;
   onClose: () => void;
+  onEdit: () => void;
+  onDeleted: () => void;
 }) {
   if (!expense) return null;
 
@@ -579,9 +588,9 @@ export function ExpenseDetailsDialog({
       )}
 
       <div className="app-form-actions">
-        <button className="app-button app-button-primary" onClick={onClose}>
-          Fermer
-        </button>
+        <button className="app-button app-button-secondary" onClick={async () => { if (!window.confirm("Supprimer définitivement cette dépense ?")) return; await serviceIaFetch(`/registers/expenses/${expense.id}`, { method: "DELETE" }); onClose(); onDeleted(); }}><Trash2 size={15}/>Supprimer</button>
+        <button className="app-button app-button-secondary" onClick={onClose}>Fermer</button>
+        <button className="app-button app-button-primary" onClick={onEdit}><Pencil size={15}/>Modifier</button>
       </div>
     </Dialog>
   );

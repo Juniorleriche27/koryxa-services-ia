@@ -11,6 +11,7 @@ import {
   CreditCard,
   User,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import { Dialog, FormError } from "./Dialog";
 import { serviceIaFetch } from "@/lib/service-ia/api";
@@ -113,6 +114,10 @@ export function SuppliersDirectory({ suppliers, onRefresh }: SuppliersTableProps
                 <span>Modalité : {sup.payment_terms || "Comptant"}</span>
               </div>
             </div>
+            <div className="app-form-actions">
+              <button type="button" className="app-button app-button-secondary" onClick={() => setSelectedSupplier(sup)}><Pencil size={15}/>Modifier</button>
+              <button type="button" className="app-button app-button-secondary" onClick={async () => { if (!window.confirm(`Supprimer définitivement ${sup.name} ?`)) return; await serviceIaFetch(`/registers/suppliers/${sup.id}`, { method: "DELETE" }); await onRefresh(); }}><Trash2 size={15}/>Supprimer</button>
+            </div>
           </article>
         ))}
 
@@ -130,6 +135,13 @@ export function SuppliersDirectory({ suppliers, onRefresh }: SuppliersTableProps
         onClose={() => setCreating(false)}
         onCreated={onRefresh}
       />
+      <SupplierCreateDialog
+        key={selectedSupplier?.id || "no-supplier-edit"}
+        open={Boolean(selectedSupplier)}
+        supplier={selectedSupplier}
+        onClose={() => setSelectedSupplier(null)}
+        onCreated={onRefresh}
+      />
     </div>
   );
 }
@@ -138,10 +150,12 @@ function SupplierCreateDialog({
   open,
   onClose,
   onCreated,
+  supplier,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  supplier?: SupplierItem | null;
 }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -162,8 +176,8 @@ function SupplierCreateDialog({
         payment_terms: String(form.get("payment_terms") || "Comptant") || null,
       };
 
-      await serviceIaFetch("/registers/suppliers", {
-        method: "POST",
+      await serviceIaFetch(`/registers/suppliers${supplier ? `/${supplier.id}` : ""}`, {
+        method: supplier ? "PUT" : "POST",
         body: JSON.stringify(payload),
       });
 
@@ -181,7 +195,7 @@ function SupplierCreateDialog({
   return (
     <Dialog
       open
-      title="Nouveau Fournisseur"
+      title={supplier ? `Modifier ${supplier.name}` : "Nouveau Fournisseur"}
       description="Enregistrez les coordonnées et conditions commerciales d'un fournisseur."
       onClose={onClose}
     >
@@ -189,32 +203,32 @@ function SupplierCreateDialog({
         <div className="app-form-grid">
           <label className="app-form-span">
             Nom de l&apos;entreprise ou du fournisseur *
-            <input name="name" required placeholder="Ex : Matériaux & Ciment SA" />
+            <input name="name" required placeholder="Ex : Matériaux & Ciment SA" defaultValue={supplier?.name || ""}/>
           </label>
 
           <label>
             Catégorie d&apos;activité
-            <input name="category" placeholder="Ex : Matières premières, Informatique…" />
+            <input name="category" placeholder="Ex : Matières premières, Informatique…" defaultValue={supplier?.category || ""}/>
           </label>
 
           <label>
             Nom du contact
-            <input name="contact_name" placeholder="Ex : M. Diallo" />
+            <input name="contact_name" placeholder="Ex : M. Diallo" defaultValue={supplier?.contact_name || ""}/>
           </label>
 
           <label>
             Numéro de téléphone
-            <input name="phone" placeholder="Ex : +225 07 00 00 00" />
+            <input name="phone" placeholder="Ex : +225 07 00 00 00" defaultValue={supplier?.phone || ""}/>
           </label>
 
           <label>
             Adresse e-mail
-            <input name="email" type="email" placeholder="contact@fournisseur.com" />
+            <input name="email" type="email" placeholder="contact@fournisseur.com" defaultValue={supplier?.email || ""}/>
           </label>
 
           <label className="app-form-span">
             Modalités de règlement habituelles
-            <select name="payment_terms" defaultValue="Comptant">
+            <select name="payment_terms" defaultValue={supplier?.payment_terms || "Comptant"}>
               <option value="Comptant">Paiement comptant / Immédiat</option>
               <option value="30 jours">30 jours fin de mois</option>
               <option value="Acompte 50%">Acompte 50% à la commande</option>
@@ -224,7 +238,7 @@ function SupplierCreateDialog({
 
           <label className="app-form-span">
             Adresse physique
-            <textarea name="address" placeholder="Localisation, ville, quartier…" />
+            <textarea name="address" placeholder="Localisation, ville, quartier…" defaultValue={supplier?.address || ""}/>
           </label>
         </div>
 
@@ -235,7 +249,7 @@ function SupplierCreateDialog({
             Annuler
           </button>
           <button className="app-button app-button-primary" disabled={saving}>
-            {saving ? "Enregistrement…" : "Enregistrer le fournisseur"}
+            {saving ? "Enregistrement…" : supplier ? "Enregistrer les modifications" : "Enregistrer le fournisseur"}
           </button>
         </div>
       </form>

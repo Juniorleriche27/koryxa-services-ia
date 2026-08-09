@@ -19,6 +19,8 @@ import {
   Sparkles,
   ArrowUpDown,
   Filter,
+  Pencil,
+  Archive,
 } from "lucide-react";
 import { PageHeader } from "./PageHeader";
 import { EmptyState, MetricCard, RegisterList, StatusPill } from "./Ui";
@@ -51,6 +53,10 @@ type Offer = {
   currency: string;
   billing_unit?: string | null;
   conditions?: string | null;
+  inclusions?: string[];
+  exclusions?: string[];
+  effective_from?: string | null;
+  expires_at?: string | null;
   updated_at: string;
 };
 type Sale = SaleItem;
@@ -63,6 +69,13 @@ type Procedure = {
   version: number;
   responsible_user_id?: string | null;
   next_review_date?: string | null;
+  trigger?: string | null;
+  participants?: string[];
+  tools?: string[];
+  risks?: string[];
+  expected_result?: string | null;
+  validation_date?: string | null;
+  steps?: Array<{ position: number; title: string; description?: string | null }>;
 };
 type Alert = {
   id: string;
@@ -160,6 +173,14 @@ export function LiveRegister({ kind }: { kind: "offers" | "sales" | "procedures"
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [selectedProcedure, setSelectedProcedure] = useState<Procedure | null>(null);
+  const [editingRecord, setEditingRecord] = useState<Record<string, any> | null>(null);
+
+  const archiveRecord = async (type: "offer" | "sale" | "procedure", id: string) => {
+    if (!window.confirm("Archiver cette ligne ? Elle ne sera plus affichée dans le registre actif.")) return;
+    await serviceIaFetch(`/registers/${type}/${id}/archive`, { method: "POST" });
+    setSelectedSale(null); setSelectedOffer(null); setSelectedProcedure(null);
+    await api.reload();
+  };
 
   const offers = kind === "offers" ? ((api.data?.items as Offer[]) ?? []) : [];
   const sales = kind === "sales" ? ((api.data?.items as Sale[]) ?? []) : [];
@@ -326,6 +347,14 @@ export function LiveRegister({ kind }: { kind: "offers" | "sales" | "procedures"
         onClose={() => setCreating(false)}
         onCreated={api.reload}
       />
+      <RegisterCreateDialog
+        key={editingRecord?.id || "no-edit"}
+        kind={kind}
+        record={editingRecord}
+        open={Boolean(editingRecord)}
+        onClose={() => setEditingRecord(null)}
+        onCreated={async () => { setEditingRecord(null); await api.reload(); }}
+      />
 
       <ProcedureGeneratorModal
         open={aiProcedureOpen}
@@ -333,15 +362,15 @@ export function LiveRegister({ kind }: { kind: "offers" | "sales" | "procedures"
         onProcedureCreated={api.reload}
       />
 
-      <SaleDetails sale={selectedSale} onClose={() => setSelectedSale(null)} />
-      <OfferDetails offer={selectedOffer} onClose={() => setSelectedOffer(null)} />
-      <ProcedureDetails procedure={selectedProcedure} onClose={() => setSelectedProcedure(null)} />
+      <SaleDetails sale={selectedSale} onClose={() => setSelectedSale(null)} onEdit={() => { setEditingRecord(selectedSale); setSelectedSale(null); }} onArchive={(id) => void archiveRecord("sale", id)} />
+      <OfferDetails offer={selectedOffer} onClose={() => setSelectedOffer(null)} onEdit={() => { setEditingRecord(selectedOffer); setSelectedOffer(null); }} onArchive={(id) => void archiveRecord("offer", id)} />
+      <ProcedureDetails procedure={selectedProcedure} onClose={() => setSelectedProcedure(null)} onEdit={() => { setEditingRecord(selectedProcedure); setSelectedProcedure(null); }} onArchive={(id) => void archiveRecord("procedure", id)} />
 
     </>
   );
 }
 
-function SaleDetails({ sale, onClose }: { sale: Sale | null; onClose: () => void }) {
+function SaleDetails({ sale, onClose, onEdit, onArchive }: { sale: Sale | null; onClose: () => void; onEdit: () => void; onArchive: (id: string) => void }) {
   if (!sale) return null;
   const fields = [
     ["Date de vente", formatDate(sale.sale_date)],
@@ -389,15 +418,15 @@ function SaleDetails({ sale, onClose }: { sale: Sale | null; onClose: () => void
         <p>{formatLabel(sale.comment)}</p>
       </div>
       <div className="app-form-actions">
-        <button className="app-button app-button-primary" onClick={onClose}>
-          Fermer
-        </button>
+        <button className="app-button app-button-secondary" onClick={() => onArchive(sale.id)}><Archive size={15}/>Archiver</button>
+        <button className="app-button app-button-secondary" onClick={onClose}>Fermer</button>
+        <button className="app-button app-button-primary" onClick={onEdit}><Pencil size={15}/>Modifier</button>
       </div>
     </Dialog>
   );
 }
 
-function OfferDetails({ offer, onClose }: { offer: Offer | null; onClose: () => void }) {
+function OfferDetails({ offer, onClose, onEdit, onArchive }: { offer: Offer | null; onClose: () => void; onEdit: () => void; onArchive: (id: string) => void }) {
   if (!offer) return null;
   return (
     <Dialog
@@ -434,9 +463,9 @@ function OfferDetails({ offer, onClose }: { offer: Offer | null; onClose: () => 
         </div>
       )}
       <div className="app-form-actions">
-        <button className="app-button app-button-primary" onClick={onClose}>
-          Fermer
-        </button>
+        <button className="app-button app-button-secondary" onClick={() => onArchive(offer.id)}><Archive size={15}/>Archiver</button>
+        <button className="app-button app-button-secondary" onClick={onClose}>Fermer</button>
+        <button className="app-button app-button-primary" onClick={onEdit}><Pencil size={15}/>Modifier</button>
       </div>
     </Dialog>
   );
@@ -445,9 +474,13 @@ function OfferDetails({ offer, onClose }: { offer: Offer | null; onClose: () => 
 function ProcedureDetails({
   procedure,
   onClose,
+  onEdit,
+  onArchive,
 }: {
   procedure: Procedure | null;
   onClose: () => void;
+  onEdit: () => void;
+  onArchive: (id: string) => void;
 }) {
   if (!procedure) return null;
   return (
@@ -485,9 +518,9 @@ function ProcedureDetails({
         </div>
       )}
       <div className="app-form-actions">
-        <button className="app-button app-button-primary" onClick={onClose}>
-          Fermer
-        </button>
+        <button className="app-button app-button-secondary" onClick={() => onArchive(procedure.id)}><Archive size={15}/>Archiver</button>
+        <button className="app-button app-button-secondary" onClick={onClose}>Fermer</button>
+        <button className="app-button app-button-primary" onClick={onEdit}><Pencil size={15}/>Modifier</button>
       </div>
     </Dialog>
   );

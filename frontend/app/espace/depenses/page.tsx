@@ -25,6 +25,7 @@ export default function ExpensesPage() {
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseItem | null>(null);
+  const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
 
   const loadExpenses = useCallback(async () => {
     setLoading(true);
@@ -81,10 +82,19 @@ export default function ExpensesPage() {
         onClose={() => setCreating(false)}
         onCreated={loadExpenses}
       />
+      <ExpenseCreateDialog
+        key={editingExpense?.id || "no-expense-edit"}
+        open={Boolean(editingExpense)}
+        expense={editingExpense}
+        onClose={() => setEditingExpense(null)}
+        onCreated={loadExpenses}
+      />
 
       <ExpenseDetailsDialog
         expense={selectedExpense}
         onClose={() => setSelectedExpense(null)}
+        onEdit={() => { setEditingExpense(selectedExpense); setSelectedExpense(null); }}
+        onDeleted={loadExpenses}
       />
     </>
   );
