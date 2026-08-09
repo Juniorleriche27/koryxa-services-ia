@@ -23,7 +23,9 @@ import {
   Building,
   X,
   Zap,
+  Sparkles,
 } from "lucide-react";
+
 import clsx from "clsx";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { serviceIaFetch } from "@/lib/service-ia/api";
@@ -103,9 +105,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setOrganization((event as CustomEvent<{ name: string; logo_updated_at?: string | null }>).detail);
     window.addEventListener("koryxa:organization-updated", updated);
     return () => window.removeEventListener("koryxa:organization-updated", updated);
+  }, []);
+
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("koryxa:sidebar-collapsed") === "true");
   }, []);
+
 
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
