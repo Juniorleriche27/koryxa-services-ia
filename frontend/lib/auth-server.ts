@@ -9,7 +9,26 @@ const resolveCachedKoryxaIdentity = unstable_cache(
   async (clerkUserId: string, email: string, fullName: string | null) =>
     resolveKoryxaIdentity({ clerkUserId, email, fullName }),
   ["service-ia-identity-v3"],
-  { revalidate: 60 },
+  { revalidate: 300 },
+);
+
+const resolveCachedClerkProfile = unstable_cache(
+  async (clerkUserId: string) => {
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(clerkUserId);
+    return {
+      email: (
+        user.primaryEmailAddress?.emailAddress ||
+        user.emailAddresses[0]?.emailAddress ||
+        ""
+      )
+        .trim()
+        .toLowerCase(),
+      fullName: user.fullName,
+    };
+  },
+  ["service-ia-clerk-profile-v1"],
+  { revalidate: 300 },
 );
 
 export async function requireServiceIaIdentity(): Promise<ServiceIaIdentity> {
@@ -18,12 +37,9 @@ export async function requireServiceIaIdentity(): Promise<ServiceIaIdentity> {
 
   // Clerk reads request headers internally, so it must remain outside the
   // Next.js cache scope. Only the header-independent KORYXA bridge is cached.
-  const clerk = await clerkClient();
-  const user = await clerk.users.getUser(authContext.userId);
-  const email = (user.primaryEmailAddress?.emailAddress || user.emailAddresses[0]?.emailAddress || "")
-    .trim()
-    .toLowerCase();
+  const profile = await resolveCachedClerkProfile(authContext.userId);
+  const email = profile.email;
   if (!email) throw new Error("KORYXA Identity user has no email address.");
 
-  return resolveCachedKoryxaIdentity(authContext.userId, email, user.fullName);
+  return resolveCachedKoryxaIdentity(authContext.userId, email, profile.fullName);
 }
