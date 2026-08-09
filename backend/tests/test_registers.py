@@ -83,6 +83,11 @@ def test_offer_sale_procedure_crud_filters_history_and_tenant_isolation() -> Non
         procedure_id = procedure.json()["id"]
         assert [step["position"] for step in procedure.json()["steps"]] == [1, 2]
 
+        procedures = client.get("/api/v1/registers/procedures", headers=owner)
+        assert procedures.status_code == 200
+        assert procedures.json()["total"] == 1
+        assert [step["position"] for step in procedures.json()["items"][0]["steps"]] == [1, 2]
+
         updated = client.patch(
             f"/api/v1/registers/procedures/{procedure_id}",
             headers=owner,
@@ -168,5 +173,4 @@ def test_registers_summary_and_sale_payment_status_quick_update() -> None:
         assert summary_after.status_code == 200
         assert Decimal(str(summary_after.json()["total_paid_amount"])) == Decimal("150000")
         assert Decimal(str(summary_after.json()["total_unpaid_amount"])) == Decimal("0")
-
 

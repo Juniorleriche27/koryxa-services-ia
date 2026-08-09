@@ -124,6 +124,10 @@ class SaleRead(SaleBase):
 
 
 class StepInput(BaseModel):
+    # Accept SQLAlchemy ProcedureStep instances when serializing API responses.
+    # Incoming procedure payloads continue to be validated normally.
+    model_config = ConfigDict(from_attributes=True)
+
     position: int = Field(ge=1)
     title: str = Field(min_length=1, max_length=180)
     description: str | None = None
@@ -308,5 +312,4 @@ class CashflowSummary(BaseModel):
     estimated_gross_margin: Decimal
     primary_currency: str = "XOF"
     recent_expenses: list[ExpenseRead] = Field(default_factory=list)
-
 
