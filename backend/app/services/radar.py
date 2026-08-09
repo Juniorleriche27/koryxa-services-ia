@@ -18,7 +18,16 @@ from app.models.radar import (
     RadarRuleConfig,
     RadarRun,
 )
-from app.models.registers import Offer, PaymentStatus, Procedure, ProcedureStep, RecordStatus, Sale
+from app.models.registers import (
+
+    Expense,
+    Offer,
+    PaymentStatus,
+    Procedure,
+    ProcedureStep,
+    RecordStatus,
+    Sale,
+)
 
 DEFAULTS = {
     "offer.price_missing": (RadarDimension.COMPLETENESS, AlertPriority.HIGH, {}),
@@ -46,6 +55,16 @@ DEFAULTS = {
         AlertPriority.NORMAL,
         {"date_window_days": 1, "min_confidence": 0.75},
     ),
+    "expense.payment_overdue": (
+        RadarDimension.FRESHNESS,
+        AlertPriority.HIGH,
+        {"payment_delay_days": 30},
+    ),
+    "cashflow.deficit_risk": (
+        RadarDimension.CONSISTENCY,
+        AlertPriority.CRITICAL,
+        {},
+    ),
     "procedure.responsible_missing": (RadarDimension.COMPLETENESS, AlertPriority.HIGH, {}),
     "procedure.validation_missing": (
         RadarDimension.TRACEABILITY,
@@ -60,6 +79,7 @@ DEFAULTS = {
     ),
     "procedure.responsible_inactive": (RadarDimension.CONSISTENCY, AlertPriority.HIGH, {}),
 }
+
 
 
 class RadarService:
@@ -141,7 +161,17 @@ class RadarService:
                 )
             ).all()
         )
+        expenses = list(
+            (
+                await s.scalars(
+                    select(Expense).where(
+                        Expense.organization_id == org, Expense.is_archived.is_(False)
+                    )
+                )
+            ).all()
+        )
         today = date.today()
+
         for o in offers:
             if o.price is None:
                 findings.append(
@@ -328,6 +358,48 @@ class RadarService:
                                 score,
                             )
                         )
+
+        # ------------------ EXPENSES & CASHFLOW CHECKS ------------------
+        for exp in expenses:
+            delay = int(self.params(configs, "expense.payment_overdue").get("payment_delay_days", 30))
+            if (
+                exp.payment_status == PaymentStatus.UNPAID
+                and exp.expense_date + timedelta(days=delay) < today
+            ):
+                findings.append(
+                    self.f(
+                        "expense.payment_overdue",
+                        "expense",
+                        exp.id,
+                        "Facture fournisseur en retard",
+                        f"Le règlement de cette dépense vers {exp.beneficiary} est en retard de plus de {delay} jours.",
+                        "Effectuer le règlement ou mettre à jour l'échéance.",
+                        {"expense_date": exp.expense_date.isoformat(), "delay_days": delay},
+                    )
+                )
+
+        total_income_paid = sum(
+            (sa.total_amount for sa in sales if sa.payment_status == PaymentStatus.PAID),
+            Decimal("0.00"),
+        )
+        total_expenses_paid = sum(
+            (ex.amount for ex in expenses if ex.payment_status == PaymentStatus.PAID),
+            Decimal("0.00"),
+        )
+        net_cash = total_income_paid - total_expenses_paid
+        if net_cash < Decimal("0.00") and expenses:
+            findings.append(
+                self.f(
+                    "cashflow.deficit_risk",
+                    "cashflow",
+                    expenses[0].id,
+                    "Risque de trésorerie négative",
+                    f"Les sorties d'argent effectives ({total_expenses_paid}) dépassent les encaissements ({total_income_paid}).",
+                    "Accélérer le recouvrement des ventes impayées et maîtriser les dépenses.",
+                    {"net_cash": str(net_cash)},
+                )
+            )
+
         active_members = {
             m.user_id
             for m in (
@@ -339,6 +411,7 @@ class RadarService:
                 )
             ).all()
         }
+
         for proc in procedures:
             if (
                 proc.status in {RecordStatus.VALIDATED, RecordStatus.TO_VERIFY}

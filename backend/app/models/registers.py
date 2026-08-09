@@ -181,3 +181,58 @@ class RecordHistory(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
+
+
+class Expense(Base):
+    __tablename__ = "expenses"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+    )
+    reference: Mapped[str] = mapped_column(String(100), index=True)
+    expense_date: Mapped[date] = mapped_column(Date, index=True)
+    category: Mapped[str] = mapped_column(String(80), index=True, default="Divers")
+    beneficiary: Mapped[str] = mapped_column(String(180), index=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    currency: Mapped[str] = mapped_column(String(3), default="XOF")
+    payment_method: Mapped[str | None] = mapped_column(String(80))
+    payment_status: Mapped[PaymentStatus] = mapped_column(
+        Enum(PaymentStatus, native_enum=False), default=PaymentStatus.PAID, index=True
+    )
+    invoice_number: Mapped[str | None] = mapped_column(String(120))
+    comment: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[RecordStatus] = mapped_column(
+        Enum(RecordStatus, native_enum=False), default=RecordStatus.VALIDATED, index=True
+    )
+    source: Mapped[RecordSource] = mapped_column(
+        Enum(RecordSource, native_enum=False), default=RecordSource.MANUAL
+    )
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_by_user_id: Mapped[str] = mapped_column(String(128))
+    updated_by_user_id: Mapped[str] = mapped_column(String(128))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class Supplier(Base):
+    __tablename__ = "suppliers"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(180), index=True)
+    category: Mapped[str | None] = mapped_column(String(100), default="Général")
+    contact_name: Mapped[str | None] = mapped_column(String(180))
+    phone: Mapped[str | None] = mapped_column(String(80))
+    email: Mapped[str | None] = mapped_column(String(180))
+    address: Mapped[str | None] = mapped_column(Text)
+    payment_terms: Mapped[str | None] = mapped_column(String(120), default="Comptant")
+    created_by_user_id: Mapped[str] = mapped_column(String(128))
+    updated_by_user_id: Mapped[str] = mapped_column(String(128))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+

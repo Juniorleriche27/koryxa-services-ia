@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.venv/
+
+# Environment Variables
+.env
+.env*.local
+
+# Next.js & Frontend Build
+.next/
+out/
+build/
+dist/
+
+# Python & Backend
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+backend/storage/
+*.sqlite
+*.sqlite3
+*.db
+
+# Logs & System
+*.log
+.DS_Store
+Thumbs.db

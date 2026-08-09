@@ -7,15 +7,29 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApplicationError
-from app.models.registers import Offer, Procedure, ProcedureStep, RecordHistory, Sale
+from app.models.registers import (
+    Expense,
+    Offer,
+    PaymentStatus,
+    Procedure,
+    ProcedureStep,
+    RecordHistory,
+    Sale,
+    Supplier,
+)
 from app.schemas.registers import (
+    ExpenseCreate,
+    ExpenseUpdate,
     OfferCreate,
     OfferUpdate,
     ProcedureCreate,
     ProcedureUpdate,
     SaleCreate,
     SaleUpdate,
+    SupplierCreate,
+    SupplierUpdate,
 )
+
 
 
 def diff(before: dict[str, object], after: dict[str, object]) -> dict[str, object]:
@@ -271,6 +285,97 @@ class RegisterService:
         await self._history(s, org, typ, rid, "archived", user, {})
         await s.commit()
 
+    async def update_sale_payment_status(self, s, org, user, rid, payment_status, payment_method=None):
+        obj = await self.get_sale(s, org, rid)
+        before = {"payment_status": obj.payment_status, "payment_method": obj.payment_method}
+        obj.payment_status = payment_status
+        if payment_method is not None:
+            obj.payment_method = payment_method
+        obj.updated_by_user_id = user
+        await self._history(
+            s, org, "sale", rid, "payment_status_updated", user,
+            {"before": before, "after": {"payment_status": payment_status, "payment_method": obj.payment_method}}
+        )
+        await s.commit()
+        await s.refresh(obj)
+        return obj
+
+    async def get_summary(self, s, org):
+        sales_rows = list(
+            (
+                await s.scalars(
+                    select(Sale)
+                    .where(Sale.organization_id == org, Sale.is_archived.is_(False))
+                    .order_by(Sale.sale_date.desc())
+                )
+            ).all()
+        )
+        total_sales_count = len(sales_rows)
+        total_sales_amount = Decimal("0.00")
+        total_paid_amount = Decimal("0.00")
+        total_unpaid_amount = Decimal("0.00")
+        total_partial_amount = Decimal("0.00")
+        primary_currency = "XOF"
+
+        for row in sales_rows:
+            amt = row.total_amount if row.total_amount is not None else Decimal("0.00")
+            total_sales_amount += amt
+            primary_currency = row.currency or primary_currency
+            if row.payment_status == "paid":
+                total_paid_amount += amt
+            elif row.payment_status == "unpaid":
+                total_unpaid_amount += amt
+            elif row.payment_status == "partial":
+                total_partial_amount += amt
+
+
+        offers_count = int(
+            await s.scalar(
+                select(func.count())
+                .select_from(Offer)
+                .where(Offer.organization_id == org, Offer.is_archived.is_(False))
+            )
+            or 0
+        )
+        procedures_count = int(
+            await s.scalar(
+                select(func.count())
+                .select_from(Procedure)
+                .where(Procedure.organization_id == org, Procedure.is_archived.is_(False))
+            )
+            or 0
+        )
+
+        expenses_count = int(
+            await s.scalar(
+                select(func.count())
+                .select_from(Expense)
+                .where(Expense.organization_id == org, Expense.is_archived.is_(False))
+            )
+            or 0
+        )
+        suppliers_count = int(
+            await s.scalar(
+                select(func.count())
+                .select_from(Supplier)
+            )
+            or 0
+        )
+
+        return {
+            "total_sales_count": total_sales_count,
+            "total_sales_amount": total_sales_amount,
+            "total_paid_amount": total_paid_amount,
+            "total_unpaid_amount": total_unpaid_amount,
+            "total_partial_amount": total_partial_amount,
+            "offers_count": offers_count,
+            "procedures_count": procedures_count,
+            "expenses_count": expenses_count,
+            "suppliers_count": suppliers_count,
+            "primary_currency": primary_currency,
+            "recent_sales": sales_rows[:10],
+        }
+
     async def history(self, s, org, typ, rid):
         return list(
             (
@@ -285,3 +390,261 @@ class RegisterService:
                 )
             ).all()
         )
+
+    # ------------------ EXPENSES ------------------
+    async def create_expense(self, s: AsyncSession, org: str, user: str, data: ExpenseCreate):
+        obj = Expense(
+            organization_id=org,
+            reference=data.reference,
+            expense_date=data.expense_date,
+            category=data.category,
+            beneficiary=data.beneficiary,
+            amount=data.amount,
+            currency=data.currency,
+            payment_method=data.payment_method,
+            payment_status=data.payment_status,
+            invoice_number=data.invoice_number,
+            comment=data.comment,
+            status=data.status,
+            source=data.source,
+            created_by_user_id=user,
+            updated_by_user_id=user,
+        )
+        s.add(obj)
+        await s.flush()
+        await self._history(s, org, "expenses", obj.id, "create", user, {"reference": obj.reference})
+        await s.commit()
+        await s.refresh(obj)
+        return obj
+
+    async def list_expenses(
+        self,
+        s: AsyncSession,
+        org: str,
+        page: int = 1,
+        page_size: int = 50,
+        q: str | None = None,
+        category: str | None = None,
+        payment_status: str | None = None,
+    ):
+        stmt = select(Expense).where(Expense.organization_id == org, Expense.is_archived.is_(False))
+        if category:
+            stmt = stmt.where(Expense.category == category)
+        if payment_status:
+            stmt = stmt.where(Expense.payment_status == payment_status)
+        if q:
+            stmt = stmt.where(
+                or_(
+                    Expense.reference.ilike(f"%{q}%"),
+                    Expense.beneficiary.ilike(f"%{q}%"),
+                    Expense.category.ilike(f"%{q}%"),
+                    Expense.comment.ilike(f"%{q}%"),
+                )
+            )
+        total = int(await s.scalar(select(func.count()).select_from(stmt.subquery())) or 0)
+        items = list(
+            (
+                await s.scalars(
+                    stmt.order_by(Expense.expense_date.desc(), Expense.created_at.desc())
+                    .offset((page - 1) * page_size)
+                    .limit(page_size)
+                )
+            ).all()
+        )
+        return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+    async def get_expense(self, s: AsyncSession, org: str, rid: str):
+        obj = await s.scalar(
+            select(Expense).where(
+                Expense.organization_id == org, Expense.id == rid, Expense.is_archived.is_(False)
+            )
+        )
+        if not obj:
+            raise ApplicationError("not_found", "Dépense introuvable", 404)
+        return obj
+
+    async def update_expense(self, s: AsyncSession, org: str, user: str, rid: str, data: ExpenseUpdate):
+        obj = await self.get_expense(s, org, rid)
+        before = {
+            "amount": str(obj.amount),
+            "payment_status": str(obj.payment_status),
+            "category": obj.category,
+        }
+        for k, v in data.model_dump(exclude_unset=True).items():
+            setattr(obj, k, v)
+        obj.updated_by_user_id = user
+        await s.flush()
+        after = {
+            "amount": str(obj.amount),
+            "payment_status": str(obj.payment_status),
+            "category": obj.category,
+        }
+        await self._history(s, org, "expenses", obj.id, "update", user, diff(before, after))
+        await s.commit()
+        await s.refresh(obj)
+        return obj
+
+    async def update_expense_payment_status(
+        self, s: AsyncSession, org: str, user: str, rid: str, status: str, method: str | None = None
+    ):
+        obj = await self.get_expense(s, org, rid)
+        before = {"payment_status": str(obj.payment_status), "payment_method": obj.payment_method}
+        obj.payment_status = PaymentStatus(status)
+        if method is not None:
+            obj.payment_method = method
+        obj.updated_by_user_id = user
+        await s.flush()
+        after = {"payment_status": str(obj.payment_status), "payment_method": obj.payment_method}
+        await self._history(s, org, "expenses", obj.id, "update_payment_status", user, diff(before, after))
+        await s.commit()
+        await s.refresh(obj)
+        return obj
+
+    async def delete_expense(self, s: AsyncSession, org: str, user: str, rid: str):
+        obj = await self.get_expense(s, org, rid)
+        obj.is_archived = True
+        obj.updated_by_user_id = user
+        await s.flush()
+        await self._history(s, org, "expenses", obj.id, "archive", user, {})
+        await s.commit()
+        return {"ok": True}
+
+    # ------------------ SUPPLIERS ------------------
+    async def create_supplier(self, s: AsyncSession, org: str, user: str, data: SupplierCreate):
+        obj = Supplier(
+            organization_id=org,
+            name=data.name,
+            category=data.category,
+            contact_name=data.contact_name,
+            phone=data.phone,
+            email=data.email,
+            address=data.address,
+            payment_terms=data.payment_terms,
+            created_by_user_id=user,
+            updated_by_user_id=user,
+        )
+        s.add(obj)
+        await s.flush()
+        await self._history(s, org, "suppliers", obj.id, "create", user, {"name": obj.name})
+        await s.commit()
+        await s.refresh(obj)
+        return obj
+
+    async def list_suppliers(
+        self, s: AsyncSession, org: str, page: int = 1, page_size: int = 50, q: str | None = None
+    ):
+        stmt = select(Supplier).where(Supplier.organization_id == org)
+        if q:
+            stmt = stmt.where(
+                or_(
+                    Supplier.name.ilike(f"%{q}%"),
+                    Supplier.contact_name.ilike(f"%{q}%"),
+                    Supplier.phone.ilike(f"%{q}%"),
+                    Supplier.email.ilike(f"%{q}%"),
+                )
+            )
+        total = int(await s.scalar(select(func.count()).select_from(stmt.subquery())) or 0)
+        items = list(
+            (
+                await s.scalars(
+                    stmt.order_by(Supplier.name.asc())
+                    .offset((page - 1) * page_size)
+                    .limit(page_size)
+                )
+            ).all()
+        )
+        return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+    async def get_supplier(self, s: AsyncSession, org: str, rid: str):
+        obj = await s.scalar(select(Supplier).where(Supplier.organization_id == org, Supplier.id == rid))
+        if not obj:
+            raise ApplicationError("not_found", "Fournisseur introuvable", 404)
+        return obj
+
+    async def update_supplier(self, s: AsyncSession, org: str, user: str, rid: str, data: SupplierUpdate):
+        obj = await self.get_supplier(s, org, rid)
+        for k, v in data.model_dump(exclude_unset=True).items():
+            setattr(obj, k, v)
+        obj.updated_by_user_id = user
+        await s.flush()
+        await self._history(s, org, "suppliers", obj.id, "update", user, {"name": obj.name})
+        await s.commit()
+        await s.refresh(obj)
+        return obj
+
+    async def delete_supplier(self, s: AsyncSession, org: str, user: str, rid: str):
+        obj = await self.get_supplier(s, org, rid)
+        await s.delete(obj)
+        await s.flush()
+        await self._history(s, org, "suppliers", rid, "delete", user, {})
+        await s.commit()
+        return {"ok": True}
+
+    # ------------------ CASHFLOW SUMMARY ------------------
+    async def get_cashflow_summary(self, s: AsyncSession, org: str):
+        sales = list(
+            (
+                await s.scalars(
+                    select(Sale).where(Sale.organization_id == org, Sale.is_archived.is_(False))
+                )
+            ).all()
+        )
+        expenses = list(
+            (
+                await s.scalars(
+                    select(Expense)
+                    .where(Expense.organization_id == org, Expense.is_archived.is_(False))
+                    .order_by(Expense.expense_date.desc())
+                )
+            ).all()
+        )
+
+        total_income_paid = Decimal("0.00")
+        total_income_unpaid = Decimal("0.00")
+        total_expenses_paid = Decimal("0.00")
+        total_expenses_unpaid = Decimal("0.00")
+        primary_currency = "XOF"
+
+        for sa in sales:
+            amt = sa.total_amount if sa.total_amount is not None else Decimal("0.00")
+            primary_currency = sa.currency or primary_currency
+            if sa.payment_status in {PaymentStatus.PAID, "paid"}:
+                total_income_paid += amt
+            else:
+                total_income_unpaid += amt
+
+        for ex in expenses:
+            amt = ex.amount if ex.amount is not None else Decimal("0.00")
+            primary_currency = ex.currency or primary_currency
+            if ex.payment_status in {PaymentStatus.PAID, "paid"}:
+                total_expenses_paid += amt
+            else:
+                total_expenses_unpaid += amt
+
+        # Net Cash Position = Encaissements effectifs - Décaissements effectifs
+        net_cash_position = total_income_paid - total_expenses_paid
+        # Projected 30d Cash = Solde net actuel + Créances clients à recouvrer - Dettes fournisseurs à régler
+        projected_30d_cash = net_cash_position + total_income_unpaid - total_expenses_unpaid
+
+        # Estimated Gross Margin = (Total Revenu - Coût des Achats/Dépenses) / Total Revenu
+        total_revenue = total_income_paid + total_income_unpaid
+        total_costs = total_expenses_paid + total_expenses_unpaid
+        if total_revenue > Decimal("0.00"):
+            estimated_gross_margin = ((total_revenue - total_costs) / total_revenue) * Decimal("100")
+        else:
+            estimated_gross_margin = Decimal("0.00")
+
+        return {
+            "total_income_paid": total_income_paid,
+            "total_income_unpaid": total_income_unpaid,
+            "total_expenses_paid": total_expenses_paid,
+            "total_expenses_unpaid": total_expenses_unpaid,
+            "net_cash_position": net_cash_position,
+            "projected_30d_cash": projected_30d_cash,
+            "estimated_gross_margin": estimated_gross_margin.quantize(Decimal("0.1")),
+            "primary_currency": primary_currency,
+            "recent_expenses": expenses[:10],
+        }
+
+
+

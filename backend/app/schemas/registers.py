@@ -194,3 +194,119 @@ class HistoryRead(BaseModel):
     actor_user_id: str
     changes: dict[str, object]
     created_at: datetime
+
+
+class SalePaymentUpdate(BaseModel):
+    payment_status: PaymentStatus
+    payment_method: str | None = None
+
+
+class RegistersSummary(BaseModel):
+    total_sales_count: int
+    total_sales_amount: Decimal
+    total_paid_amount: Decimal
+    total_unpaid_amount: Decimal
+    total_partial_amount: Decimal
+    offers_count: int
+    procedures_count: int
+    expenses_count: int = 0
+    suppliers_count: int = 0
+    primary_currency: str = "XOF"
+    recent_sales: list[SaleRead] = Field(default_factory=list)
+
+
+class ExpenseBase(BaseModel):
+    reference: str = Field(min_length=1, max_length=100)
+    expense_date: date
+    category: str = Field(default="Divers", max_length=80)
+    beneficiary: str = Field(min_length=1, max_length=180)
+    amount: Decimal = Field(gt=0)
+    currency: str = Field(default="XOF", min_length=3, max_length=3)
+    payment_method: str | None = None
+    payment_status: PaymentStatus = PaymentStatus.PAID
+    invoice_number: str | None = None
+    comment: str | None = None
+    status: RecordStatus = RecordStatus.VALIDATED
+    source: RecordSource = RecordSource.MANUAL
+
+
+class ExpenseCreate(ExpenseBase):
+    pass
+
+
+class ExpenseUpdate(BaseModel):
+    reference: str | None = None
+    expense_date: date | None = None
+    category: str | None = None
+    beneficiary: str | None = None
+    amount: Decimal | None = Field(default=None, gt=0)
+    currency: str | None = None
+    payment_method: str | None = None
+    payment_status: PaymentStatus | None = None
+    invoice_number: str | None = None
+    comment: str | None = None
+    status: RecordStatus | None = None
+
+
+class ExpensePaymentUpdate(BaseModel):
+    payment_status: PaymentStatus
+    payment_method: str | None = None
+
+
+class ExpenseRead(ExpenseBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    organization_id: str
+    is_archived: bool
+    created_by_user_id: str
+    updated_by_user_id: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class SupplierBase(BaseModel):
+    name: str = Field(min_length=2, max_length=180)
+    category: str | None = "Général"
+    contact_name: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    address: str | None = None
+    payment_terms: str | None = "Comptant"
+
+
+class SupplierCreate(SupplierBase):
+    pass
+
+
+class SupplierUpdate(BaseModel):
+    name: str | None = None
+    category: str | None = None
+    contact_name: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    address: str | None = None
+    payment_terms: str | None = None
+
+
+class SupplierRead(SupplierBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    organization_id: str
+    created_by_user_id: str
+    updated_by_user_id: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class CashflowSummary(BaseModel):
+    total_income_paid: Decimal
+    total_income_unpaid: Decimal
+    total_expenses_paid: Decimal
+    total_expenses_unpaid: Decimal
+    net_cash_position: Decimal
+    projected_30d_cash: Decimal
+    estimated_gross_margin: Decimal
+    primary_currency: str = "XOF"
+    recent_expenses: list[ExpenseRead] = Field(default_factory=list)
+
+

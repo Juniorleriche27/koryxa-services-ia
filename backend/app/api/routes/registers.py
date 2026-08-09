@@ -12,6 +12,11 @@ from app.models.member import OrganizationMember
 from app.models.organization import Organization
 from app.models.registers import PaymentStatus, RecordStatus
 from app.schemas.registers import (
+    CashflowSummary,
+    ExpenseCreate,
+    ExpensePaymentUpdate,
+    ExpenseRead,
+    ExpenseUpdate,
     HistoryRead,
     OfferCreate,
     OfferRead,
@@ -20,10 +25,16 @@ from app.schemas.registers import (
     ProcedureCreate,
     ProcedureRead,
     ProcedureUpdate,
+    RegistersSummary,
     SaleCreate,
+    SalePaymentUpdate,
     SaleRead,
     SaleUpdate,
+    SupplierCreate,
+    SupplierRead,
+    SupplierUpdate,
 )
+
 from app.services.registers import RegisterService
 
 router = APIRouter()
@@ -135,6 +146,20 @@ async def procedures(
     )
 
 
+@router.get("/summary", response_model=RegistersSummary)
+async def summary(s: SessionDep, o: OrgDep, _: ReadDep):
+    return await svc.get_summary(s, o.id)
+
+
+@router.patch("/sales/{rid}/payment-status", response_model=SaleRead)
+async def update_sale_payment_status(
+    rid: str, data: SalePaymentUpdate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep
+):
+    return await svc.update_sale_payment_status(
+        s, o.id, i.user_id, rid, data.payment_status, data.payment_method
+    )
+
+
 @router.get("/procedures/{rid}", response_model=ProcedureRead)
 async def procedure(rid: str, s: SessionDep, o: OrgDep, _: ReadDep):
     return await svc.get_procedure(s, o.id, rid)
@@ -158,3 +183,106 @@ async def archive(typ: str, rid: str, s: SessionDep, i: IdentityDep, o: OrgDep, 
 @router.get("/{typ}/{rid}/history", response_model=list[HistoryRead])
 async def history(typ: str, rid: str, s: SessionDep, o: OrgDep, _: ReadDep):
     return await svc.history(s, o.id, typ, rid)
+
+
+# ------------------ EXPENSES ENDPOINTS ------------------
+@router.post("/expenses", response_model=ExpenseRead, status_code=201)
+async def create_expense(data: ExpenseCreate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep):
+    return await svc.create_expense(s, o.id, i.user_id, data)
+
+
+@router.get("/expenses", response_model=Page)
+async def list_expenses(
+    s: SessionDep,
+    o: OrgDep,
+    _: ReadDep,
+    q: str | None = None,
+    category: str | None = None,
+    payment_status: str | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+):
+    res = await svc.list_expenses(s, o.id, page, page_size, q, category, payment_status)
+    return Page(
+        items=[ExpenseRead.model_validate(x) for x in res["items"]],
+        total=res["total"],
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/expenses/{rid}", response_model=ExpenseRead)
+async def get_expense(rid: str, s: SessionDep, o: OrgDep, _: ReadDep):
+    return await svc.get_expense(s, o.id, rid)
+
+
+@router.put("/expenses/{rid}", response_model=ExpenseRead)
+async def update_expense(
+    rid: str, data: ExpenseUpdate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep
+):
+    return await svc.update_expense(s, o.id, i.user_id, rid, data)
+
+
+@router.patch("/expenses/{rid}/payment-status", response_model=ExpenseRead)
+async def update_expense_payment_status(
+    rid: str, data: ExpensePaymentUpdate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep
+):
+    return await svc.update_expense_payment_status(
+        s, o.id, i.user_id, rid, data.payment_status, data.payment_method
+    )
+
+
+@router.delete("/expenses/{rid}", status_code=204)
+async def delete_expense(rid: str, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep):
+    await svc.delete_expense(s, o.id, i.user_id, rid)
+    return Response(status_code=204)
+
+
+# ------------------ SUPPLIERS ENDPOINTS ------------------
+@router.post("/suppliers", response_model=SupplierRead, status_code=201)
+async def create_supplier(data: SupplierCreate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep):
+    return await svc.create_supplier(s, o.id, i.user_id, data)
+
+
+@router.get("/suppliers", response_model=Page)
+async def list_suppliers(
+    s: SessionDep,
+    o: OrgDep,
+    _: ReadDep,
+    q: str | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+):
+    res = await svc.list_suppliers(s, o.id, page, page_size, q)
+    return Page(
+        items=[SupplierRead.model_validate(x) for x in res["items"]],
+        total=res["total"],
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/suppliers/{rid}", response_model=SupplierRead)
+async def get_supplier(rid: str, s: SessionDep, o: OrgDep, _: ReadDep):
+    return await svc.get_supplier(s, o.id, rid)
+
+
+@router.put("/suppliers/{rid}", response_model=SupplierRead)
+async def update_supplier(
+    rid: str, data: SupplierUpdate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep
+):
+    return await svc.update_supplier(s, o.id, i.user_id, rid, data)
+
+
+@router.delete("/suppliers/{rid}", status_code=204)
+async def delete_supplier(rid: str, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep):
+    await svc.delete_supplier(s, o.id, i.user_id, rid)
+    return Response(status_code=204)
+
+
+# ------------------ CASHFLOW SUMMARY ENDPOINT ------------------
+@router.get("/cashflow-summary", response_model=CashflowSummary)
+async def cashflow_summary(s: SessionDep, o: OrgDep, _: ReadDep):
+    return await svc.get_cashflow_summary(s, o.id)
+
+

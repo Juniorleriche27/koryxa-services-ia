@@ -1,3 +1,4 @@
+from decimal import Decimal
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -119,3 +120,53 @@ def test_procedure_step_positions_must_be_unique() -> None:
             },
         )
     assert response.status_code == 422
+
+
+def test_registers_summary_and_sale_payment_status_quick_update() -> None:
+    with TestClient(app) as client:
+        owner = create_org(client, "tenant-register-sum", "owner-register-sum")
+
+        client.post(
+            "/api/v1/registers/offers",
+            headers=owner,
+            json={"name": "Pack Audit Express", "price": "150000", "currency": "XOF"},
+        )
+        sale_res = client.post(
+            "/api/v1/registers/sales",
+            headers=owner,
+            json={
+                "reference": "V-SUM-1",
+                "sale_date": "2026-08-08",
+                "item_label": "Pack Audit Express",
+                "quantity": "1",
+                "unit_price": "150000",
+                "discount": "0",
+                "payment_status": "unpaid",
+            },
+        )
+        assert sale_res.status_code == 201
+        sale_id = sale_res.json()["id"]
+
+        summary = client.get("/api/v1/registers/summary", headers=owner)
+        assert summary.status_code == 200
+        data = summary.json()
+        assert data["total_sales_count"] == 1
+        assert data["total_unpaid_amount"] == "150000.00"
+        assert data["offers_count"] == 1
+
+        # Quick update payment status
+        patch_res = client.patch(
+            f"/api/v1/registers/sales/{sale_id}/payment-status",
+            headers=owner,
+            json={"payment_status": "paid", "payment_method": "Wave"},
+        )
+        assert patch_res.status_code == 200
+        assert patch_res.json()["payment_status"] == "paid"
+        assert patch_res.json()["payment_method"] == "Wave"
+
+        summary_after = client.get("/api/v1/registers/summary", headers=owner)
+        assert summary_after.status_code == 200
+        assert Decimal(str(summary_after.json()["total_paid_amount"])) == Decimal("150000")
+        assert Decimal(str(summary_after.json()["total_unpaid_amount"])) == Decimal("0")
+
+
