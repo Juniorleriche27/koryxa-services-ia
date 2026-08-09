@@ -9,6 +9,7 @@ import {
   ReceiptText,
   FileCheck2,
   Radar,
+  Settings,
   Activity,
   Zap,
   Building2,
@@ -271,7 +272,7 @@ export function CommandPalette({
         },
       },
     ];
-  }, [router, onClose, onOpenCreate, onOpenReport, onTriggerRadar]);
+  }, [router, onClose, onOpenCreate, onOpenVoice, onOpenReport, onTriggerRadar]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return commands;

@@ -98,6 +98,7 @@ export function ExecutiveDashboard({
   onCreateActionFromAlert,
 }: ExecutiveDashboardProps) {
   const [showReport, setShowReport] = useState(false);
+  const [reportGeneratedAt] = useState(() => new Date());
 
   const openAlerts = alerts.filter(
     (a) => a.status !== "resolved" && a.status !== "ignored"
@@ -147,8 +148,8 @@ export function ExecutiveDashboard({
     generatedDate: new Intl.DateTimeFormat("fr-FR", {
       dateStyle: "full",
       timeStyle: "short",
-    }).format(new Date()),
-    reportRef: `AUDIT-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`,
+    }).format(reportGeneratedAt),
+    reportRef: `AUDIT-${reportGeneratedAt.getFullYear()}-${String(reportGeneratedAt.getTime()).slice(-4)}`,
     summary: {
       totalSalesCount: summary?.total_sales_count || 0,
       totalSalesAmount: totalSales,
@@ -437,4 +438,3 @@ export function ExecutiveDashboard({
     </div>
   );
 }
-

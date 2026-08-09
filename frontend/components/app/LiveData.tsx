@@ -45,6 +45,7 @@ type Offer = {
   id: string;
   name: string;
   category?: string | null;
+  description?: string | null;
   status: string;
   price?: string | null;
   currency: string;

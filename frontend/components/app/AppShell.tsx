@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -310,5 +312,4 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
 

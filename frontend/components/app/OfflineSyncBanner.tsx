@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { WifiOff, RefreshCw, CheckCircle2, CloudUpload } from "lucide-react";
 
 export function OfflineSyncBanner() {
@@ -8,6 +8,21 @@ export function OfflineSyncBanner() {
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncedRecently, setSyncedRecently] = useState(false);
+
+  const flushOfflineQueue = useCallback(() => {
+    const queue = JSON.parse(localStorage.getItem("koryxa_offline_queue") || "[]");
+    if (queue.length === 0) return;
+
+    setSyncing(true);
+    // Simulate background flush
+    setTimeout(() => {
+      localStorage.setItem("koryxa_offline_queue", "[]");
+      setPendingCount(0);
+      setSyncing(false);
+      setSyncedRecently(true);
+      setTimeout(() => setSyncedRecently(false), 4000);
+    }, 1500);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -35,22 +50,7 @@ export function OfflineSyncBanner() {
         window.removeEventListener("offline", handleOffline);
       };
     }
-  }, []);
-
-  const flushOfflineQueue = async () => {
-    const queue = JSON.parse(localStorage.getItem("koryxa_offline_queue") || "[]");
-    if (queue.length === 0) return;
-
-    setSyncing(true);
-    // Simulate background flush
-    setTimeout(() => {
-      localStorage.setItem("koryxa_offline_queue", "[]");
-      setPendingCount(0);
-      setSyncing(false);
-      setSyncedRecently(true);
-      setTimeout(() => setSyncedRecently(false), 4000);
-    }, 1500);
-  };
+  }, [flushOfflineQueue]);
 
   if (isOnline && pendingCount === 0 && !syncedRecently) return null;
 

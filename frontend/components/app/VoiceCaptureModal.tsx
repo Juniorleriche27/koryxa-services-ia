@@ -23,7 +23,7 @@ import { serviceIaFetch } from "@/lib/service-ia/api";
 interface VoiceParseResult {
   intent: "sale" | "offer" | "procedure" | "unknown";
   confidence: number;
-  original_transcript: str;
+  original_transcript: string;
   sale?: {
     reference: string;
     sale_date: string;
