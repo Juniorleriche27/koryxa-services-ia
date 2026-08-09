@@ -494,7 +494,7 @@ function ProcedureDetails({
 }
 
 export function LiveDashboard() {
-  const summaryApi = useApi<{
+  type Summary = {
     total_sales_count: number;
     total_sales_amount: number | string;
     total_paid_amount: number | string;
@@ -504,11 +504,13 @@ export function LiveDashboard() {
     procedures_count: number;
     primary_currency: string;
     recent_sales: SaleItem[];
-  }>("/registers/summary");
-
-  const alerts = useApi<Alert[]>("/radar/alerts");
-  const actions = useApi<Action[]>("/workflow/actions");
-  const org = useApi<Organization>("/organizations/current");
+  };
+  const dashboard = useApi<{
+    summary: Summary;
+    alerts: Alert[];
+    actions: Action[];
+    organization: Organization;
+  }>("/dashboard");
   const [radarRunning, setRadarRunning] = useState(false);
   const [creatingKind, setCreatingKind] = useState<"offers" | "sales" | "procedures" | null>(null);
 
@@ -516,8 +518,7 @@ export function LiveDashboard() {
     setRadarRunning(true);
     try {
       await serviceIaFetch("/radar/runs", { method: "POST" });
-      await alerts.reload();
-      await summaryApi.reload();
+      await dashboard.reload();
     } finally {
       setRadarRunning(false);
     }
@@ -528,7 +529,7 @@ export function LiveDashboard() {
       method: "PATCH",
       body: JSON.stringify({ status: "resolved" }),
     });
-    await alerts.reload();
+    await dashboard.reload();
   };
 
   const createActionFromAlert = async (alert: Alert) => {
@@ -545,22 +546,21 @@ export function LiveDashboard() {
       method: "PATCH",
       body: JSON.stringify({ status: "acknowledged" }),
     });
-    await alerts.reload();
-    await actions.reload();
+    await dashboard.reload();
   };
 
-  const error = summaryApi.error || alerts.error || actions.error;
-  const loading = summaryApi.loading || alerts.loading || actions.loading;
+  const error = dashboard.error;
+  const loading = dashboard.loading;
 
   return (
     <>
       <State loading={loading} error={error} empty={false} />
       {!loading && !error && (
         <ExecutiveDashboard
-          summary={summaryApi.data}
-          alerts={alerts.data ?? []}
-          actions={actions.data ?? []}
-          organizationName={org.data?.name ?? "Organisation KORYXA"}
+          summary={dashboard.data?.summary ?? null}
+          alerts={dashboard.data?.alerts ?? []}
+          actions={dashboard.data?.actions ?? []}
+          organizationName={dashboard.data?.organization.name ?? "Organisation KORYXA"}
           onOpenCreate={(kind) => setCreatingKind(kind)}
           onTriggerRadar={triggerRadar}
           radarRunning={radarRunning}
@@ -575,7 +575,7 @@ export function LiveDashboard() {
           open={Boolean(creatingKind)}
           onClose={() => setCreatingKind(null)}
           onCreated={() => {
-            void summaryApi.reload();
+            void dashboard.reload();
           }}
         />
       )}
