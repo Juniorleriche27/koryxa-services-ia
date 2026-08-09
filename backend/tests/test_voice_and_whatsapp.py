@@ -52,6 +52,22 @@ def test_voice_nlp_parser_and_confirm_sale() -> None:
         assert sales.json()["items"][0]["payment_method"] == "Wave"
 
 
+def test_voice_short_sale_does_not_use_amount_as_item() -> None:
+    with TestClient(app) as client:
+        owner = create_org(client, "tenant-voice-short", "user-voice-short")
+        response = client.post(
+            "/api/v1/voice/parse",
+            headers=owner,
+            json={"transcript": "J'ai fait effectuer une vente de 15000 non payés"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["sale"]["item_label"] == "Vente non détaillée"
+        assert Decimal(data["sale"]["total_amount"]) == Decimal("15000")
+        assert data["sale"]["payment_status"] == "unpaid"
+        assert "non payée" in data["summary_message"]
+
+
 def test_whatsapp_webhook_handshake_and_inbound_message() -> None:
     with TestClient(app) as client:
         owner = create_org(client, "tenant-wa-1", "user-wa-1")

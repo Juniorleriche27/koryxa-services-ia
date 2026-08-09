@@ -167,14 +167,31 @@ class VoiceService:
                 unit_price = total_amount / quantity
 
         # Extract item label
-        item_label = "Prestation ou vente vocale"
+        item_label = "Vente non détaillée"
         item_match = re.search(
             r"(?i)(?:vente\s+(?:de|d')?|vendu\s+|produit\s+|article\s+|service\s+)(.+?)(?=\s+(?:à|pour|au\s+prix|montant|payé|par|\d+|$))",
             text,
         )
         if item_match:
             candidate_item = item_match.group(1).strip()
-            if len(candidate_item) >= 2:
+            normalized_item = re.sub(r"[^a-zà-ÿ]+", " ", candidate_item.lower()).strip()
+            payment_only = {
+                "non",
+                "non paye",
+                "non payee",
+                "paye",
+                "payee",
+                "impaye",
+                "impayee",
+                "partiel",
+                "partielle",
+            }
+            contains_amount = bool(re.search(r"\d", candidate_item))
+            if (
+                len(candidate_item) >= 2
+                and not contains_amount
+                and normalized_item not in payment_only
+            ):
                 item_label = candidate_item
 
         ref_code = f"VOC-{date.today().strftime('%Y%m%d')}-{str(uuid4())[:4].upper()}"
@@ -196,6 +213,13 @@ class VoiceService:
             comment=f"Transcription vocale : \"{text}\"",
         )
 
+        payment_label = {
+            PaymentStatus.PAID: "payée",
+            PaymentStatus.UNPAID: "non payée",
+            PaymentStatus.PARTIAL: "partiellement payée",
+            PaymentStatus.REFUNDED: "remboursée",
+        }.get(payment_status, str(payment_status))
+
         return VoiceParseResponse(
             intent=VoiceIntent.SALE,
             confidence=confidence,
@@ -209,8 +233,8 @@ class VoiceService:
                 "payment_status": payment_status,
                 "item": item_label,
             },
-            summary_message=f"Vente de {item_label} pour un total de {total_amount} {currency} "
-            f"({payment_status}) attribuée à {client_name or 'client anonyme'}.",
+            summary_message=f"{item_label} — total de {total_amount} {currency}, "
+            f"{payment_label}, client : {client_name or 'non renseigné'}.",
         )
 
     def _parse_offer(self, text: str) -> VoiceParseResponse:
