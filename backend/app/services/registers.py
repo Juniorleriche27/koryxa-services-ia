@@ -368,7 +368,7 @@ class RegisterService:
             await s.scalar(
                 select(func.count())
                 .select_from(Supplier)
-                .where(Supplier.organization_id == org, Supplier.is_archived.is_(False))
+                .where(Supplier.organization_id == org)
             )
             or 0
         )
