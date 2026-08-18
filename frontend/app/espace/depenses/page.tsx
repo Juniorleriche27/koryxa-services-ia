@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Camera } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
@@ -11,6 +11,7 @@ import {
   ExpenseDetailsDialog,
   ExpenseItem,
 } from "@/components/app/ExpensesTable";
+import { ReceiptOcrModal } from "@/components/app/ReceiptOcrModal";
 
 interface ApiPage<T> {
   items: T[];
@@ -24,6 +25,7 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [ocrOpen, setOcrOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseItem | null>(null);
   const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
 
@@ -51,10 +53,21 @@ export default function ExpensesPage() {
         title="Dépenses & Décaissements"
         description="Suivez vos sorties d'argent par catégorie, contrôlez vos factures fournisseurs et anticipez vos règlements."
         action={
-          <button className="app-button app-button-primary" onClick={() => setCreating(true)}>
-            <Plus size={16} />
-            <span>Ajouter une Dépense</span>
-          </button>
+          <div className="kx-header-actions-row" style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              className="app-button app-button-secondary"
+              onClick={() => setOcrOpen(true)}
+              title="Scanner une facture ou un reçu avec l'IA"
+            >
+              <Camera size={16} />
+              <span>Scanner reçu (OCR)</span>
+            </button>
+            <button className="app-button app-button-primary" onClick={() => setCreating(true)}>
+              <Plus size={16} />
+              <span>Ajouter une Dépense</span>
+            </button>
+          </div>
         }
       />
 
@@ -95,6 +108,12 @@ export default function ExpensesPage() {
         onClose={() => setSelectedExpense(null)}
         onEdit={() => { setEditingExpense(selectedExpense); setSelectedExpense(null); }}
         onDeleted={loadExpenses}
+      />
+
+      <ReceiptOcrModal
+        open={ocrOpen}
+        onClose={() => setOcrOpen(false)}
+        onExpenseCreated={loadExpenses}
       />
     </>
   );

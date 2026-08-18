@@ -59,3 +59,9 @@ async def update_whatsapp_config(
 ):
     """Met à jour les identifiants et numéros autorisés WhatsApp."""
     return await service.update_config(s, o.id, data)
+
+
+@router.post("/test-connection")
+async def test_whatsapp_connection(s: SessionDep, o: OrgDep, _: ManageDep):
+    """Teste la connexion avec l'API Meta Cloud en utilisant les identifiants de l'organisation."""
+    return await service.test_connection(s, o.id)

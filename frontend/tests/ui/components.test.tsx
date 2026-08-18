@@ -1,10 +1,20 @@
-﻿import { render, screen, act } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("framer-motion", () => ({
   motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) =>
-      <div {...props}>{children}</div>,
+    div: ({
+      children,
+      initial,
+      whileInView,
+      viewport,
+      transition,
+      animate,
+      exit,
+      ...props
+    }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) => (
+      <div {...props}>{children}</div>
+    ),
   },
   useInView: () => true,
 }));

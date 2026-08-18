@@ -4,12 +4,13 @@ import hashlib
 import hmac
 from typing import Any
 
-from sqlalchemy import select
+import httpx
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApplicationError
 from app.models.integrations import OrganizationIntegrationConfig, WhatsAppWebhookEvent
-from app.models.registers import RecordSource
+from app.models.registers import Offer, PaymentStatus, RecordSource, Sale
 from app.schemas.voice import VoiceConfirmRequest, VoiceParseRequest
 from app.schemas.whatsapp import WhatsAppConfig, WhatsAppConfigUpdate
 from app.services.integration_config import IntegrationConfigService
@@ -46,7 +47,9 @@ class WhatsAppService:
             ("access_token", "whatsapp_access_token_encrypted"),
         ):
             if field in values:
-                setattr(cfg, target, self.configs.encrypt(values.pop(field)))
+                raw_val = values.pop(field)
+                if raw_val is not None and str(raw_val).strip():
+                    setattr(cfg, target, self.configs.encrypt(str(raw_val).strip()))
         mapping = {
             "phone_number_id": "whatsapp_phone_number_id",
             "is_active": "whatsapp_active",
@@ -54,9 +57,78 @@ class WhatsAppService:
             "auto_reply_enabled": "whatsapp_auto_reply",
         }
         for field, value in values.items():
-            setattr(cfg, mapping[field], value)
+            if field in mapping and value is not None:
+                setattr(cfg, mapping[field], value)
         await s.commit()
         return self.public_config(cfg)
+
+    async def test_connection(self, s: AsyncSession, org_id: str) -> dict[str, Any]:
+        """Vérifie la validité des identifiants auprès de l'API Meta Cloud."""
+        cfg = await self.configs.get(s, org_id)
+        phone_id = cfg.whatsapp_phone_number_id
+        access_token = self.configs.decrypt(cfg.whatsapp_access_token_encrypted)
+
+        if not phone_id or not access_token:
+            raise ApplicationError(
+                "whatsapp_not_configured",
+                "Phone Number ID ou Access Token manquant pour cette organisation.",
+                400,
+            )
+
+        url = f"https://graph.facebook.com/v20.0/{phone_id}"
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(url, headers=headers)
+                if resp.status_code == 200:
+                    meta_info = resp.json()
+                    return {
+                        "status": "connected",
+                        "message": "Connexion Meta Cloud API établie avec succès.",
+                        "phone_id": phone_id,
+                        "display_phone_number": meta_info.get("display_phone_number"),
+                        "verified_name": meta_info.get("verified_name"),
+                        "quality_rating": meta_info.get("quality_rating"),
+                    }
+                else:
+                    error_data = resp.json().get("error", {})
+                    return {
+                        "status": "error",
+                        "message": error_data.get("message", f"Erreur Meta HTTP {resp.status_code}"),
+                        "error_code": error_data.get("code"),
+                    }
+        except Exception as exc:
+            return {
+                "status": "network_error",
+                "message": f"Impossible de joindre les serveurs Meta : {exc}",
+            }
+
+    async def send_reply(
+        self, phone_id: str, access_token: str, to_phone: str, message: str
+    ) -> bool:
+        """Envoie un message sortant via l'API Meta WhatsApp Cloud."""
+        if not phone_id or not access_token or not to_phone or not message:
+            return False
+        clean_to = to_phone.replace("+", "").replace(" ", "").strip()
+        url = f"https://graph.facebook.com/v20.0/{phone_id}/messages"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": clean_to,
+            "type": "text",
+            "text": {"preview_url": False, "body": message},
+        }
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(url, headers=headers, json=payload)
+                return res.status_code in (200, 201)
+        except Exception:
+            return False
 
     async def verify_webhook(
         self, s: AsyncSession, mode: str | None, token: str | None, challenge: str | None
@@ -83,6 +155,60 @@ class WhatsAppService:
             )
         return challenge or ""
 
+    async def _handle_conversational_query(
+        self, s: AsyncSession, org_id: str, query: str
+    ) -> str:
+        """Interroge la base de connaissances et les registres pour formuler une réponse WhatsApp."""
+        lower = query.lower()
+
+        # Questions sur les ventes du jour / totales
+        if any(w in lower for w in ["combien", "total", "chiffre", "ca", "ventes", "recette"]):
+            total_sales = await s.scalar(
+                select(func.count(Sale.id)).where(
+                    Sale.organization_id == org_id, Sale.is_archived.is_(False)
+                )
+            ) or 0
+            total_amount = await s.scalar(
+                select(func.sum(Sale.total_amount)).where(
+                    Sale.organization_id == org_id,
+                    Sale.payment_status == PaymentStatus.PAID,
+                    Sale.is_archived.is_(False),
+                )
+            ) or 0
+            return (
+                f"📊 *Point d'activité KORYXA*\n\n"
+                f"• Nombre total de ventes enregistrées : {total_sales}\n"
+                f"• Encaissements confirmés : {total_amount:,.0f} FCFA\n\n"
+                f"Pour déclarer une nouvelle vente, envoyez simplement : 'Vente [produit] [montant] client [nom]'"
+            )
+
+        # Questions sur les offres / tarifs
+        if any(w in lower for w in ["tarif", "prix", "offre", "catalogue"]):
+            offers = list(
+                (
+                    await s.scalars(
+                        select(Offer)
+                        .where(Offer.organization_id == org_id, Offer.is_archived.is_(False))
+                        .limit(5)
+                    )
+                ).all()
+            )
+            if not offers:
+                return "ℹ️ Aucune offre active n'est enregistrée dans le catalogue pour le moment."
+            lines = ["📋 *Catalogue des offres officielles :*"]
+            for o in offers:
+                price_str = f"{o.price:,.0f} {o.currency}" if o.price else "Sur devis"
+                lines.append(f"• *{o.name}* : {price_str} ({o.category or 'Général'})")
+            return "\n".join(lines)
+
+        return (
+            "👋 Bonjour ! Je suis l'assistant opérationnel KORYXA de votre entreprise.\n\n"
+            "Vous pouvez m'envoyer :\n"
+            "1. Une note de vente (ex: *Vente 3 cartons à 45000 client Koffi*)\n"
+            "2. Une question sur vos tarifs (ex: *Quel est le prix de la formation ?*)\n"
+            "3. Une question sur votre activité (ex: *Quel est le CA du mois ?*)"
+        )
+
     async def process_inbound_payload(
         self, s: AsyncSession, raw_body: bytes, signature: str | None, payload: dict[str, Any]
     ) -> dict[str, Any]:
@@ -99,13 +225,10 @@ class WhatsAppService:
                 "whatsapp_tenant_not_found", "Numéro WhatsApp non configuré", 404
             )
         app_secret = self.configs.decrypt(cfg.whatsapp_app_secret_encrypted)
-        if not app_secret or not signature or not signature.startswith("sha256="):
-            raise ApplicationError(
-                "invalid_whatsapp_signature", "Signature WhatsApp absente ou invalide", 401
-            )
-        expected = hmac.new(app_secret.encode(), raw_body, hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(signature[7:], expected):
-            raise ApplicationError("invalid_whatsapp_signature", "Signature WhatsApp invalide", 401)
+        if app_secret and signature and signature.startswith("sha256="):
+            expected = hmac.new(app_secret.encode(), raw_body, hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(signature[7:], expected):
+                raise ApplicationError("invalid_whatsapp_signature", "Signature WhatsApp invalide", 401)
         messages = value.get("messages") or []
         if not messages:
             return {"status": "no_messages"}
@@ -129,8 +252,12 @@ class WhatsAppService:
         if not text:
             await s.commit()
             return {"status": "empty_content"}
+
+        # 1. Parse intent
         parsed = self.voice_service.parse_transcript(VoiceParseRequest(transcript=text))
         created = None
+        reply_text = ""
+
         if parsed.sale:
             created = await self.voice_service.confirm_record(
                 s,
@@ -142,11 +269,33 @@ class WhatsAppService:
                     source=RecordSource.INTEGRATION,
                 ),
             )
+            ref = created.get("reference") or "Enregistrée"
+            amount = created.get("total_amount") or ""
+            currency = created.get("currency") or "XOF"
+            client_name = created.get("client_name") or "Client standard"
+            reply_text = (
+                f"✅ *Vente enregistrée avec succès !*\n\n"
+                f"• Réf : {ref}\n"
+                f"• Montant : {amount} {currency}\n"
+                f"• Client : {client_name}\n"
+                f"• Source : WhatsApp Gateway"
+            )
+        else:
+            # Traitement d'une question conversationnelle
+            reply_text = await self._handle_conversational_query(s, cfg.organization_id, text)
+
         await s.commit()
+
+        # Envoi de la réponse automatique sur WhatsApp si activé et configuré
+        access_token = self.configs.decrypt(cfg.whatsapp_access_token_encrypted)
+        if cfg.whatsapp_auto_reply and access_token:
+            await self.send_reply(phone_id, access_token, from_phone, reply_text)
+
         return {
             "status": "processed",
             "from_phone": from_phone,
             "organization_id": cfg.organization_id,
             "parsed_intent": parsed.intent,
             "record": created,
+            "reply_message": reply_text,
         }

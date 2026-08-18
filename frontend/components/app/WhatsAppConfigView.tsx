@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   MessageSquare,
   Copy,
@@ -12,43 +12,83 @@ import {
   HelpCircle,
   Plus,
   Trash2,
+  KeyRound,
+  ExternalLink,
+  Activity,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
-import { FormError } from "./Dialog";
 import { StatusPill } from "./Ui";
 
 interface WhatsAppConfigData {
   phone_number_id: string | null;
   verify_token: string;
+  access_token?: string;
+  app_secret?: string;
   is_active: boolean;
   authorized_sender_numbers: string[];
   auto_reply_enabled: boolean;
+  has_verify_token: boolean;
+  has_app_secret: boolean;
+  has_access_token: boolean;
+}
+
+interface ConnectionTestResult {
+  status: "connected" | "error" | "network_error";
+  message: string;
+  phone_id?: string;
+  display_phone_number?: string;
+  verified_name?: string;
+  quality_rating?: string;
 }
 
 export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
   const [config, setConfig] = useState<WhatsAppConfigData>({
     phone_number_id: "",
-    verify_token: "koryxa_secret_webhook_token",
+    verify_token: "koryxa_wa_webhook_token",
     is_active: true,
-    authorized_sender_numbers: ["+2250708091011", "+221770001122"],
+    authorized_sender_numbers: [],
     auto_reply_enabled: true,
+    has_verify_token: false,
+    has_app_secret: false,
+    has_access_token: false,
   });
+
+  const [accessTokenInput, setAccessTokenInput] = useState("");
+  const [appSecretInput, setAppSecretInput] = useState("");
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
   const [newNumber, setNewNumber] = useState("");
   const [saving, setSaving] = useState(false);
-  const [simText, setSimText] = useState("Vente de 2 cartons de carrelage à 45000 FCFA client M. Sanogo payé par Wave");
-  const [simResult, setSimResult] = useState<any>(null);
-  const [simulating, setSimulating] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const webhookUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/api/service-ia/integrations/whatsapp/webhook?org_id=${orgSlug}`
-    : `https://votre-domaine.com/api/service-ia/integrations/whatsapp/webhook?org_id=${orgSlug}`;
+  // Connection Test State
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
+
+  // Simulator State
+  const [simText, setSimText] = useState(
+    "Vente de 2 cartons de carrelage à 45000 FCFA client M. Sanogo payé par Wave"
+  );
+  const [simResult, setSimResult] = useState<{
+    status: string;
+    parsed_intent?: string;
+    record?: { reference?: string; total_amount?: string; currency?: string };
+    reply_message?: string;
+  } | null>(null);
+  const [simulating, setSimulating] = useState(false);
+
+  const webhookUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/api/service-ia/integrations/whatsapp/webhook?org_id=${orgSlug}`
+      : `https://koryxa.com/api/service-ia/integrations/whatsapp/webhook?org_id=${orgSlug}`;
 
   useEffect(() => {
     serviceIaFetch<WhatsAppConfigData>("/integrations/whatsapp/config")
-      .then(setConfig)
+      .then((data) => {
+        setConfig(data);
+      })
       .catch(() => {});
   }, []);
 
@@ -86,17 +126,55 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
     setSaving(true);
     setSaveSuccess(false);
     try {
-      const updated = await serviceIaFetch<WhatsAppConfigData>("/integrations/whatsapp/config", {
-        method: "PUT",
-        body: JSON.stringify(config),
-      });
+      const payload: Record<string, unknown> = {
+        phone_number_id: config.phone_number_id,
+        verify_token: config.verify_token,
+        is_active: config.is_active,
+        authorized_sender_numbers: config.authorized_sender_numbers,
+        auto_reply_enabled: config.auto_reply_enabled,
+      };
+      if (accessTokenInput.trim()) {
+        payload.access_token = accessTokenInput.trim();
+      }
+      if (appSecretInput.trim()) {
+        payload.app_secret = appSecretInput.trim();
+      }
+
+      const updated = await serviceIaFetch<WhatsAppConfigData>(
+        "/integrations/whatsapp/config",
+        {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        }
+      );
       setConfig(updated);
+      setAccessTokenInput("");
+      setAppSecretInput("");
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      setTimeout(() => setSaveSuccess(false), 4000);
     } catch (e) {
       console.error(e);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    setTestResult(null);
+    try {
+      const res = await serviceIaFetch<ConnectionTestResult>(
+        "/integrations/whatsapp/test-connection",
+        { method: "POST" }
+      );
+      setTestResult(res);
+    } catch (e) {
+      setTestResult({
+        status: "error",
+        message: e instanceof Error ? e.message : "Erreur de communication",
+      });
+    } finally {
+      setTestingConnection(false);
     }
   };
 
@@ -105,12 +183,34 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
     setSimulating(true);
     setSimResult(null);
     try {
-      const res = await serviceIaFetch<any>("/integrations/whatsapp/webhook", {
+      const res = await serviceIaFetch<{
+        status: string;
+        parsed_intent?: string;
+        record?: { reference?: string; total_amount?: string; currency?: string };
+        reply_message?: string;
+      }>("/integrations/whatsapp/webhook", {
         method: "POST",
         body: JSON.stringify({
-          from: config.authorized_sender_numbers[0] || "+225070000000",
-          text: simText,
-          organization_id: orgSlug,
+          entry: [
+            {
+              changes: [
+                {
+                  value: {
+                    metadata: {
+                      phone_number_id: config.phone_number_id || "100000000000000",
+                    },
+                    messages: [
+                      {
+                        id: `sim_msg_${Date.now()}`,
+                        from: config.authorized_sender_numbers[0] || "+2250700000000",
+                        text: { body: simText },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
         }),
       });
       setSimResult(res);
@@ -121,6 +221,8 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
     }
   };
 
+  const isConfigured = Boolean(config.phone_number_id && config.has_access_token);
+
   return (
     <div className="kx-wa-container">
       {/* Intro Banner */}
@@ -129,91 +231,284 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
           <MessageSquare size={32} />
         </div>
         <div className="kx-wa-hero-text">
-          <h2>Passerelle WhatsApp Business (WhatsApp-to-Register)</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <h2>Passerelle WhatsApp Officielle Meta Cloud</h2>
+            <StatusPill>
+              {isConfigured ? "WhatsApp Connecté" : "Configuration requise"}
+            </StatusPill>
+          </div>
           <p>
-            Permettez à vos commerciaux et équipes de terrain d&apos;enregistrer leurs ventes en direct par note vocale ou texte sur WhatsApp.
+            Connectez votre propre compte WhatsApp Business Meta officiel. Vos collaborateurs et
+            commerciaux peuvent déclarer leurs ventes en direct par note vocale/texte ou poser des
+            questions opérationnelles.
           </p>
         </div>
       </div>
 
       <div className="kx-wa-grid">
-        {/* Left Column: Connection Credentials */}
+        {/* Left Column: 3-Step Guided Wizard */}
         <div className="app-panel kx-wa-card">
-          <h3>Paramètres de Connexion Meta Cloud API</h3>
-          <p className="app-panel-note">
-            Copiez ces informations dans votre tableau de bord Meta for Developers (section WhatsApp &gt; Configuration).
-          </p>
+          <div className="app-panel-head">
+            <div>
+              <span className="app-eyebrow">Libre-service entreprise</span>
+              <h3>Configuration en 3 étapes simples</h3>
+            </div>
+            <a
+              href="https://developers.facebook.com/apps"
+              target="_blank"
+              rel="noreferrer"
+              className="app-text-button"
+              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
+              <span>Meta Developer Portal</span>
+              <ExternalLink size={14} />
+            </a>
+          </div>
 
           <div className="app-form-stack" style={{ marginTop: 14 }}>
-            <label>
-              URL du Webhook KORYXA
-              <div className="kx-copy-input-row">
-                <input readOnly value={webhookUrl} />
-                <button
-                  type="button"
-                  className="app-button app-button-secondary"
-                  onClick={() => copyToClipboard(webhookUrl, true)}
-                >
-                  {copiedUrl ? <Check size={16} /> : <Copy size={16} />}
-                  <span>{copiedUrl ? "Copié !" : "Copier"}</span>
-                </button>
-              </div>
-            </label>
-
-            <label>
-              Token de Vérification (Verify Token)
-              <div className="kx-copy-input-row">
-                <input
-                  value={config.verify_token}
-                  onChange={(e) => setConfig({ ...config, verify_token: e.target.value })}
-                />
-                <button
-                  type="button"
-                  className="app-button app-button-secondary"
-                  onClick={() => copyToClipboard(config.verify_token, false)}
-                >
-                  {copiedToken ? <Check size={16} /> : <Copy size={16} />}
-                  <span>{copiedToken ? "Copié !" : "Copier"}</span>
-                </button>
-              </div>
-            </label>
-
-            <label>
-              Numéros de téléphone des vendeurs autorisés
-              <div className="kx-copy-input-row">
-                <input
-                  placeholder="Ex : +2250708091011"
-                  value={newNumber}
-                  onChange={(e) => setNewNumber(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddNumber();
-                    }
+            {/* Step 1: Meta API Credentials */}
+            <div
+              style={{
+                border: "1px solid var(--kx-border-subtle, #e2e8f0)",
+                borderRadius: 10,
+                padding: "14px 16px",
+                background: "var(--kx-surface-raised, #ffffff)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    background: "var(--kx-accent, #0284c7)",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 700,
+                    fontSize: "0.85rem",
                   }}
-                />
-                <button type="button" className="app-button app-button-primary" onClick={handleAddNumber}>
-                  <Plus size={16} />
-                  <span>Ajouter</span>
-                </button>
-              </div>
-            </label>
-
-            <div className="kx-number-tags-list">
-              {config.authorized_sender_numbers.map((num) => (
-                <span key={num} className="kx-number-tag">
-                  <Smartphone size={13} />
-                  <span>{num}</span>
-                  <button type="button" onClick={() => handleRemoveNumber(num)}>
-                    <Trash2 size={12} />
-                  </button>
+                >
+                  1
                 </span>
-              ))}
+                <strong style={{ fontSize: "1rem" }}>Identifiants officiels Meta WhatsApp</strong>
+              </div>
+
+              <label>
+                ID de numéro de téléphone (Phone Number ID) *
+                <input
+                  placeholder="Ex : 109827364512938"
+                  value={config.phone_number_id || ""}
+                  onChange={(e) => setConfig({ ...config, phone_number_id: e.target.value })}
+                />
+                <span style={{ fontSize: "0.78rem", color: "var(--kx-text-muted, #64748b)" }}>
+                  Disponible dans Meta for Developers &gt; WhatsApp &gt; Configuration de l&apos;API.
+                </span>
+              </label>
+
+              <label style={{ marginTop: 10 }}>
+                Jeton d&apos;accès officiel Meta (Access Token) *
+                <input
+                  type="password"
+                  placeholder={
+                    config.has_access_token
+                      ? "•••••••••••••••••••• (Clé enregistrée et chiffrée)"
+                      : "Collez votre Permanent System User Token"
+                  }
+                  value={accessTokenInput}
+                  onChange={(e) => setAccessTokenInput(e.target.value)}
+                />
+                <span style={{ fontSize: "0.78rem", color: "var(--kx-text-muted, #64748b)" }}>
+                  Stocké avec un chiffrement fort AES-256 dans votre espace privé.
+                </span>
+              </label>
+
+              <label style={{ marginTop: 10 }}>
+                Secret de l&apos;application Meta (App Secret - facultatif)
+                <input
+                  type="password"
+                  placeholder={
+                    config.has_app_secret
+                      ? "•••••••••••••••••••• (Secret enregistré)"
+                      : "Secret pour signature HMAC SHA-256"
+                  }
+                  value={appSecretInput}
+                  onChange={(e) => setAppSecretInput(e.target.value)}
+                />
+              </label>
             </div>
 
-            {saveSuccess && <div className="kx-success-alert">Configuration WhatsApp enregistrée avec succès.</div>}
+            {/* Step 2: Webhook setup */}
+            <div
+              style={{
+                border: "1px solid var(--kx-border-subtle, #e2e8f0)",
+                borderRadius: 10,
+                padding: "14px 16px",
+                background: "var(--kx-surface-raised, #ffffff)",
+                marginTop: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    background: "var(--kx-accent, #0284c7)",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 700,
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  2
+                </span>
+                <strong style={{ fontSize: "1rem" }}>Liaison du Webhook dans Meta</strong>
+              </div>
 
-            <div className="app-form-actions">
+              <label>
+                URL du Webhook de votre organisation
+                <div className="kx-copy-input-row">
+                  <input readOnly value={webhookUrl} />
+                  <button
+                    type="button"
+                    className="app-button app-button-secondary"
+                    onClick={() => copyToClipboard(webhookUrl, true)}
+                  >
+                    {copiedUrl ? <Check size={16} /> : <Copy size={16} />}
+                    <span>{copiedUrl ? "Copié !" : "Copier"}</span>
+                  </button>
+                </div>
+              </label>
+
+              <label style={{ marginTop: 10 }}>
+                Jeton de vérification (Verify Token)
+                <div className="kx-copy-input-row">
+                  <input
+                    value={config.verify_token}
+                    onChange={(e) => setConfig({ ...config, verify_token: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    className="app-button app-button-secondary"
+                    onClick={() => copyToClipboard(config.verify_token, false)}
+                  >
+                    {copiedToken ? <Check size={16} /> : <Copy size={16} />}
+                    <span>{copiedToken ? "Copié !" : "Copier"}</span>
+                  </button>
+                </div>
+              </label>
+            </div>
+
+            {/* Step 3: Authorized senders & test */}
+            <div
+              style={{
+                border: "1px solid var(--kx-border-subtle, #e2e8f0)",
+                borderRadius: 10,
+                padding: "14px 16px",
+                background: "var(--kx-surface-raised, #ffffff)",
+                marginTop: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    background: "var(--kx-accent, #0284c7)",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 700,
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  3
+                </span>
+                <strong style={{ fontSize: "1rem" }}>Collaborateurs autorisés & Options</strong>
+              </div>
+
+              <label>
+                Numéros WhatsApp des commerciaux autorisés
+                <div className="kx-copy-input-row">
+                  <input
+                    placeholder="Ex : +2250708091011 ou +221770001122"
+                    value={newNumber}
+                    onChange={(e) => setNewNumber(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddNumber();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="app-button app-button-primary"
+                    onClick={handleAddNumber}
+                  >
+                    <Plus size={16} />
+                    <span>Ajouter</span>
+                  </button>
+                </div>
+              </label>
+
+              <div className="kx-number-tags-list" style={{ marginTop: 8 }}>
+                {config.authorized_sender_numbers.length === 0 && (
+                  <span style={{ fontSize: "0.85rem", color: "var(--kx-text-muted, #64748b)" }}>
+                    Tous les numéros sont autorisés par défaut si cette liste est vide.
+                  </span>
+                )}
+                {config.authorized_sender_numbers.map((num) => (
+                  <span key={num} className="kx-number-tag">
+                    <Smartphone size={13} />
+                    <span>{num}</span>
+                    <button type="button" onClick={() => handleRemoveNumber(num)}>
+                      <Trash2 size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
+                <input
+                  type="checkbox"
+                  id="auto_reply_checkbox"
+                  checked={config.auto_reply_enabled}
+                  onChange={(e) =>
+                    setConfig({ ...config, auto_reply_enabled: e.target.checked })
+                  }
+                />
+                <label htmlFor="auto_reply_checkbox" style={{ margin: 0, fontWeight: 500 }}>
+                  Activer la réponse automatique instantanée (confirmation de vente & assistant)
+                </label>
+              </div>
+            </div>
+
+            {saveSuccess && (
+              <div className="kx-success-alert" style={{ margin: "10px 0" }}>
+                <CheckCircle2 size={18} />
+                <span>Configuration WhatsApp sauvegardée avec succès.</span>
+              </div>
+            )}
+
+            <div className="app-form-actions" style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                className="app-button app-button-secondary"
+                disabled={testingConnection || !config.phone_number_id}
+                onClick={handleTestConnection}
+              >
+                <Activity size={16} />
+                <span>
+                  {testingConnection ? "Test en cours…" : "Tester la connexion Meta"}
+                </span>
+              </button>
               <button
                 type="button"
                 className="app-button app-button-primary"
@@ -223,51 +518,128 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                 {saving ? "Enregistrement…" : "Enregistrer les paramètres"}
               </button>
             </div>
+
+            {/* Test Connection Diagnostic Banner */}
+            {testResult && (
+              <div
+                style={{
+                  marginTop: 14,
+                  padding: "12px 16px",
+                  borderRadius: 8,
+                  background:
+                    testResult.status === "connected"
+                      ? "rgba(34, 197, 94, 0.1)"
+                      : "rgba(239, 68, 68, 0.1)",
+                  border: `1px solid ${
+                    testResult.status === "connected" ? "#22c55e" : "#ef4444"
+                  }`,
+                  color: testResult.status === "connected" ? "#15803d" : "#b91c1c",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+                  {testResult.status === "connected" ? (
+                    <CheckCircle2 size={18} />
+                  ) : (
+                    <AlertCircle size={18} />
+                  )}
+                  <span>{testResult.message}</span>
+                </div>
+                {testResult.display_phone_number && (
+                  <div style={{ marginTop: 6, fontSize: "0.85rem" }}>
+                    Numéro vérifié : <strong>{testResult.display_phone_number}</strong> (
+                    {testResult.verified_name || "Nom officiel"}) · Qualité :{" "}
+                    {testResult.quality_rating || "GREEN"}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right Column: Live Inbound Message Simulator */}
+        {/* Right Column: Inbound Message & Q&A Simulator */}
         <div className="app-panel kx-wa-card">
           <div className="kx-card-badge-head">
-            <h3>Simulateur de Message WhatsApp</h3>
-            <span className="kx-sim-badge">Test en direct</span>
+            <h3>Simulateur WhatsApp en direct</h3>
+            <span className="kx-sim-badge">Test opérationnel</span>
           </div>
           <p className="app-panel-note">
-            Testez comment KORYXA réagit lorsqu&apos;un vendeur envoie une note de vente par WhatsApp.
+            Testez comment KORYXA réagit quand un collaborateur enregistre une vente ou pose une
+            question depuis son WhatsApp.
           </p>
 
-          <div className="kx-chat-simulator">
+          <div className="kx-chat-simulator" style={{ marginTop: 14 }}>
             <div className="kx-chat-bubble-in">
-              <small>Vendeur (+225 07 08 09 10 11)</small>
+              <small>Collaborateur (+225 07 08 09 10 11)</small>
               <textarea
                 className="kx-sim-textarea"
                 rows={3}
                 value={simText}
                 onChange={(e) => setSimText(e.target.value)}
+                placeholder="Ex : Vente 3 cartons à 45000 FCFA client M. Sanogo OU Quel est notre chiffre d'affaires ?"
               />
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <button
+                type="button"
+                className="app-button app-button-secondary"
+                style={{ fontSize: "0.8rem", padding: "4px 8px" }}
+                onClick={() =>
+                  setSimText(
+                    "Vente de 2 cartons carrelage à 45000 FCFA client M. Sanogo payé par Wave"
+                  )
+                }
+              >
+                Ex : Vente
+              </button>
+              <button
+                type="button"
+                className="app-button app-button-secondary"
+                style={{ fontSize: "0.8rem", padding: "4px 8px" }}
+                onClick={() =>
+                  setSimText("Combien avons-nous vendu et quel est le montant total ?")
+                }
+              >
+                Ex : Question CA
+              </button>
+              <button
+                type="button"
+                className="app-button app-button-secondary"
+                style={{ fontSize: "0.8rem", padding: "4px 8px" }}
+                onClick={() => setSimText("Quel est le tarif de nos offres ?")}
+              >
+                Ex : Tarifs
+              </button>
             </div>
 
             <button
               type="button"
               className="app-button app-button-primary kx-sim-send-btn"
+              style={{ marginTop: 14 }}
               disabled={simulating}
               onClick={handleSimulateInbound}
             >
               <Send size={15} />
-              <span>{simulating ? "Traitement IA…" : "Simuler l'envoi WhatsApp"}</span>
+              <span>{simulating ? "Traitement en direct…" : "Envoyer le message WhatsApp"}</span>
             </button>
 
             {simResult && (
-              <div className="kx-chat-bubble-out">
+              <div className="kx-chat-bubble-out" style={{ marginTop: 16 }}>
                 <div className="kx-bubble-brand">
                   <Sparkles size={14} />
                   <strong>KORYXA Bot (Réponse automatique)</strong>
                 </div>
-                <pre className="kx-reply-pre">{simResult.reply_message}</pre>
-                <div className="kx-sim-record-tag">
-                  <Check size={14} className="kx-icon-green" />
-                  <span>Vente {simResult.record?.reference} créée dans le registre</span>
-                </div>
+                <pre className="kx-reply-pre" style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
+                  {simResult.reply_message}
+                </pre>
+                {simResult.record && (
+                  <div className="kx-sim-record-tag" style={{ marginTop: 8 }}>
+                    <Check size={14} className="kx-icon-green" />
+                    <span>
+                      Vente {simResult.record.reference} ajoutée automatiquement au registre
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
