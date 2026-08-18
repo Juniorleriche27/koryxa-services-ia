@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { ExecutiveDashboard } from "../ExecutiveDashboard";
 import { RegisterCreateDialog } from "../RegisterCreateDialog";
-import { EmptyState } from "../Ui";
+import { DashboardSkeleton, EmptyState } from "../Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { SaleItem } from "../RegistersTable";
 
@@ -95,7 +95,7 @@ export function DashboardSection({
 
   return (
     <>
-      {loading && <EmptyState title="Chargement…" detail="Connexion au tableau de bord." />}
+      {loading && <DashboardSkeleton />}
       {error && <EmptyState title="Données indisponibles" detail={error} />}
 
       {!loading && !error && (

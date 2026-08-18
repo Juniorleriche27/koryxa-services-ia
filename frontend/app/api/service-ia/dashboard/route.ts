@@ -32,11 +32,31 @@ export async function GET() {
       "X-Koryxa-Proxy-Secret": proxySecret,
     });
 
-    let organizationResponse = await fetch(`${apiBase}/organizations/current`, {
-      headers,
-      cache: "no-store",
-    });
-    if (organizationResponse.status === 404) {
+    // Run all data fetches in parallel concurrently in a single roundtrip
+    const paths = {
+      organization: "organizations/current",
+      summary: "registers/summary",
+      alerts: "radar/alerts",
+      actions: "workflow/actions",
+    } as const;
+
+    const entries = await Promise.all(
+      Object.entries(paths).map(async ([key, path]) => {
+        const response = await fetch(`${apiBase}/${path}`, { headers, cache: "no-store" });
+        if (response.status === 404 && key === "organization") {
+          return [key, null] as const;
+        }
+        if (!response.ok) {
+          throw new Error(`${path} responded with ${response.status}`);
+        }
+        return [key, await response.json()] as const;
+      }),
+    );
+    const dataMap = Object.fromEntries(entries);
+
+    // Auto-provision only if organization is genuinely missing (first visit)
+    let organization = dataMap.organization;
+    if (!organization) {
       const provisionHeaders = new Headers(headers);
       provisionHeaders.set("Content-Type", "application/json");
       const slugSuffix = identity.koryxaUserId
@@ -55,31 +75,26 @@ export async function GET() {
       if (!provisionResponse.ok && provisionResponse.status !== 409) {
         throw new Error(`organization provisioning responded with ${provisionResponse.status}`);
       }
-      organizationResponse = await fetch(`${apiBase}/organizations/current`, {
+      const orgRes = await fetch(`${apiBase}/organizations/current`, {
         headers,
         cache: "no-store",
       });
+      if (orgRes.ok) {
+        organization = await orgRes.json();
+      }
     }
-    if (!organizationResponse.ok) {
-      throw new Error(`organizations/current responded with ${organizationResponse.status}`);
-    }
-    const organization = await organizationResponse.json();
 
-    const paths = {
-      summary: "registers/summary",
-      alerts: "radar/alerts",
-      actions: "workflow/actions",
-    } as const;
-    const entries = await Promise.all(
-      Object.entries(paths).map(async ([key, path]) => {
-        const response = await fetch(`${apiBase}/${path}`, { headers, cache: "no-store" });
-        if (!response.ok) throw new Error(`${path} responded with ${response.status}`);
-        return [key, await response.json()] as const;
-      }),
+    return NextResponse.json(
+      {
+        summary: dataMap.summary,
+        alerts: dataMap.alerts,
+        actions: dataMap.actions,
+        organization: organization || { name: "Organisation KORYXA" },
+      },
+      {
+        headers: { "Cache-Control": "private, no-store" },
+      },
     );
-    return NextResponse.json({ ...Object.fromEntries(entries), organization }, {
-      headers: { "Cache-Control": "private, no-store" },
-    });
   } catch (error) {
     const unauthenticated = error instanceof Error && error.message === "UNAUTHENTICATED";
     console.error("Service IA dashboard request failed", {

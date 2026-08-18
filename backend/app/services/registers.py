@@ -346,18 +346,29 @@ class RegisterService:
             or 0
         )
 
-        expenses_count = int(
-            await s.scalar(
-                select(func.count())
-                .select_from(Expense)
-                .where(Expense.organization_id == org, Expense.is_archived.is_(False))
-            )
-            or 0
+        expenses_rows = list(
+            (
+                await s.scalars(
+                    select(Expense)
+                    .where(Expense.organization_id == org, Expense.is_archived.is_(False))
+                )
+            ).all()
         )
+        expenses_count = len(expenses_rows)
+        total_expenses_paid = Decimal("0.00")
+        total_expenses_unpaid = Decimal("0.00")
+        for exp in expenses_rows:
+            e_amt = exp.amount if exp.amount is not None else Decimal("0.00")
+            if exp.payment_status == "paid":
+                total_expenses_paid += e_amt
+            else:
+                total_expenses_unpaid += e_amt
+
         suppliers_count = int(
             await s.scalar(
                 select(func.count())
                 .select_from(Supplier)
+                .where(Supplier.organization_id == org, Supplier.is_archived.is_(False))
             )
             or 0
         )
@@ -372,6 +383,9 @@ class RegisterService:
             "procedures_count": procedures_count,
             "expenses_count": expenses_count,
             "suppliers_count": suppliers_count,
+            "total_expenses_paid": total_expenses_paid,
+            "total_expenses_unpaid": total_expenses_unpaid,
+            "net_cash_position": total_paid_amount - total_expenses_paid,
             "primary_currency": primary_currency,
             "recent_sales": sales_rows[:10],
         }
