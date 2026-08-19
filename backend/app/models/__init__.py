@@ -1,3 +1,4 @@
+from app.models.attendance import AttendanceRecord
 from app.models.imports import Attachment, ImportJob, ImportStatus
 from app.models.invitation import InvitationStatus, OrganizationInvitation
 from app.models.integrations import OrganizationIntegrationConfig, WhatsAppWebhookEvent
@@ -11,6 +12,7 @@ from app.models.radar import (
     RadarRun,
 )
 from app.models.registers import (
+    Expense,
     Offer,
     PaymentStatus,
     Procedure,
@@ -19,6 +21,7 @@ from app.models.registers import (
     RecordSource,
     RecordStatus,
     Sale,
+    Supplier,
 )
 from app.models.workflow import (
     ActionComment,
@@ -30,8 +33,10 @@ from app.models.workflow import (
 __all__ = [
     "ActionComment",
     "Attachment",
+    "AttendanceRecord",
     "AuditEvent",
     "CorrectiveAction",
+    "Expense",
     "ImportJob",
     "ImportStatus",
     "InvitationStatus",
@@ -55,6 +60,7 @@ __all__ = [
     "RecordSource",
     "RecordStatus",
     "Sale",
+    "Supplier",
     "ValidationRequest",
     "WhatsAppWebhookEvent",
 ]

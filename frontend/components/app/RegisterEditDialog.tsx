@@ -45,6 +45,10 @@ export function RegisterEditDialog({
   const [offerPrice, setOfferPrice] = useState(offer?.price || "");
   const [offerCurrency, setOfferCurrency] = useState(offer?.currency || "XOF");
   const [offerBillingUnit, setOfferBillingUnit] = useState(offer?.billing_unit || "Unité");
+  const [offerCostPrice, setOfferCostPrice] = useState(offer?.cost_price ? String(offer.cost_price) : "");
+  const [offerTrackStock, setOfferTrackStock] = useState(offer?.track_stock ?? true);
+  const [offerStockQuantity, setOfferStockQuantity] = useState(offer?.stock_quantity ? String(offer.stock_quantity) : "0");
+  const [offerMinStockAlert, setOfferMinStockAlert] = useState(offer?.min_stock_alert ? String(offer.min_stock_alert) : "5");
   const [offerConditions, setOfferConditions] = useState(offer?.conditions || "");
   const [offerDescription, setOfferDescription] = useState(offer?.description || "");
   const [offerStatus, setOfferStatus] = useState(offer?.status || "active");
@@ -105,6 +109,10 @@ export function RegisterEditDialog({
             price: offerPrice ? String(offerPrice) : null,
             currency: offerCurrency,
             billing_unit: offerBillingUnit,
+            cost_price: offerCostPrice ? String(offerCostPrice) : null,
+            track_stock: offerTrackStock,
+            stock_quantity: offerStockQuantity ? Number(offerStockQuantity) : 0,
+            min_stock_alert: offerMinStockAlert ? Number(offerMinStockAlert) : 5,
             conditions: offerConditions || null,
             description: offerDescription || null,
             status: offerStatus,
@@ -296,7 +304,7 @@ export function RegisterEditDialog({
 
             <div className="app-form-grid">
               <label>
-                <span>Tarif officiel (laisser vide si sur devis)</span>
+                <span>Tarif de vente</span>
                 <input
                   type="number"
                   step="0.01"
@@ -306,13 +314,69 @@ export function RegisterEditDialog({
                 />
               </label>
               <label>
+                <span>Prix de revient (Coût d'achat)</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ex: 35000"
+                  value={offerCostPrice}
+                  onChange={(e) => setOfferCostPrice(e.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="app-form-grid">
+              <label>
                 <span>Unité de facturation</span>
                 <input
-                  placeholder="Ex: mois, jour, prestation, licence..."
+                  placeholder="Ex: carton, sac, pièce, heure..."
                   value={offerBillingUnit}
                   onChange={(e) => setOfferBillingUnit(e.target.value)}
                 />
               </label>
+              <label>
+                <span>Devise</span>
+                <select value={offerCurrency} onChange={(e) => setOfferCurrency(e.target.value)}>
+                  <option value="XOF">XOF (FCFA)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="USD">USD ($)</option>
+                </select>
+              </label>
+            </div>
+
+            <div style={{ margin: "6px 0", padding: "10px", background: "var(--kx-panel-bg, rgba(0,0,0,0.02))", borderRadius: "8px", border: "1px solid var(--kx-border-color, #e5e7eb)" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={offerTrackStock}
+                  onChange={(e) => setOfferTrackStock(e.target.checked)}
+                  style={{ width: "auto" }}
+                />
+                <strong>📦 Activer le suivi des stocks physiques</strong>
+              </label>
+
+              {offerTrackStock && (
+                <div className="app-form-grid" style={{ marginTop: 8 }}>
+                  <label>
+                    <span>Quantité actuelle en stock</span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={offerStockQuantity}
+                      onChange={(e) => setOfferStockQuantity(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span>Seuil d'alerte stock faible</span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={offerMinStockAlert}
+                      onChange={(e) => setOfferMinStockAlert(e.target.value)}
+                    />
+                  </label>
+                </div>
+              )}
             </div>
 
             <div className="app-form-grid">
@@ -322,14 +386,6 @@ export function RegisterEditDialog({
                   <option value="active">Active (Au catalogue)</option>
                   <option value="draft">Brouillon</option>
                   <option value="archived">Archivée</option>
-                </select>
-              </label>
-              <label>
-                <span>Devise</span>
-                <select value={offerCurrency} onChange={(e) => setOfferCurrency(e.target.value)}>
-                  <option value="XOF">XOF (FCFA)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="USD">USD ($)</option>
                 </select>
               </label>
             </div>

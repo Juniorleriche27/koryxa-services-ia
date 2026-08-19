@@ -122,7 +122,7 @@ def test_attachment_is_linked_to_current_tenant_record() -> None:
             headers=owner,
         )
         assert downloaded.status_code == 200
-        assert downloaded.content == b"PDF demo"
+        assert downloaded.content == b"%PDF-1.7 demo"
         assert "brochure.pdf" in downloaded.headers["Content-Disposition"]
 
         hidden_download = client.get(

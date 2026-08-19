@@ -5,6 +5,8 @@ import { PageHeader } from "../PageHeader";
 import { EmptyState } from "../Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { AIProviderSettings } from "../AIProviderSettings";
+import { BusinessCategorySettings } from "../BusinessCategorySettings";
+import { AutomationsHubView } from "../AutomationsHubView";
 
 export type RadarRule = {
   id: string;
@@ -40,7 +42,9 @@ export function SettingsSection({
 
   return (
     <>
+      <BusinessCategorySettings />
       <AIProviderSettings />
+      <AutomationsHubView />
 
       <PageHeader
         eyebrow="Contrôle & Qualité"

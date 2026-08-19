@@ -1,8 +1,11 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
-    health,
+    ai,
+    attendance,
+    automations,
     direct_uploads,
+    health,
     identity,
     imports,
     invitations,
@@ -14,7 +17,6 @@ from app.api.routes import (
     voice,
     whatsapp,
     workflow,
-    ai,
 )
 
 api_router = APIRouter()
@@ -25,6 +27,8 @@ api_router.include_router(members.router, prefix="/members", tags=["members"])
 api_router.include_router(invitations.router, prefix="/invitations", tags=["invitations"])
 
 api_router.include_router(registers.router, prefix="/registers", tags=["registers"])
+api_router.include_router(attendance.router, prefix="/attendance", tags=["attendance"])
+api_router.include_router(automations.router, prefix="/automations", tags=["automations"])
 api_router.include_router(voice.router, prefix="/voice", tags=["voice"])
 api_router.include_router(whatsapp.router, prefix="/integrations/whatsapp", tags=["whatsapp"])
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])

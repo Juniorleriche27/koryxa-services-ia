@@ -21,10 +21,13 @@ import {
   Search,
   Wallet,
   Building,
+  UserCheck,
 } from "lucide-react";
 import { StatusPill } from "./Ui";
 import { formatMoney, formatDate, formatLabel } from "./RegistersTable";
 import { OperationalAuditReport, OperationalAuditData } from "./OperationalAuditReport";
+import { getBusinessCategoryConfig } from "@/lib/service-ia/business-categories";
+import { serviceIaFetch } from "@/lib/service-ia/api";
 
 interface SummaryData {
   total_sales_count: number;
@@ -99,6 +102,17 @@ export function ExecutiveDashboard({
 }: ExecutiveDashboardProps) {
   const [showReport, setShowReport] = useState(false);
   const [reportGeneratedAt] = useState(() => new Date());
+  const [businessCategory, setBusinessCategory] = useState<string>("retail");
+
+  useState(() => {
+    serviceIaFetch<{ business_category?: string }>("/organizations/current")
+      .then((org) => {
+        if (org.business_category) setBusinessCategory(org.business_category);
+      })
+      .catch(() => {});
+  });
+
+  const proConfig = getBusinessCategoryConfig(businessCategory);
 
   const openAlerts = alerts.filter(
     (a) => a.status !== "resolved" && a.status !== "ignored"
@@ -396,7 +410,7 @@ export function ExecutiveDashboard({
                 <ReceiptText size={18} />
                 <div>
                   <strong>{summary?.total_sales_count || 0}</strong>
-                  <span>Ventes</span>
+                  <span>{proConfig.registers.sales.title}</span>
                 </div>
               </Link>
 
@@ -404,7 +418,7 @@ export function ExecutiveDashboard({
                 <Wallet size={18} />
                 <div>
                   <strong>{summary?.expenses_count || 0}</strong>
-                  <span>Dépenses</span>
+                  <span>{proConfig.registers.expenses.title}</span>
                 </div>
               </Link>
 
@@ -412,7 +426,7 @@ export function ExecutiveDashboard({
                 <Building size={18} />
                 <div>
                   <strong>{summary?.suppliers_count || 0}</strong>
-                  <span>Fournisseurs</span>
+                  <span>{proConfig.registers.suppliers.title}</span>
                 </div>
               </Link>
 
@@ -420,7 +434,7 @@ export function ExecutiveDashboard({
                 <Tag size={18} />
                 <div>
                   <strong>{summary?.offers_count || 0}</strong>
-                  <span>Tarifs & Offres</span>
+                  <span>{proConfig.registers.offers.title}</span>
                 </div>
               </Link>
 
@@ -428,7 +442,7 @@ export function ExecutiveDashboard({
                 <FileCheck2 size={18} />
                 <div>
                   <strong>{summary?.procedures_count || 0}</strong>
-                  <span>Procédures</span>
+                  <span>{proConfig.registers.procedures.title}</span>
                 </div>
               </Link>
             </div>

@@ -23,8 +23,13 @@ class Organization(Base):
     sector: Mapped[str | None] = mapped_column(String(120))
     country: Mapped[str | None] = mapped_column(String(120))
     responsible_name: Mapped[str | None] = mapped_column(String(180))
-    responsible_role: Mapped[str | None] = mapped_column(String(120))
     primary_goal: Mapped[str | None] = mapped_column(String(50))
+    business_category: Mapped[str] = mapped_column(
+        String(40), default="retail", index=True, nullable=False
+    )
+    latitude: Mapped[float | None] = mapped_column(nullable=True)
+    longitude: Mapped[float | None] = mapped_column(nullable=True)
+    geofence_radius_meters: Mapped[int] = mapped_column(default=50, nullable=False)
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by_user_id: Mapped[str] = mapped_column(String(128), nullable=False)
     created_at: Mapped[datetime] = mapped_column(

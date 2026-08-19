@@ -16,10 +16,12 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.6.4",
+    "@types/qrcode": "^1.5.6",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.462.0",
     "next": "^16.2.12",
+    "qrcode": "^1.5.4",
     "react": "~19.1.4",
     "react-dom": "~19.1.4"
   },

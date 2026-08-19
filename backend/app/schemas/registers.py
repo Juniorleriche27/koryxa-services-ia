@@ -26,6 +26,10 @@ class OfferBase(BaseModel):
     conditions: str | None = None
     inclusions: list[str] = Field(default_factory=list)
     exclusions: list[str] = Field(default_factory=list)
+    track_stock: bool = False
+    stock_quantity: Decimal = Field(default=Decimal("0.00"), ge=0)
+    min_stock_alert: Decimal = Field(default=Decimal("5.00"), ge=0)
+    cost_price: Decimal | None = Field(default=None, ge=0)
     responsible_user_id: str | None = None
     status: RecordStatus = RecordStatus.DRAFT
     source: RecordSource = RecordSource.MANUAL
@@ -53,10 +57,20 @@ class OfferUpdate(BaseModel):
     conditions: str | None = None
     inclusions: list[str] | None = None
     exclusions: list[str] | None = None
+    track_stock: bool | None = None
+    stock_quantity: Decimal | None = Field(default=None, ge=0)
+    min_stock_alert: Decimal | None = Field(default=None, ge=0)
+    cost_price: Decimal | None = Field(default=None, ge=0)
     responsible_user_id: str | None = None
     status: RecordStatus | None = None
     effective_from: date | None = None
     expires_at: date | None = None
+
+
+class StockAdjustmentRequest(BaseModel):
+    quantity_delta: Decimal = Field(..., description="Positive to add stock, negative to remove")
+    reason: str = Field(default="reassort", max_length=100)
+    notes: str | None = None
 
 
 class OfferRead(OfferBase):
@@ -217,6 +231,13 @@ class RegistersSummary(BaseModel):
     procedures_count: int
     expenses_count: int = 0
     suppliers_count: int = 0
+    total_expenses_paid: Decimal = Decimal("0.00")
+    total_expenses_unpaid: Decimal = Decimal("0.00")
+    net_cash_position: Decimal = Decimal("0.00")
+    total_stock_value: Decimal = Decimal("0.00")
+    low_stock_count: int = 0
+    active_products_count: int = 0
+    present_employees_today_count: int = 0
     primary_currency: str = "XOF"
     recent_sales: list[SaleRead] = Field(default_factory=list)
 

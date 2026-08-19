@@ -1,0 +1,103 @@
+{
+  "name": "KORYXA Service IA - Bilan Journalier Soir (21h00)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 21 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger-21h",
+      "name": "Déclencheur Quotidien (21h00)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/api/v1/automations/daily-digest/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Tenant-ID",
+              "value": "={{ $env.KORYXA_TENANT_ID || 'default-org' }}"
+            },
+            {
+              "name": "X-User-ID",
+              "value": "system-n8n-bot"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-fetch-digest",
+      "name": "Générer & Formater le Bilan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8080/api/v1/messages/send",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $env.DIRECTEUR_WHATSAPP_NUMBER || '+2250700000000' }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.formatted_message || 'Bilan journalier généré' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-whatsapp-openclaw",
+      "name": "Livrer au Dirigeant via WhatsApp / OpenClaw",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Déclencheur Quotidien (21h00)": {
+      "main": [
+        [
+          {
+            "node": "Générer & Formater le Bilan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Générer & Formater le Bilan": {
+      "main": [
+        [
+          {
+            "node": "Livrer au Dirigeant via WhatsApp / OpenClaw",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

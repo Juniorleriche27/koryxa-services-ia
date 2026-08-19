@@ -23,6 +23,7 @@ import {
   Tag,
   Wallet,
   Building,
+  UserCheck,
   X,
   Zap,
   Bot,
@@ -31,47 +32,13 @@ import {
 import clsx from "clsx";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { serviceIaFetch } from "@/lib/service-ia/api";
+import { getBusinessCategoryConfig } from "@/lib/service-ia/business-categories";
 import BrandLogo from "@/components/layout/BrandLogo";
 import { OrganizationOnboarding } from "./OrganizationOnboarding";
 import { CommandPalette } from "./CommandPalette";
 import { VoiceCaptureModal } from "./VoiceCaptureModal";
 import { OfflineSyncBanner } from "./OfflineSyncBanner";
 import { AICopilotDrawer } from "./AICopilotDrawer";
-
-
-const navigation = [
-  ["Vue d’ensemble", "/espace", LayoutDashboard],
-  ["Offres & tarifs", "/espace/offres", Tag],
-  ["Ventes", "/espace/ventes", ReceiptText],
-  ["Dépenses & Achats", "/espace/depenses", Wallet],
-  ["Fournisseurs", "/espace/fournisseurs", Building],
-  ["Procédures", "/espace/procedures", FileCheck2],
-  ["Imports", "/espace/imports", FileSpreadsheet],
-  ["Documents", "/espace/documents", FolderSync],
-  ["Radar", "/espace/radar", Radar],
-  ["Validations", "/espace/validations", Activity],
-  ["Actions", "/espace/actions", Zap],
-  ["WhatsApp Gateway", "/espace/whatsapp", MessageSquare],
-  ["Organisation", "/espace/organisation", Building2],
-  ["Paramètres", "/espace/parametres", Settings],
-] as const;
-
-const pageContext: Record<string, { eyebrow: string; description: string }> = {
-  "/espace": { eyebrow: "Mémoire opérationnelle", description: "Pilotez l’essentiel de votre entreprise" },
-  "/espace/offres": { eyebrow: "Offres & tarifs", description: "Centralisez ce que vous vendez et à quel prix" },
-  "/espace/ventes": { eyebrow: "Suivi commercial", description: "Suivez vos ventes et vos encaissements" },
-  "/espace/depenses": { eyebrow: "Trésorerie & Achats", description: "Suivez vos dépenses et règlements fournisseurs" },
-  "/espace/fournisseurs": { eyebrow: "Partenaires & Achats", description: "Gérez vos fournisseurs et prestataires réguliers" },
-  "/espace/procedures": { eyebrow: "Méthodes de travail", description: "Formalisez la façon dont votre entreprise fonctionne" },
-  "/espace/imports": { eyebrow: "Reprise de données", description: "Importez vos informations existantes en toute simplicité" },
-  "/espace/documents": { eyebrow: "Documents utiles", description: "Rassemblez les preuves et fichiers de votre activité" },
-  "/espace/radar": { eyebrow: "Qualité des informations", description: "Repérez ce qui manque, vieillit ou doit être vérifié" },
-  "/espace/validations": { eyebrow: "Contrôle humain", description: "Confirmez les corrections avant leur application" },
-  "/espace/actions": { eyebrow: "Amélioration continue", description: "Transformez les constats en actions concrètes" },
-  "/espace/whatsapp": { eyebrow: "Intégrations & Mobilité", description: "Enregistrez vos ventes directement depuis WhatsApp" },
-  "/espace/organisation": { eyebrow: "Équipe", description: "Gérez les membres et leurs responsabilités" },
-  "/espace/parametres": { eyebrow: "Configuration", description: "Adaptez les contrôles aux besoins de votre entreprise" },
-};
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -81,30 +48,75 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [commandOpen, setCommandOpen] = useState(false);
   const [organization, setOrganization] = useState<{
     name: string;
+    business_category?: string;
+    latitude?: number | null;
+    longitude?: number | null;
     logo_updated_at?: string | null;
     onboarding_completed_at?: string | null;
     created_by_user_id?: string;
-  }>({ name: "Organisation KORYXA" });
+  }>({ name: "Organisation KORYXA", business_category: "retail" });
   const [organizationLoaded, setOrganizationLoaded] = useState(false);
   const { user } = useUser();
   const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress || "Compte KORYXA";
   const initials = userName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+
+  const proConfig = getBusinessCategoryConfig(organization.business_category);
+
+  const navigation = [
+    ["Vue d’ensemble", "/espace", LayoutDashboard],
+    [proConfig.registers.offers.title, "/espace/offres", Tag],
+    [proConfig.registers.sales.title, "/espace/ventes", ReceiptText],
+    [proConfig.registers.expenses.title, "/espace/depenses", Wallet],
+    [proConfig.registers.suppliers.title, "/espace/fournisseurs", Building],
+    [proConfig.registers.procedures.title, "/espace/procedures", FileCheck2],
+    [proConfig.registers.attendance.title, "/espace/presence", UserCheck],
+    ["Imports", "/espace/imports", FileSpreadsheet],
+    ["Documents", "/espace/documents", FolderSync],
+    ["Radar", "/espace/radar", Radar],
+    ["Validations", "/espace/validations", Activity],
+    ["Actions", "/espace/actions", Zap],
+    ["WhatsApp Gateway", "/espace/whatsapp", MessageSquare],
+    ["Organisation", "/espace/organisation", Building2],
+    ["Paramètres", "/espace/parametres", Settings],
+  ] as const;
+
+  const pageContext: Record<string, { eyebrow: string; description: string }> = {
+    "/espace": { eyebrow: "Mémoire opérationnelle", description: `Pilotez votre activité (${proConfig.name})` },
+    "/espace/offres": { eyebrow: proConfig.registers.offers.title, description: proConfig.registers.offers.subtitle },
+    "/espace/ventes": { eyebrow: proConfig.registers.sales.title, description: proConfig.registers.sales.subtitle },
+    "/espace/depenses": { eyebrow: proConfig.registers.expenses.title, description: proConfig.registers.expenses.subtitle },
+    "/espace/fournisseurs": { eyebrow: proConfig.registers.suppliers.title, description: proConfig.registers.suppliers.subtitle },
+    "/espace/procedures": { eyebrow: proConfig.registers.procedures.title, description: proConfig.registers.procedures.subtitle },
+    "/espace/presence": { eyebrow: proConfig.registers.attendance.title, description: proConfig.registers.attendance.subtitle },
+    "/espace/imports": { eyebrow: "Reprise de données", description: "Importez vos informations existantes en toute simplicité" },
+    "/espace/documents": { eyebrow: "Documents utiles", description: "Rassemblez les preuves et fichiers de votre activité" },
+    "/espace/radar": { eyebrow: "Qualité des informations", description: "Repérez ce qui manque, vieillit ou doit être vérifié" },
+    "/espace/validations": { eyebrow: "Contrôle humain", description: "Confirmez les corrections avant leur application" },
+    "/espace/actions": { eyebrow: "Amélioration continue", description: "Transformez les constats en actions concrètes" },
+    "/espace/whatsapp": { eyebrow: "Intégrations & Mobilité", description: "Enregistrez vos ventes directement depuis WhatsApp" },
+    "/espace/organisation": { eyebrow: "Équipe", description: "Gérez les membres et leurs responsabilités" },
+    "/espace/parametres": { eyebrow: "Configuration", description: "Adaptez les contrôles et votre catégorie professionnelle" },
+  };
+
   const context = pageContext[pathname] ?? pageContext["/espace"];
 
   useEffect(() => {
     const load = () =>
       serviceIaFetch<{
         name: string;
+        business_category?: string;
+        latitude?: number | null;
+        longitude?: number | null;
         logo_updated_at?: string | null;
         onboarding_completed_at?: string | null;
         created_by_user_id?: string;
       }>("/organizations/current")
         .then(setOrganization)
-        .catch(() => setOrganization({ name: "Organisation à configurer" }))
+        .catch(() => setOrganization({ name: "Organisation à configurer", business_category: "retail" }))
         .finally(() => setOrganizationLoaded(true));
     void load();
     const updated = (event: Event) =>
-      setOrganization((event as CustomEvent<{ name: string; logo_updated_at?: string | null }>).detail);
+      setOrganization((event as CustomEvent<any>).detail);
     window.addEventListener("koryxa:organization-updated", updated);
     return () => window.removeEventListener("koryxa:organization-updated", updated);
   }, []);
@@ -206,9 +218,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             />
           ) : null}
           <div>
-            <span>Entreprise</span>
+            <span>{proConfig.emoji} {proConfig.shortName}</span>
             <strong>{organization.name}</strong>
-            <small>Espace opérationnel</small>
+            <small>{proConfig.badge}</small>
           </div>
         </div>
 

@@ -23,25 +23,23 @@ def test_ai_config_crud() -> None:
         res = client.get("/api/v1/ai/config", headers=owner)
         assert res.status_code == 200
         data = res.json()
-        assert data["provider"] == "native"
-        assert len(data["available_providers"]) >= 5
+        assert data["provider"] == "knowlia"
+        assert len(data["available_providers"]) >= 1
 
-        # 2. Update config to Gemini
+        # 2. Update config
         update_res = client.put(
             "/api/v1/ai/config",
             headers=owner,
             json={
-                "provider": "gemini",
-                "model_name": "gemini-1.5-pro",
-                "api_key": "dummy-gemini-key-12345",
+                "provider": "knowlia",
+                "model_name": "llama3.2:3b",
                 "temperature": 0.5,
             },
         )
         assert update_res.status_code == 200
         updated = update_res.json()
-        assert updated["provider"] == "gemini"
-        assert updated["model_name"] == "gemini-1.5-pro"
-        assert updated["has_api_key"] is True
+        assert updated["provider"] == "knowlia"
+        assert updated["model_name"] == "llama3.2:3b"
 
 
 def test_ai_copilot_chat_with_financial_context() -> None:

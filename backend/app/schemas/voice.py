@@ -70,3 +70,10 @@ class VoiceConfirmRequest(BaseModel):
     intent: VoiceIntent
     payload: dict[str, Any]
     source: RecordSource = RecordSource.VOICE
+
+
+class VoiceTranscriptionResponse(BaseModel):
+    transcript: str
+    confidence: float = 0.95
+    engine: str = "Whisper AI HD"
+    duration_seconds: float | None = None

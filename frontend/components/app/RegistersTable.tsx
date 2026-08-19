@@ -17,6 +17,7 @@ import {
   TrendingUp,
   AlertCircle,
   FileSpreadsheet,
+  Package,
 } from "lucide-react";
 import { StatusPill } from "./Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
@@ -57,6 +58,10 @@ export interface OfferItem {
   status: string;
   effective_from?: string | null;
   expires_at?: string | null;
+  track_stock?: boolean;
+  stock_quantity?: string | number | null;
+  min_stock_alert?: string | number | null;
+  cost_price?: string | number | null;
   updated_at: string;
 }
 
@@ -508,6 +513,7 @@ interface OffersTableInteractiveProps {
   onSelect: (offer: OfferItem) => void;
   onEdit: (offer: OfferItem) => void;
   onArchive: (id: string) => void;
+  onAdjustStock?: (offer: OfferItem) => void;
 }
 
 export function OffersTableInteractive({
@@ -515,6 +521,7 @@ export function OffersTableInteractive({
   onSelect,
   onEdit,
   onArchive,
+  onAdjustStock,
 }: OffersTableInteractiveProps) {
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -550,7 +557,7 @@ export function OffersTableInteractive({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher une offre, un forfait, un service..."
+              placeholder="Rechercher un produit, article, offre, tarif..."
             />
           </label>
 
@@ -574,80 +581,124 @@ export function OffersTableInteractive({
         <table className="app-data-table kx-rich-table">
           <thead>
             <tr>
-              <th>Offre / Service</th>
+              <th>Article / Produit / Offre</th>
               <th>Catégorie</th>
-              <th className="app-number">Tarif Officiel</th>
+              <th className="app-number">Prix de Vente</th>
+              <th>Stock Physique</th>
               <th>Unité</th>
               <th>Statut</th>
-              <th>Conditions</th>
               <th style={{ textAlign: "center" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((offer) => (
-              <tr key={offer.id}>
-                <td>
-                  <strong
-                    style={{ cursor: "pointer", color: "var(--kx-primary-color, #0f766e)" }}
-                    onClick={() => onSelect(offer)}
-                  >
-                    {offer.name}
-                  </strong>
-                  {offer.description && (
-                    <div style={{ fontSize: "0.8rem", color: "var(--kx-text-muted)" }}>
-                      {offer.description}
-                    </div>
-                  )}
-                </td>
-                <td>
-                  <span className="kx-method-tag">{offer.category || "Général"}</span>
-                </td>
-                <td className="app-number app-table-total">
-                  {formatMoney(offer.price, offer.currency)}
-                </td>
-                <td>{offer.billing_unit || "Unité"}</td>
-                <td>
-                  <StatusPill>{formatLabel(offer.status)}</StatusPill>
-                </td>
-                <td>
-                  <small style={{ color: "var(--kx-text-muted)" }}>
-                    {offer.conditions || "Sans conditions"}
-                  </small>
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <div className="kx-row-actions-group" style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                    <button
-                      type="button"
-                      className="app-button app-button-secondary"
-                      style={{ padding: "4px 8px", fontSize: "0.8rem" }}
-                      onClick={() => onEdit(offer)}
-                      title="Modifier cette offre"
-                    >
-                      <Pencil size={13} />
-                      <span>Modifier</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="app-button app-button-secondary"
-                      style={{ padding: "4px 8px", fontSize: "0.8rem" }}
+            {filtered.map((offer) => {
+              const stock = Number(offer.stock_quantity ?? 0);
+              const minStock = Number(offer.min_stock_alert ?? 5);
+              const isOutOfStock = offer.track_stock && stock <= 0;
+              const isLowStock = offer.track_stock && stock > 0 && stock <= minStock;
+
+              return (
+                <tr key={offer.id}>
+                  <td>
+                    <strong
+                      style={{ cursor: "pointer", color: "var(--kx-primary-color, #0f766e)" }}
                       onClick={() => onSelect(offer)}
-                      title="Voir le détail"
                     >
-                      <Eye size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      className="app-button app-button-secondary"
-                      style={{ padding: "4px 8px", color: "#ef4444" }}
-                      onClick={() => onArchive(offer.id)}
-                      title="Archiver cette offre"
-                    >
-                      <Archive size={13} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                      {offer.name}
+                    </strong>
+                    {offer.description && (
+                      <div style={{ fontSize: "0.8rem", color: "var(--kx-text-muted)" }}>
+                        {offer.description}
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    <span className="kx-method-tag">{offer.category || "Général"}</span>
+                  </td>
+                  <td className="app-number app-table-total">
+                    {formatMoney(offer.price, offer.currency)}
+                    {offer.cost_price && (
+                      <div style={{ fontSize: "0.75rem", color: "var(--kx-text-muted)", fontWeight: "normal" }}>
+                        Coût : {formatMoney(offer.cost_price, offer.currency)}
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    {offer.track_stock ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span
+                          className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                            isOutOfStock
+                              ? "bg-rose-500/10 text-rose-600 border border-rose-500/20"
+                              : isLowStock
+                              ? "bg-amber-500/10 text-amber-600 border border-amber-500/20"
+                              : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                          }`}
+                        >
+                          {isOutOfStock
+                            ? "⛔ Rupture"
+                            : isLowStock
+                            ? `⚠️ Faible (${stock})`
+                            : `✓ ${stock} en stock`}
+                        </span>
+                      </div>
+                    ) : (
+                      <span style={{ color: "var(--kx-text-muted)", fontSize: "0.8rem" }}>
+                        Non suivi
+                      </span>
+                    )}
+                  </td>
+                  <td>{offer.billing_unit || "Unité"}</td>
+                  <td>
+                    <StatusPill>{formatLabel(offer.status)}</StatusPill>
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    <div className="kx-row-actions-group" style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                      {offer.track_stock && onAdjustStock && (
+                        <button
+                          type="button"
+                          className="app-button app-button-secondary"
+                          style={{ padding: "4px 8px", fontSize: "0.8rem" }}
+                          onClick={() => onAdjustStock(offer)}
+                          title="Ajuster le stock (Réapprovisionnement / Inventaire)"
+                        >
+                          <Package size={13} />
+                          <span>Stock</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="app-button app-button-secondary"
+                        style={{ padding: "4px 8px", fontSize: "0.8rem" }}
+                        onClick={() => onEdit(offer)}
+                        title="Modifier cet article"
+                      >
+                        <Pencil size={13} />
+                        <span>Modifier</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="app-button app-button-secondary"
+                        style={{ padding: "4px 8px", fontSize: "0.8rem" }}
+                        onClick={() => onSelect(offer)}
+                        title="Voir le détail"
+                      >
+                        <Eye size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className="app-button app-button-secondary"
+                        style={{ padding: "4px 8px", color: "#ef4444" }}
+                        onClick={() => onArchive(offer.id)}
+                        title="Archiver"
+                      >
+                        <Archive size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

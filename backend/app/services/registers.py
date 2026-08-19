@@ -1,12 +1,11 @@
-# mypy: disable-error-code="no-untyped-def,no-untyped-call"
-from __future__ import annotations
-
+from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApplicationError
+from app.models.attendance import AttendanceRecord
 from app.models.registers import (
     Expense,
     Offer,
@@ -26,15 +25,24 @@ from app.schemas.registers import (
     ProcedureUpdate,
     SaleCreate,
     SaleUpdate,
+    StockAdjustmentRequest,
     SupplierCreate,
     SupplierUpdate,
 )
 
 
 
+def serialize_val(v: object) -> object:
+    if isinstance(v, (date, Decimal)):
+        return str(v)
+    return v
+
+
 def diff(before: dict[str, object], after: dict[str, object]) -> dict[str, object]:
     return {
-        k: {"before": before.get(k), "after": v} for k, v in after.items() if before.get(k) != v
+        k: {"before": serialize_val(before.get(k)), "after": serialize_val(v)}
+        for k, v in after.items()
+        if before.get(k) != v
     }
 
 
@@ -117,9 +125,22 @@ class RegisterService:
         return obj
 
     async def create_sale(self, s, org, user, data: SaleCreate):
+        target_offer = None
         if data.offer_id:
-            await self.get_offer(s, org, data.offer_id)
+            target_offer = await self.get_offer(s, org, data.offer_id)
+        elif data.item_label:
+            target_offer = await s.scalar(
+                select(Offer).where(
+                    Offer.organization_id == org,
+                    Offer.name.ilike(data.item_label.strip()),
+                    Offer.is_archived.is_(False),
+                )
+            )
+
         values = data.model_dump()
+        if target_offer and not values.get("offer_id"):
+            values["offer_id"] = target_offer.id
+
         values["total_amount"] = (
             data.total_amount
             if data.total_amount is not None
@@ -128,8 +149,41 @@ class RegisterService:
         obj = Sale(organization_id=org, created_by_user_id=user, updated_by_user_id=user, **values)
         s.add(obj)
         await s.flush()
+
+        # Automatic Stock Decrement if product tracks inventory
+        if target_offer and target_offer.track_stock:
+            current_qty = target_offer.stock_quantity if target_offer.stock_quantity is not None else Decimal("0.00")
+            sold_qty = data.quantity if data.quantity is not None else Decimal("1.00")
+            target_offer.stock_quantity = max(Decimal("0.00"), current_qty - sold_qty)
+            target_offer.updated_by_user_id = user
+
         await self._history(
             s, org, "sale", obj.id, "created", user, {k: str(v) for k, v in values.items()}
+        )
+        await s.commit()
+        await s.refresh(obj)
+        return obj
+
+    async def adjust_stock(self, s, org, user, rid, data: StockAdjustmentRequest):
+        obj = await self.get_offer(s, org, rid)
+        before_stock = obj.stock_quantity if obj.stock_quantity is not None else Decimal("0.00")
+        obj.stock_quantity = max(Decimal("0.00"), before_stock + data.quantity_delta)
+        obj.track_stock = True
+        obj.updated_by_user_id = user
+        await self._history(
+            s,
+            org,
+            "offer",
+            rid,
+            "stock_adjusted",
+            user,
+            {
+                "delta": str(data.quantity_delta),
+                "reason": data.reason,
+                "before": str(before_stock),
+                "after": str(obj.stock_quantity),
+                "notes": data.notes,
+            },
         )
         await s.commit()
         await s.refresh(obj)
@@ -329,14 +383,32 @@ class RegisterService:
                 total_partial_amount += amt
 
 
-        offers_count = int(
-            await s.scalar(
-                select(func.count())
-                .select_from(Offer)
-                .where(Offer.organization_id == org, Offer.is_archived.is_(False))
-            )
-            or 0
+        offers_rows = list(
+            (
+                await s.scalars(
+                    select(Offer).where(Offer.organization_id == org, Offer.is_archived.is_(False))
+                )
+            ).all()
         )
+        offers_count = len(offers_rows)
+        total_stock_value = Decimal("0.00")
+        low_stock_count = 0
+        active_products_count = 0
+
+        for off in offers_rows:
+            if off.track_stock:
+                active_products_count += 1
+                qty = off.stock_quantity if off.stock_quantity is not None else Decimal("0.00")
+                unit_val = (
+                    off.cost_price
+                    if off.cost_price is not None
+                    else (off.price if off.price is not None else Decimal("0.00"))
+                )
+                total_stock_value += qty * unit_val
+                min_threshold = off.min_stock_alert if off.min_stock_alert is not None else Decimal("5.00")
+                if qty <= min_threshold:
+                    low_stock_count += 1
+
         procedures_count = int(
             await s.scalar(
                 select(func.count())
@@ -373,6 +445,22 @@ class RegisterService:
             or 0
         )
 
+        today = date.today()
+        present_employees_today_count = int(
+            await s.scalar(
+                select(func.count())
+                .select_from(AttendanceRecord)
+                .where(
+                    and_(
+                        AttendanceRecord.organization_id == org,
+                        AttendanceRecord.date == today,
+                        AttendanceRecord.status.in_(["present", "late"]),
+                    )
+                )
+            )
+            or 0
+        )
+
         return {
             "total_sales_count": total_sales_count,
             "total_sales_amount": total_sales_amount,
@@ -386,6 +474,10 @@ class RegisterService:
             "total_expenses_paid": total_expenses_paid,
             "total_expenses_unpaid": total_expenses_unpaid,
             "net_cash_position": total_paid_amount - total_expenses_paid,
+            "total_stock_value": total_stock_value,
+            "low_stock_count": low_stock_count,
+            "active_products_count": active_products_count,
+            "present_employees_today_count": present_employees_today_count,
             "primary_currency": primary_currency,
             "recent_sales": sales_rows[:10],
         }

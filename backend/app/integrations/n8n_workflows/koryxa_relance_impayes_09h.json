@@ -1,0 +1,66 @@
+{
+  "name": "KORYXA Service IA - Relances Impayés & Créances Matin (09h00)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger-09h",
+      "name": "Déclencheur Matinal (09h00 Lu-Ve)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/api/v1/automations/unpaid-reminders/send?min_days=2",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Tenant-ID",
+              "value": "={{ $env.KORYXA_TENANT_ID || 'default-org' }}"
+            },
+            {
+              "name": "X-User-ID",
+              "value": "system-n8n-bot"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-fetch-reminders",
+      "name": "Scanner & Diffuser les Relances Factures",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    }
+  ],
+  "connections": {
+    "Déclencheur Matinal (09h00 Lu-Ve)": {
+      "main": [
+        [
+          {
+            "node": "Scanner & Diffuser les Relances Factures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

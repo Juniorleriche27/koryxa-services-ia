@@ -61,7 +61,22 @@ class OrganizationService:
     async def update(
         self, session: AsyncSession, organization: Organization, data: OrganizationUpdate
     ) -> Organization:
-        organization.name = data.name.strip()
+        if data.name is not None:
+            organization.name = data.name.strip()
+        if data.business_category is not None:
+            organization.business_category = data.business_category.strip()
+        if data.latitude is not None:
+            organization.latitude = data.latitude
+        if data.longitude is not None:
+            organization.longitude = data.longitude
+        if data.geofence_radius_meters is not None:
+            organization.geofence_radius_meters = data.geofence_radius_meters
+        if data.sector is not None:
+            organization.sector = data.sector.strip()
+        if data.country is not None:
+            organization.country = data.country.strip()
+        if data.responsible_name is not None:
+            organization.responsible_name = data.responsible_name.strip()
         await session.commit()
         await session.refresh(organization)
         return organization
@@ -73,11 +88,19 @@ class OrganizationService:
         data: OrganizationOnboarding,
     ) -> Organization:
         organization.name = data.name.strip()
+        if data.business_category:
+            organization.business_category = data.business_category.strip()
         organization.sector = data.sector.strip() if data.sector else None
         organization.country = data.country.strip() if data.country else None
         organization.responsible_name = data.responsible_name.strip()
-        organization.responsible_role = data.responsible_role.strip()
+        organization.responsible_role = data.responsible_role.strip() if data.responsible_role else None
         organization.primary_goal = data.primary_goal
+        if data.latitude is not None:
+            organization.latitude = data.latitude
+        if data.longitude is not None:
+            organization.longitude = data.longitude
+        if data.geofence_radius_meters is not None:
+            organization.geofence_radius_meters = data.geofence_radius_meters
         organization.onboarding_completed_at = datetime.now(UTC)
         await session.commit()
         await session.refresh(organization)

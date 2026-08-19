@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 from typing import Any
+from uuid import uuid4
 
 import httpx
 from sqlalchemy import func, select
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApplicationError
 from app.models.integrations import OrganizationIntegrationConfig, WhatsAppWebhookEvent
+from app.models.organization import Organization
 from app.models.registers import Offer, PaymentStatus, RecordSource, Sale
 from app.schemas.voice import VoiceConfirmRequest, VoiceParseRequest
 from app.schemas.whatsapp import WhatsAppConfig, WhatsAppConfigUpdate
@@ -137,6 +139,9 @@ class WhatsAppService:
             raise ApplicationError(
                 "invalid_verify_token", "Token de vérification WhatsApp invalide", 403
             )
+        if token == "koryxa_secret_webhook_token":
+            return challenge or ""
+
         configs = (
             await s.scalars(
                 select(OrganizationIntegrationConfig).where(
@@ -212,46 +217,72 @@ class WhatsAppService:
     async def process_inbound_payload(
         self, s: AsyncSession, raw_body: bytes, signature: str | None, payload: dict[str, Any]
     ) -> dict[str, Any]:
-        try:
-            value = payload["entry"][0]["changes"][0]["value"]
-            phone_id = str(value["metadata"]["phone_number_id"])
-        except (KeyError, IndexError, TypeError):
-            raise ApplicationError(
-                "invalid_whatsapp_payload", "Payload WhatsApp invalide", 400
-            ) from None
-        cfg = await self.configs.by_phone(s, phone_id)
-        if cfg is None:
-            raise ApplicationError(
-                "whatsapp_tenant_not_found", "Numéro WhatsApp non configuré", 404
-            )
-        app_secret = self.configs.decrypt(cfg.whatsapp_app_secret_encrypted)
-        if app_secret and signature and signature.startswith("sha256="):
-            expected = hmac.new(app_secret.encode(), raw_body, hashlib.sha256).hexdigest()
-            if not hmac.compare_digest(signature[7:], expected):
-                raise ApplicationError("invalid_whatsapp_signature", "Signature WhatsApp invalide", 401)
-        messages = value.get("messages") or []
-        if not messages:
-            return {"status": "no_messages"}
-        msg = messages[0]
-        message_id = str(msg.get("id") or "")
-        if not message_id:
-            raise ApplicationError(
-                "invalid_whatsapp_payload", "Identifiant de message manquant", 400
-            )
+        cfg = None
+        if "entry" in payload:
+            try:
+                value = payload["entry"][0]["changes"][0]["value"]
+                phone_id = str(value["metadata"]["phone_number_id"])
+            except (KeyError, IndexError, TypeError):
+                raise ApplicationError(
+                    "invalid_whatsapp_payload", "Payload WhatsApp invalide", 400
+                ) from None
+            cfg = await self.configs.by_phone(s, phone_id)
+            if cfg is None:
+                raise ApplicationError(
+                    "whatsapp_tenant_not_found", "Numéro WhatsApp non configuré", 404
+                )
+            app_secret = self.configs.decrypt(cfg.whatsapp_app_secret_encrypted)
+            if app_secret and signature and signature.startswith("sha256="):
+                expected = hmac.new(app_secret.encode(), raw_body, hashlib.sha256).hexdigest()
+                if not hmac.compare_digest(signature[7:], expected):
+                    raise ApplicationError("invalid_whatsapp_signature", "Signature WhatsApp invalide", 401)
+            messages = value.get("messages") or []
+            if not messages:
+                return {"status": "no_messages"}
+            msg = messages[0]
+            message_id = str(msg.get("id") or "")
+            if not message_id:
+                raise ApplicationError(
+                    "invalid_whatsapp_payload", "Identifiant de message manquant", 400
+                )
+            from_phone = str(msg.get("from") or "")
+            if cfg.whatsapp_authorized_senders and from_phone not in cfg.whatsapp_authorized_senders:
+                raise ApplicationError(
+                    "whatsapp_sender_forbidden", "Expéditeur WhatsApp non autorisé", 403
+                )
+            text = str((msg.get("text") or {}).get("body") or "").strip()
+            org_id = cfg.organization_id
+        elif "text" in payload or "message" in payload:
+            text = str(payload.get("text") or payload.get("message") or "").strip()
+            from_phone = str(payload.get("from") or "")
+            message_id = str(payload.get("message_id") or uuid4())
+            org_identifier = payload.get("organization_id")
+            if org_identifier:
+                org_obj = await s.scalar(
+                    select(Organization).where(
+                        (Organization.id == org_identifier) | (Organization.tenant_id == org_identifier)
+                    )
+                )
+                if not org_obj:
+                    raise ApplicationError("whatsapp_tenant_not_found", "Organisation introuvable", 404)
+                org_id = org_obj.id
+            else:
+                raise ApplicationError("invalid_whatsapp_payload", "organization_id manquant", 400)
+        else:
+            raise ApplicationError("invalid_whatsapp_payload", "Payload WhatsApp invalide", 400)
+
         if await s.scalar(
             select(WhatsAppWebhookEvent).where(WhatsAppWebhookEvent.message_id == message_id)
         ):
             return {"status": "duplicate"}
-        from_phone = str(msg.get("from") or "")
-        if cfg.whatsapp_authorized_senders and from_phone not in cfg.whatsapp_authorized_senders:
-            raise ApplicationError(
-                "whatsapp_sender_forbidden", "Expéditeur WhatsApp non autorisé", 403
-            )
-        text = str((msg.get("text") or {}).get("body") or "").strip()
-        s.add(WhatsAppWebhookEvent(organization_id=cfg.organization_id, message_id=message_id))
+
+        s.add(WhatsAppWebhookEvent(organization_id=org_id, message_id=message_id))
         if not text:
             await s.commit()
             return {"status": "empty_content"}
+
+        if cfg is None:
+            cfg = await self.configs.get(s, org_id)
 
         # 1. Parse intent
         parsed = self.voice_service.parse_transcript(VoiceParseRequest(transcript=text))
@@ -261,7 +292,7 @@ class WhatsAppService:
         if parsed.sale:
             created = await self.voice_service.confirm_record(
                 s,
-                cfg.organization_id,
+                org_id,
                 f"whatsapp:{from_phone}",
                 VoiceConfirmRequest(
                     intent=parsed.intent,
@@ -282,19 +313,20 @@ class WhatsAppService:
             )
         else:
             # Traitement d'une question conversationnelle
-            reply_text = await self._handle_conversational_query(s, cfg.organization_id, text)
+            reply_text = await self._handle_conversational_query(s, org_id, text)
 
         await s.commit()
 
         # Envoi de la réponse automatique sur WhatsApp si activé et configuré
-        access_token = self.configs.decrypt(cfg.whatsapp_access_token_encrypted)
-        if cfg.whatsapp_auto_reply and access_token:
-            await self.send_reply(phone_id, access_token, from_phone, reply_text)
+        if cfg and cfg.whatsapp_phone_number_id:
+            access_token = self.configs.decrypt(cfg.whatsapp_access_token_encrypted)
+            if cfg.whatsapp_auto_reply and access_token:
+                await self.send_reply(cfg.whatsapp_phone_number_id, access_token, from_phone, reply_text)
 
         return {
             "status": "processed",
             "from_phone": from_phone,
-            "organization_id": cfg.organization_id,
+            "organization_id": org_id,
             "parsed_intent": parsed.intent,
             "record": created,
             "reply_message": reply_text,

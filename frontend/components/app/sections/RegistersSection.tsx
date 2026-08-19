@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Plus, Sparkles } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, Sparkles, ShoppingBag, Package } from "lucide-react";
 import { PageHeader } from "../PageHeader";
 import { EmptyState } from "../Ui";
 import { RegisterCreateDialog } from "../RegisterCreateDialog";
@@ -9,6 +9,8 @@ import { RegisterEditDialog } from "../RegisterEditDialog";
 import { RegisterDetailDialog } from "../RegisterDetailDialog";
 import { ProcedureGeneratorModal } from "../ProcedureGeneratorModal";
 import { PaymentReminderDialog } from "../PaymentReminderDialog";
+import { StockAdjustmentDialog } from "../StockAdjustmentDialog";
+import { ExpressPosModal } from "../ExpressPosModal";
 import {
   SalesTableInteractive,
   OffersTableInteractive,
@@ -19,6 +21,7 @@ import {
 } from "../RegistersTable";
 export type { OfferItem, ProcedureItem, SaleItem };
 import { serviceIaFetch } from "@/lib/service-ia/api";
+import { getBusinessCategoryConfig, BusinessCategory } from "@/lib/service-ia/business-categories";
 
 export function RegistersSection({
   kind,
@@ -33,20 +36,33 @@ export function RegistersSection({
   error: string;
   onReload: () => Promise<void>;
 }) {
-  const config = {
-    offers: [
-      "Offres & Tarifs",
-      "Conservez un catalogue officiel, ses conditions et sa période de validité.",
-    ],
-    sales: [
-      "Ventes & Recouvrement",
-      "Suivez vos ventes, vos paiements et vos encaissements effectifs.",
-    ],
-    procedures: [
-      "Procédures & Méthodes (SOP)",
-      "Formalisez les modes opératoires, responsables et dates de révision.",
-    ],
-  }[kind];
+  const [businessCategory, setBusinessCategory] = useState<string>("retail");
+  const [posOpen, setPosOpen] = useState(false);
+  const [allOffers, setAllOffers] = useState<OfferItem[]>([]);
+  const [adjustingStockOffer, setAdjustingStockOffer] = useState<OfferItem | null>(null);
+
+  useEffect(() => {
+    serviceIaFetch<{ business_category?: string }>("/organizations/current")
+      .then((org) => {
+        if (org.business_category) setBusinessCategory(org.business_category);
+      })
+      .catch(() => {});
+
+    // Pre-fetch offers for POS
+    serviceIaFetch<OfferItem[]>("/registers/offers")
+      .then(setAllOffers)
+      .catch(() => {});
+
+    const updated = (e: Event) => {
+      const cat = (e as CustomEvent<any>)?.detail?.business_category;
+      if (cat) setBusinessCategory(cat);
+    };
+    window.addEventListener("koryxa:organization-updated", updated);
+    return () => window.removeEventListener("koryxa:organization-updated", updated);
+  }, []);
+
+  const proConfig = getBusinessCategoryConfig(businessCategory);
+  const regConfig = proConfig.registers[kind];
 
   const [creating, setCreating] = useState(false);
   const [aiProcedureOpen, setAiProcedureOpen] = useState(false);
@@ -84,11 +100,23 @@ export function RegistersSection({
   return (
     <>
       <PageHeader
-        eyebrow="Registre"
-        title={config[0]}
-        description={config[1]}
+        eyebrow={proConfig.badge}
+        title={regConfig.title}
+        description={regConfig.subtitle}
         action={
           <div className="kx-header-actions-row">
+            {(kind === "sales" || kind === "offers") && (
+              <button
+                type="button"
+                className="app-button app-button-secondary"
+                onClick={() => setPosOpen(true)}
+                title="Ouvrir la caisse tactile comptoir pour encaissement rapide"
+              >
+                <ShoppingBag size={16} className="text-emerald-600 dark:text-emerald-400" />
+                <span>Mode Caisse Express (POS)</span>
+              </button>
+            )}
+
             {kind === "procedures" && (
               <button
                 type="button"
@@ -100,12 +128,13 @@ export function RegistersSection({
                 <span>Générer par IA (SOP)</span>
               </button>
             )}
+
             <button
               className="app-button app-button-primary"
               onClick={() => setCreating(true)}
             >
               <Plus size={16} />
-              <span>Ajouter</span>
+              <span>Ajouter un(e) {regConfig.singular}</span>
             </button>
           </div>
         }
@@ -144,6 +173,7 @@ export function RegistersSection({
             onSelect={(offer) => setSelectedRecord(offer)}
             onEdit={(offer) => setEditingRecord(offer)}
             onArchive={(id) => archiveRecord("offers", id)}
+            onAdjustStock={(offer) => setAdjustingStockOffer(offer)}
           />
         )}
 
@@ -157,6 +187,30 @@ export function RegistersSection({
           />
         )}
       </section>
+
+      {/* Stock Adjustment Dialog */}
+      {adjustingStockOffer && (
+        <StockAdjustmentDialog
+          offer={adjustingStockOffer}
+          onClose={() => setAdjustingStockOffer(null)}
+          onSuccess={async () => {
+            setAdjustingStockOffer(null);
+            await onReload();
+          }}
+        />
+      )}
+
+      {/* Express POS Checkout Modal */}
+      {posOpen && (
+        <ExpressPosModal
+          open={posOpen}
+          offers={allOffers.length > 0 ? allOffers : offers}
+          onClose={() => setPosOpen(false)}
+          onSaleCompleted={async () => {
+            await onReload();
+          }}
+        />
+      )}
 
       {/* Record Detail & History Audit Trail Dialog */}
       {selectedRecord && (

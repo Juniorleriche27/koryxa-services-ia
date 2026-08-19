@@ -30,6 +30,7 @@ from app.schemas.registers import (
     SalePaymentUpdate,
     SaleRead,
     SaleUpdate,
+    StockAdjustmentRequest,
     SupplierCreate,
     SupplierRead,
     SupplierUpdate,
@@ -81,6 +82,18 @@ async def update_offer(
     rid: str, data: OfferUpdate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep
 ):
     return await svc.update_offer(s, o.id, i.user_id, rid, data)
+
+
+@router.post("/offers/{rid}/adjust-stock", response_model=OfferRead)
+async def adjust_stock(
+    rid: str,
+    data: StockAdjustmentRequest,
+    s: SessionDep,
+    i: IdentityDep,
+    o: OrgDep,
+    _: ManageDep,
+):
+    return await svc.adjust_stock(s, o.id, i.user_id, rid, data)
 
 
 @router.post("/sales", response_model=SaleRead, status_code=201)

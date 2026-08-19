@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Mic,
-  MicOff,
+  Square,
   Sparkles,
   CheckCircle2,
   AlertCircle,
@@ -12,8 +12,9 @@ import {
   Tag,
   FileCheck2,
   ArrowRight,
-  Volume2,
   RefreshCw,
+  Radio,
+  Pencil,
 } from "lucide-react";
 import { Dialog, FormError } from "./Dialog";
 import { StatusPill } from "./Ui";
@@ -59,319 +60,401 @@ interface VoiceCaptureModalProps {
 
 export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModalProps) {
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [transcript, setTranscript] = useState("");
+  const [transcribing, setTranscribing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [parseResult, setParseResult] = useState<VoiceParseResult | null>(null);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const recognitionRef = useRef<any>(null);
-  const finalTranscriptRef = useRef("");
+  const [editingTranscript, setEditingTranscript] = useState(false);
 
-  // Initialize Speech Recognition if available in browser
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Recording Timer
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = "fr-FR";
-
-        recognition.onresult = (event: any) => {
-          let interim = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const text = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscriptRef.current = `${finalTranscriptRef.current} ${text}`.trim();
-            } else {
-              interim += text;
-            }
-          }
-          setTranscript(`${finalTranscriptRef.current} ${interim}`.trim());
-        };
-
-        recognition.onerror = (event: any) => {
-          console.error("Speech recognition error", event.error);
-          setIsRecording(false);
-          const messages: Record<string, string> = {
-            "not-allowed":
-              "Accès au microphone refusé. Autorisez le micro pour service-ia.koryxa.fr dans votre navigateur.",
-            "service-not-allowed":
-              "Le service de reconnaissance vocale est bloqué par le navigateur.",
-            "audio-capture": "Aucun microphone utilisable n’a été détecté.",
-            network: "La reconnaissance vocale est momentanément indisponible.",
-            "no-speech": "Aucune parole détectée. Rapprochez-vous du microphone et réessayez.",
-          };
-          setError(messages[event.error] || "La capture vocale a échoué. Réessayez.");
-        };
-
-        recognition.onend = () => {
-          setIsRecording(false);
-        };
-
-        recognitionRef.current = recognition;
-      }
-    }
-  }, []);
-
-  const toggleRecording = () => {
-    setError("");
-    if (!recognitionRef.current) {
-      setError(
-        "La reconnaissance vocale n’est pas disponible dans ce navigateur. Utilisez Chrome ou Edge, ou saisissez la phrase manuellement.",
-      );
-      return;
-    }
-
     if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
+      setRecordingSeconds(0);
+      timerRef.current = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
     } else {
-      setTranscript("");
-      finalTranscriptRef.current = "";
-      setParseResult(null);
-      try {
-        recognitionRef.current.start();
-        setIsRecording(true);
-      } catch {
-        setIsRecording(false);
-        setError("Le microphone est déjà utilisé ou n’a pas pu démarrer.");
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isRecording]);
+
+  const startRecording = async () => {
+    setError("");
+    setSuccessMessage("");
+    setParseResult(null);
+    setTranscript("");
+    audioChunksRef.current = [];
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+
+      const recorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        // Stop all audio tracks to turn off mic indicator
+        stream.getTracks().forEach((track) => track.stop());
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (audioBlob.size > 100) {
+          await transcribeAudioBlob(audioBlob);
+        }
+      };
+
+      recorder.start(250); // Slice chunks every 250ms
+      setIsRecording(true);
+    } catch (err: any) {
+      console.error("Mic error:", err);
+      setError("Accès au microphone refusé ou indisponible. Veuillez autoriser le microphone.");
+      setIsRecording(false);
     }
   };
 
-  const handleAnalyze = async () => {
-    if (!transcript.trim()) {
-      setError("Veuillez dicter ou saisir une phrase avant d'analyser.");
-      return;
-    }
-
-    if (isRecording && recognitionRef.current) {
-      recognitionRef.current.stop();
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
+  };
 
+  const transcribeAudioBlob = async (blob: Blob) => {
+    setTranscribing(true);
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", blob, "voice_note.webm");
+
+      const transcription = await serviceIaFetch<{
+        transcript: string;
+        confidence: number;
+        engine: string;
+      }>("/voice/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (transcription?.transcript) {
+        setTranscript(transcription.transcript);
+        await parseTranscriptText(transcription.transcript);
+      } else {
+        setError("Aucune parole détectée dans l'enregistrement audio.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Erreur de transcription Whisper AI HD.");
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
+  const parseTranscriptText = async (textToParse: string) => {
+    if (!textToParse.trim()) return;
     setAnalyzing(true);
     setError("");
+
     try {
-      const res = await serviceIaFetch<VoiceParseResult>("/voice/parse", {
+      const result = await serviceIaFetch<VoiceParseResult>("/voice/parse", {
         method: "POST",
-        body: JSON.stringify({ transcript }),
+        body: JSON.stringify({ transcript: textToParse.trim() }),
       });
-      setParseResult(res);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur lors de l'analyse vocale");
+      setParseResult(result);
+    } catch (err: any) {
+      setError(err.message || "Erreur lors de l'analyse sémantique du texte.");
     } finally {
       setAnalyzing(false);
     }
   };
 
-  const handleConfirm = async () => {
-    if (!parseResult) return;
+  const confirmRecord = async () => {
+    if (!parseResult || parseResult.intent === "unknown") return;
     setSaving(true);
     setError("");
+
     try {
-      const payload =
-        parseResult.intent === "sale"
-          ? parseResult.sale
-          : parseResult.intent === "offer"
-          ? parseResult.offer
-          : parseResult.procedure;
+      let payload: any = null;
+      if (parseResult.intent === "sale" && parseResult.sale) {
+        payload = parseResult.sale;
+      } else if (parseResult.intent === "offer" && parseResult.offer) {
+        payload = parseResult.offer;
+      } else if (parseResult.intent === "procedure" && parseResult.procedure) {
+        payload = parseResult.procedure;
+      }
 
       await serviceIaFetch("/voice/confirm", {
         method: "POST",
         body: JSON.stringify({
           intent: parseResult.intent,
-          payload,
+          payload: payload,
           source: "voice",
         }),
       });
 
-      setSuccessMessage("✅ Enregistrement validé et synchronisé dans votre registre !");
+      setSuccessMessage("Enregistrement réussi et archivé dans votre registre !");
+      onSuccess();
       setTimeout(() => {
-        onSuccess();
         onClose();
-        setSuccessMessage("");
-        setParseResult(null);
-        setTranscript("");
-      }, 1200);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur lors de la confirmation");
+        resetModal();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || "Erreur lors de la validation finale du registre.");
     } finally {
       setSaving(false);
     }
   };
 
-  if (!open) return null;
+  const resetModal = () => {
+    setIsRecording(false);
+    setTranscript("");
+    setParseResult(null);
+    setError("");
+    setSuccessMessage("");
+    setEditingTranscript(false);
+    setRecordingSeconds(0);
+  };
+
+  const formatTimer = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
+  };
 
   return (
     <Dialog
-      open
-      title="🎙️ Capture Vocale Intelligente"
-      description="Dictez une vente, une offre ou une procédure en langage naturel. L'IA KORYXA extrait et structure les données instantanément."
-      onClose={onClose}
+      open={open}
+      onClose={() => {
+        if (isRecording) stopRecording();
+        onClose();
+        resetModal();
+      }}
+      title="Dictée Vocale Intelligente (Whisper AI HD)"
+      description="Dictez une vente, un tarif ou une procédure opérationnelle. L'IA extrait automatiquement les chiffres et entités."
     >
-      <div className="kx-voice-container">
-        {/* Animated Recording Zone */}
-        <div className={`kx-voice-mic-zone ${isRecording ? "is-active-recording" : ""}`}>
-          <button
-            type="button"
-            className={`kx-voice-mic-button ${isRecording ? "is-pulsing" : ""}`}
-            onClick={toggleRecording}
-            title={isRecording ? "Arrêter l'écoute" : "Démarrer la dictée vocale"}
-          >
-            {isRecording ? <MicOff size={32} /> : <Mic size={32} />}
-          </button>
-
-          <span className="kx-voice-status-label">
-            {isRecording ? "Écoute en cours… Parlez naturellement" : "Cliquez sur le micro pour dicter"}
-          </span>
-
+      <div className="space-y-5">
+        {/* Recording Visualizer Card */}
+        <div className="p-6 rounded-2xl bg-muted/40 border border-border flex flex-col items-center justify-center text-center relative overflow-hidden">
+          {/* Animated Wave Glow while recording */}
           {isRecording && (
-            <div className="kx-voice-soundwave">
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
+            <div className="absolute inset-0 bg-rose-500/5 animate-pulse pointer-events-none" />
           )}
-        </div>
 
-        {/* Live Transcript Box */}
-        <div className="kx-voice-transcript-box">
-          <div className="kx-voice-transcript-head">
-            <span>Transcription</span>
-            {transcript && (
-              <button
-                type="button"
-                className="app-text-button kx-btn-xs"
-                onClick={() => {
-                  finalTranscriptRef.current = "";
-                  setTranscript("");
-                }}
-              >
-                Effacer
-              </button>
-            )}
-          </div>
-          <textarea
-            className="kx-voice-textarea"
-            rows={3}
-            value={transcript}
-            onChange={(e) => {
-              finalTranscriptRef.current = e.target.value;
-              setTranscript(e.target.value);
-            }}
-            placeholder="Ex : « Vente de 3 sacs de riz à 15 000 FCFA à M. Koffi payé par Wave »"
-          />
-        </div>
-
-        {/* Action Button: Analyze */}
-        {!parseResult && (
-          <div className="kx-voice-analyze-row">
+          <div className="mb-4">
             <button
               type="button"
-              className="app-button app-button-primary kx-w-full"
-              disabled={analyzing || !transcript.trim()}
-              onClick={handleAnalyze}
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={transcribing || analyzing || saving}
+              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${
+                isRecording
+                  ? "bg-rose-600 hover:bg-rose-700 text-white animate-pulse ring-8 ring-rose-500/20"
+                  : "bg-primary hover:opacity-90 text-primary-foreground"
+              }`}
             >
-              {analyzing ? (
-                <>
-                  <RefreshCw size={16} className="kx-spin" />
-                  <span>Analyse intelligente…</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={16} />
-                  <span>Analyser avec l&apos;IA KORYXA</span>
-                </>
-              )}
+              {isRecording ? <Square size={28} /> : <Mic size={32} />}
             </button>
+          </div>
+
+          <div>
+            <span className="font-mono text-xl font-bold text-foreground block">
+              {isRecording ? formatTimer(recordingSeconds) : "Prêt à enregistrer"}
+            </span>
+            <p className="text-xs text-muted-foreground mt-1">
+              {isRecording
+                ? "Parlez naturellement... Cliquez pour arrêter."
+                : "Cliquez sur le micro pour démarrer la note vocale."}
+            </p>
+          </div>
+        </div>
+
+        {/* Status indicator */}
+        {(transcribing || analyzing) && (
+          <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs flex items-center justify-center gap-2">
+            <RefreshCw size={16} className="animate-spin" />
+            <span>
+              {transcribing
+                ? "Transcription haute fidélité par Whisper AI HD..."
+                : "Extraction sémantique des montants et entités..."}
+            </span>
           </div>
         )}
 
-        {/* Form Error or Success */}
-        <FormError>{error}</FormError>
-        {successMessage && <div className="kx-success-alert">{successMessage}</div>}
+        {error && (
+          <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center gap-2">
+            <AlertCircle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
 
-        {/* Structured Result Preview */}
-        {parseResult && (
-          <div className="kx-voice-result-card">
-            <div className="kx-voice-result-head">
-              <div className="kx-intent-badge">
-                {parseResult.intent === "sale" && <ReceiptText size={16} />}
-                {parseResult.intent === "offer" && <Tag size={16} />}
-                {parseResult.intent === "procedure" && <FileCheck2 size={16} />}
-                <span>
-                  {parseResult.intent === "sale"
-                    ? "Vente Détectée"
-                    : parseResult.intent === "offer"
-                    ? "Offre Détectée"
-                    : "Procédure Détectée"}
-                </span>
-              </div>
-              <StatusPill>{Math.round(parseResult.confidence * 100)}% confiance</StatusPill>
+        {successMessage && (
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
+            <CheckCircle2 size={16} />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
+        {/* Transcribed Text Review */}
+        {transcript && (
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <Radio size={14} className="text-emerald-600" />
+                <span>Transcription Whisper AI HD</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setEditingTranscript((prev) => !prev)}
+                className="text-primary hover:underline text-xs flex items-center gap-1"
+              >
+                <Pencil size={12} />
+                <span>{editingTranscript ? "Terminer" : "Corriger le texte"}</span>
+              </button>
             </div>
 
-            <p className="kx-voice-summary-text">{parseResult.summary_message}</p>
+            {editingTranscript ? (
+              <div className="space-y-2">
+                <textarea
+                  value={transcript}
+                  onChange={(e) => setTranscript(e.target.value)}
+                  rows={3}
+                  className="w-full p-3 rounded-xl border border-border bg-background text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => parseTranscriptText(transcript)}
+                  className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold"
+                >
+                  Ré-analyser ce texte
+                </button>
+              </div>
+            ) : (
+              <p className="p-3.5 rounded-xl bg-card border border-border text-sm text-foreground italic leading-relaxed">
+                « {transcript} »
+              </p>
+            )}
+          </div>
+        )}
 
-            {/* Extracted Fields Summary for Sale */}
-            {parseResult.sale && (
-              <div className="kx-extracted-grid">
-                <div>
-                  <small>Article / Service</small>
-                  <strong>{parseResult.sale.item_label}</strong>
+        {/* Extracted Structured Card */}
+        {parseResult && parseResult.intent !== "unknown" && (
+          <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-primary" />
+                <strong className="text-xs uppercase font-bold tracking-wider text-foreground">
+                  Entité Détectée : {parseResult.intent.toUpperCase()}
+                </strong>
+              </div>
+              <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                Confiance : {Math.round(parseResult.confidence * 100)}%
+              </span>
+            </div>
+
+            {/* Sale Intent Preview */}
+            {parseResult.intent === "sale" && parseResult.sale && (
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 rounded-xl bg-card border border-border/80">
+                  <span className="text-muted-foreground block text-[10px]">Article / Vente</span>
+                  <strong className="text-foreground">{parseResult.sale.item_label}</strong>
                 </div>
-                <div>
-                  <small>Client</small>
-                  <strong>{parseResult.sale.client_name || "Client anonyme"}</strong>
-                </div>
-                <div>
-                  <small>Montant total</small>
-                  <strong className="kx-price-highlight">
+                <div className="p-2.5 rounded-xl bg-card border border-border/80">
+                  <span className="text-muted-foreground block text-[10px]">Montant Total</span>
+                  <strong className="font-mono text-primary text-sm">
                     {formatMoney(parseResult.sale.total_amount, parseResult.sale.currency)}
                   </strong>
                 </div>
-                <div>
-                  <small>Mode & Statut</small>
-                  <strong>
-                    {parseResult.sale.payment_method || "Non précisé"} (
-                    {formatLabel(parseResult.sale.payment_status)})
+                <div className="p-2.5 rounded-xl bg-card border border-border/80">
+                  <span className="text-muted-foreground block text-[10px]">Client</span>
+                  <span className="font-medium text-foreground">
+                    {parseResult.sale.client_name || "Client standard"}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-card border border-border/80">
+                  <span className="text-muted-foreground block text-[10px]">Règlement</span>
+                  <span className="font-medium text-foreground">
+                    {parseResult.sale.payment_method || "Espèces"} ({parseResult.sale.payment_status})
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Offer Intent Preview */}
+            {parseResult.intent === "offer" && parseResult.offer && (
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 rounded-xl bg-card border border-border/80">
+                  <span className="text-muted-foreground block text-[10px]">Nom de l'offre</span>
+                  <strong className="text-foreground">{parseResult.offer.name}</strong>
+                </div>
+                <div className="p-2.5 rounded-xl bg-card border border-border/80">
+                  <span className="text-muted-foreground block text-[10px]">Tarif</span>
+                  <strong className="font-mono text-primary">
+                    {formatMoney(parseResult.offer.price, parseResult.offer.currency)}
                   </strong>
                 </div>
               </div>
             )}
 
-            {/* Confirm Actions */}
-            <div className="kx-voice-result-actions">
-              <button
-                type="button"
-                className="app-button app-button-secondary"
-                onClick={() => setParseResult(null)}
-              >
-                Corriger
-              </button>
-              <button
-                type="button"
-                className="app-button app-button-primary"
-                disabled={saving}
-                onClick={handleConfirm}
-              >
-                {saving ? "Enregistrement…" : "Confirmer et enregistrer"}
-                <ArrowRight size={16} />
-              </button>
-            </div>
+            {/* Procedure Intent Preview */}
+            {parseResult.intent === "procedure" && parseResult.procedure && (
+              <div className="space-y-1.5 text-xs">
+                <strong className="text-foreground block">{parseResult.procedure.title}</strong>
+                <span className="text-muted-foreground text-[11px]">
+                  {parseResult.procedure.steps.length} étape(s) identifiée(s)
+                </span>
+              </div>
+            )}
           </div>
         )}
 
-        <div className="app-form-actions" style={{ marginTop: 12 }}>
-          <button type="button" className="app-button app-button-secondary" onClick={onClose}>
+        {/* Modal Action Buttons */}
+        <div className="flex items-center justify-end gap-2.5 pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (isRecording) stopRecording();
+              onClose();
+              resetModal();
+            }}
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition"
+          >
             Fermer
           </button>
+
+          {parseResult && parseResult.intent !== "unknown" && (
+            <button
+              type="button"
+              onClick={confirmRecord}
+              disabled={saving}
+              className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition flex items-center gap-2 shadow-md"
+            >
+              <CheckCircle2 size={16} />
+              <span>{saving ? "Validation..." : "Enregistrer dans le Registre"}</span>
+            </button>
+          )}
         </div>
       </div>
     </Dialog>

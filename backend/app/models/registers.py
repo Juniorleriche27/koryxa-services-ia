@@ -65,6 +65,10 @@ class Offer(Base):
     conditions: Mapped[str | None] = mapped_column(Text)
     inclusions: Mapped[list[str]] = mapped_column(JSON, default=list)
     exclusions: Mapped[list[str]] = mapped_column(JSON, default=list)
+    track_stock: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    stock_quantity: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
+    min_stock_alert: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("5.00"))
+    cost_price: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
     responsible_user_id: Mapped[str | None] = mapped_column(String(128), index=True)
     status: Mapped[RecordStatus] = mapped_column(
         Enum(RecordStatus, native_enum=False), default=RecordStatus.DRAFT, index=True

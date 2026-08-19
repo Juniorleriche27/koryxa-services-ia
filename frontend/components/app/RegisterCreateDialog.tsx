@@ -22,6 +22,10 @@ export function RegisterCreateDialog({ kind, open, onClose, onCreated, record }:
     if (kind === "offers") payload = {
       name: text(data,"name"), description: optional(data,"description"), category: optional(data,"category"),
       price: text(data,"price") || null, currency: text(data,"currency") || "XOF", billing_unit: optional(data,"billing_unit"),
+      cost_price: text(data,"cost_price") || null,
+      track_stock: data.get("track_stock") === "on" || data.get("track_stock") === "true",
+      stock_quantity: text(data,"stock_quantity") ? Number(text(data,"stock_quantity")) : 0,
+      min_stock_alert: text(data,"min_stock_alert") ? Number(text(data,"min_stock_alert")) : 5,
       conditions: optional(data,"conditions"), inclusions: list(data,"inclusions"), exclusions: list(data,"exclusions"),
       effective_from: optional(data,"effective_from"), expires_at: optional(data,"expires_at"), status: text(data,"status") || "draft",
     };
@@ -46,8 +50,14 @@ export function RegisterCreateDialog({ kind, open, onClose, onCreated, record }:
     <form onSubmit={submit}><div className="app-form-grid">
       {kind === "offers" ? <>
         <label>Nom *<input name="name" required minLength={2} defaultValue={record?.name || ""}/></label><label>Catégorie<input name="category" defaultValue={record?.category || ""}/></label>
-        <label>Prix<input name="price" type="number" min="0" step="0.01" defaultValue={record?.price || ""}/></label><label>Devise<input name="currency" defaultValue={record?.currency || "XOF"} minLength={3} maxLength={3}/></label>
-        <label>Unité de facturation<input name="billing_unit" placeholder="forfait, heure…" defaultValue={record?.billing_unit || ""}/></label><StatusField value={record?.status}/>
+        <label>Prix de vente<input name="price" type="number" min="0" step="0.01" defaultValue={record?.price || ""}/></label><label>Prix de revient (Coût)<input name="cost_price" type="number" min="0" step="0.01" defaultValue={record?.cost_price || ""} placeholder="Ex: 3500"/></label>
+        <label>Devise<input name="currency" defaultValue={record?.currency || "XOF"} minLength={3} maxLength={3}/></label><label>Unité de facturation<input name="billing_unit" placeholder="carton, sac, unité, heure…" defaultValue={record?.billing_unit || ""}/></label>
+        <label className="app-form-span" style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", margin: "4px 0" }}>
+          <input type="checkbox" name="track_stock" defaultChecked={record?.track_stock ?? true} style={{ width: "auto" }} />
+          <span>📦 <strong>Activer le suivi du stock physique</strong> (décrémentation automatique lors des ventes)</span>
+        </label>
+        <label>Quantité en stock<input name="stock_quantity" type="number" step="any" defaultValue={record?.stock_quantity ?? "0"}/></label><label>Seuil d'alerte stock faible<input name="min_stock_alert" type="number" step="any" defaultValue={record?.min_stock_alert ?? "5"}/></label>
+        <StatusField value={record?.status}/>
         <label>Date d’effet<input name="effective_from" type="date" defaultValue={record?.effective_from || ""}/></label><label>Date d’expiration<input name="expires_at" type="date" defaultValue={record?.expires_at || ""}/></label>
         <label className="app-form-span">Description<textarea name="description" defaultValue={record?.description || ""}/></label><label className="app-form-span">Conditions<textarea name="conditions" defaultValue={record?.conditions || ""}/></label>
         <label>Inclusions (séparées par virgule)<textarea name="inclusions" defaultValue={(record?.inclusions || []).join(", ")}/></label><label>Exclusions<textarea name="exclusions" defaultValue={(record?.exclusions || []).join(", ")}/></label>

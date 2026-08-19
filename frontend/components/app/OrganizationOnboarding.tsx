@@ -41,6 +41,7 @@ export function OrganizationOnboarding({
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [name, setName] = useState(organization.name === "Organisation KORYXA" ? "" : organization.name);
+  const [businessCategory, setBusinessCategory] = useState<string>("retail");
   const [sector, setSector] = useState("");
   const [country, setCountry] = useState("");
   const [responsibleName, setResponsibleName] = useState("");
@@ -72,6 +73,7 @@ export function OrganizationOnboarding({
         method: "POST",
         body: JSON.stringify({
           name: name.trim(),
+          business_category: businessCategory,
           sector: sector.trim() || null,
           country: country.trim() || null,
           responsible_name: responsibleName.trim(),
@@ -103,8 +105,18 @@ export function OrganizationOnboarding({
         <p>Ces informations permettront de personnaliser l’espace de toute votre équipe.</p>
         <div className="onboarding-form-grid">
           <label className="is-wide">Nom de l’entreprise *<input value={name} onChange={event => setName(event.target.value)} placeholder="Ex. KORYXA" maxLength={180} autoFocus/></label>
-          <label>Secteur d’activité<input value={sector} onChange={event => setSector(event.target.value)} placeholder="Ex. Conseil" maxLength={120}/></label>
-          <label>Pays ou zone d’activité<input value={country} onChange={event => setCountry(event.target.value)} placeholder="Ex. France" maxLength={120}/></label>
+          <label className="is-wide">
+            Catégorie Professionnelle *
+            <select value={businessCategory} onChange={event => setBusinessCategory(event.target.value)} className="w-full mt-1 p-2 rounded-lg border border-border bg-background text-sm">
+              <option value="retail">🛍️ Commerce, Négoce & Distribution (Boutiques, Supérettes, Magasins)</option>
+              <option value="services">💼 Services, Conseil & Agences (Cabinets, Prestataires, Freelances)</option>
+              <option value="hospitality">🍽️ Restauration, Hôtellerie & Loisirs (Restaurants, Cafés, Hôtels)</option>
+              <option value="crafts">✂️ Artisanat, Ateliers & Production (Couture, Menuiserie, Imprimerie)</option>
+              <option value="association">🤝 Associations, Fondations & ONG (Organisations, Clubs, Fondations)</option>
+            </select>
+          </label>
+          <label>Secteur d’activité<input value={sector} onChange={event => setSector(event.target.value)} placeholder="Ex. Vente de vêtements" maxLength={120}/></label>
+          <label>Pays ou zone d’activité<input value={country} onChange={event => setCountry(event.target.value)} placeholder="Ex. Côte d'Ivoire" maxLength={120}/></label>
         </div>
       </div>}
 
