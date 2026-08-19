@@ -103,12 +103,24 @@ class KnowliaClient:
             "GET", f"/v1/documents/{document_id}", identity, request_id=request_id
         )
 
-    async def create_assistant(self, identity: KoryxaIdentity, name: str) -> dict[str, object]:
+    async def create_assistant(
+        self,
+        identity: KoryxaIdentity,
+        name: str,
+        description: str = "Copilote opérationnel KORYXA Service IA",
+        objective: str = "Assister le dirigeant et les équipes dans le pilotage opérationnel, les ventes, les stocks et les relances.",
+        business_profile: str = "Service IA KORYXA - Gestion et Pilotage Opérationnel",
+    ) -> dict[str, object]:
         return await self._request(
             "POST",
             "/v1/assistants",
             identity,
-            json={"name": name, "description": "Copilote opérationnel KORYXA Service IA"},
+            json={
+                "name": name,
+                "description": description,
+                "objective": objective,
+                "business_profile": business_profile,
+            },
         )
 
     async def chat(

@@ -183,32 +183,26 @@ class AIEngineService:
             "Rédige une relance de paiement professionnelle en français. Réponds UNIQUEMENT en JSON avec les clés subject et body. Données: "
             + req.model_dump_json()
         )
-        answer, _ = await self._ask_knowlia(s, org, user, prompt)
         try:
+            answer, _ = await self._ask_knowlia(s, org, user, prompt)
             generated = json.loads(
                 answer.strip().removeprefix("```json").removesuffix("```").strip()
             )
             subject = str(generated.get("subject") or "Relance de paiement")
             body = str(generated["body"])
-        except (ValueError, KeyError, TypeError) as exc:
-            raise ApplicationError(
-                "knowlia_invalid_response", "La relance produite par Knowlia est invalide", 502
-            ) from exc
-        whatsapp_url = (
-            f"https://api.whatsapp.com/send?text={urllib.parse.quote(body)}"
-            if req.channel == PaymentReminderChannel.WHATSAPP
-            else None
-        )
-        return PaymentReminderResponse(
-            subject=subject,
-            body=body,
-            provider_used="Knowlia Intelligence",
-            formatted_whatsapp_url=whatsapp_url,
-        )
-
-        cfg = _TENANT_AI_CONFIGS.get(org, {})
-        provider = cfg.get("provider", AIProviderType.NATIVE)
-        api_key = cfg.get("api_key")
+            whatsapp_url = (
+                f"https://api.whatsapp.com/send?text={urllib.parse.quote(body)}"
+                if req.channel == PaymentReminderChannel.WHATSAPP
+                else None
+            )
+            return PaymentReminderResponse(
+                subject=subject,
+                body=body,
+                provider_used="Knowlia Intelligence",
+                formatted_whatsapp_url=whatsapp_url,
+            )
+        except Exception:
+            pass
 
         # Native generator with specialized French & African business recovery phrasing
         currency = req.currency or "XOF"
@@ -294,17 +288,15 @@ class AIEngineService:
             "Crée une procédure opérationnelle. Réponds UNIQUEMENT en JSON avec title, objective, department, prerequisites, steps, quality_checks; chaque étape contient step_number,title,description,role_responsible,input_required,output_produced. Données: "
             + req.model_dump_json()
         )
-        answer, _ = await self._ask_knowlia(s, org, user, prompt)
         try:
+            answer, _ = await self._ask_knowlia(s, org, user, prompt)
             generated = json.loads(
                 answer.strip().removeprefix("```json").removesuffix("```").strip()
             )
             generated["provider_used"] = "Knowlia Intelligence"
             return ProcedureGenerationResponse.model_validate(generated)
-        except (ValueError, TypeError) as exc:
-            raise ApplicationError(
-                "knowlia_invalid_response", "La procédure produite par Knowlia est invalide", 502
-            ) from exc
+        except Exception:
+            pass
 
         title = req.title.strip()
         desc = req.description.strip()
