@@ -105,14 +105,17 @@ class VoiceService:
                 detected_method = name
                 break
 
-        # Status check
-        if any(w in lower for w in ["non payé", "impayé", "à crédit", "crédit", "reste à payer", "en attente"]):
+        # Explicit status checks
+        if any(w in lower for w in ["non payé", "non payee", "non paye", "impayé", "impayee", "impaye", "à crédit", "a credit", "crédit", "credit", "reste à payer", "en attente"]):
             status = PaymentStatus.UNPAID
-        elif any(w in lower for w in ["partiel", "acompte", "avance", "partiellement"]):
+        elif any(w in lower for w in ["partiel", "partielle", "acompte", "avance", "partiellement"]):
             status = PaymentStatus.PARTIAL
-        elif detected_method or any(w in lower for w in ["payé", "encaissé", "réglé", "soldé"]):
+        elif any(w in lower for w in ["payé", "payee", "paye", "encaissé", "encaissee", "encaisse", "réglé", "regle", "soldé", "solde"]):
+            status = PaymentStatus.PAID
+        elif detected_method and any(w in lower for w in ["par", "en", "via", "reçu"]):
             status = PaymentStatus.PAID
         else:
+            # Default is UNPAID (never assume paid without explicit indication)
             status = PaymentStatus.UNPAID
 
         return detected_method, status
@@ -130,13 +133,10 @@ class VoiceService:
             match = re.search(pat, text)
             if match:
                 candidate = match.group(1).strip()
-                # Clean leading prefixes if caught
                 candidate = re.sub(r"(?i)^(?:m\.|mr\.|monsieur|mme|madame|le\s+client)\s*", "", candidate).strip()
                 if len(candidate) >= 2 and candidate.lower() not in ["wave", "orange", "mtn", "cfa", "euro", "virement", "espèces"]:
                     return candidate
         return None
-
-
 
     def _parse_sale(self, text: str) -> VoiceParseResponse:
         amounts = self._extract_amounts(text)
@@ -149,53 +149,61 @@ class VoiceService:
         total_amount = Decimal("0")
         unit_price = Decimal("0")
 
-        # Quantity detection (ex: 3 sacs, 2 formations, 10 articles)
-        qty_match = re.search(r"(?i)\b(?:quantité|qté)?\s*(\d+)\s+(sacs?|cartons?|articles?|unités?|pièces?|boites?|heures?|jours?)\b", text)
+        # 1. Quantity Detection (ex: "3 sacs", "3 ordinateurs", "10 cartons")
+        qty_match = re.search(
+            r"(?i)\b(?:quantité|qté)?\s*(\d{1,4})\s+(sacs?|cartons?|articles?|unités?|pièces?|boites?|heures?|jours?|ordinateurs?|produits?|exemplaires?|livres?|bouteilles?|packs?)\b",
+            text,
+        )
         if qty_match:
             try:
                 quantity = Decimal(qty_match.group(1))
             except Exception:
                 quantity = Decimal("1")
 
-        if amounts:
-            # If multiple amounts, greatest is usually the total or unit price * qty
-            if len(amounts) >= 2 and quantity > 1:
-                unit_price = min(amounts)
-                total_amount = max(amounts)
-            else:
-                total_amount = amounts[0]
-                unit_price = total_amount / quantity
+        # Exclude extracted quantity number from monetary amounts list
+        if qty_match and quantity in amounts and len(amounts) > 1:
+            amounts = [a for a in amounts if a != quantity]
 
-        # Extract item label
+        # 2. Item Label Detection
         item_label = "Vente non détaillée"
         item_match = re.search(
             r"(?i)(?:vente\s+(?:de|d')?|vendu\s+|produit\s+|article\s+|service\s+)(.+?)(?=\s+(?:à|pour|au\s+prix|montant|payé|par|\d+|$))",
             text,
         )
         if item_match:
-            candidate_item = item_match.group(1).strip()
-            normalized_item = re.sub(r"[^a-zà-ÿ]+", " ", candidate_item.lower()).strip()
-            payment_only = {
-                "non",
-                "non paye",
-                "non payee",
-                "paye",
-                "payee",
-                "impaye",
-                "impayee",
-                "partiel",
-                "partielle",
+            cand = item_match.group(1).strip()
+            normalized_cand = re.sub(r"[^a-zà-ÿ]+", " ", cand.lower()).strip()
+            stopwords = {
+                "non", "non paye", "non payes", "non payee", "non payees",
+                "paye", "payes", "payee", "payees", "impaye", "impayee",
+                "partiel", "partielle", "credit", "a credit",
             }
-            contains_amount = bool(re.search(r"\d", candidate_item))
             if (
-                len(candidate_item) >= 2
-                and not contains_amount
-                and normalized_item not in payment_only
+                len(cand) >= 2
+                and not bool(re.search(r"\d", cand))
+                and normalized_cand not in stopwords
             ):
-                item_label = candidate_item
+                item_label = cand
+
+        # 3. Per-unit price vs Total calculation
+        is_per_unit = bool(re.search(
+            r"(?i)\b(?:par\s+(?:unité|unite|pièce|piece|article|sac|carton|ordinateur|personne|heure|jour|mois|licence|boite|bouteille|exemplaire|kg|kilo|litre|produit)|l'unité|l'unite|chacun|la\s+pièce|la\s+piece|l'une|par\s+tête)\b",
+            text,
+        ))
+
+        if amounts:
+            if is_per_unit and quantity > 1:
+                unit_price = amounts[0]
+                total_amount = quantity * unit_price
+            elif len(amounts) >= 2 and quantity > 1:
+                unit_price = min(amounts)
+                total_amount = max(amounts)
+            else:
+                total_amount = amounts[0]
+                unit_price = total_amount / quantity
 
         ref_code = f"VOC-{date.today().strftime('%Y%m%d')}-{str(uuid4())[:4].upper()}"
-        confidence = 0.85 if amounts and client_name else 0.70 if amounts else 0.50
+        confidence = 0.90 if amounts and item_label != "Vente non détaillée" else 0.70 if amounts else 0.50
 
         candidate = VoiceSaleCandidate(
             reference=ref_code,
@@ -228,6 +236,8 @@ class VoiceService:
             extracted_entities={
                 "client": client_name,
                 "amount": str(total_amount),
+                "unit_price": str(unit_price),
+                "quantity": str(quantity),
                 "currency": currency,
                 "payment_method": payment_method,
                 "payment_status": payment_status,
@@ -358,9 +368,9 @@ class VoiceService:
         except Exception:
             pass
 
-        # 2. Resilient fallback for local / test environment
-        return VoiceTranscriptionResponse(
-            transcript="Vente de 3 cartons de marchandises à 45000 FCFA client Koffi payé en espèces",
-            confidence=0.95,
-            engine="Whisper AI HD",
+        # If transcription service is not connected, raise explicit error so frontend lets user edit/speak directly
+        raise ApplicationError(
+            "transcription_unavailable",
+            "La transcription audio n'a pas pu être traitée par le serveur Whisper. Veuillez utiliser la dictée directe ou saisir le texte.",
+            503,
         )

@@ -269,8 +269,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
 
           <div className="app-topbar-context">
-            <span className="app-eyebrow">{context.eyebrow}</span>
-            <strong>{context.description}</strong>
+            <h1 className="text-sm sm:text-base font-bold text-foreground tracking-tight m-0 p-0">{context.eyebrow}</h1>
           </div>
 
           <div className="app-topbar-actions">

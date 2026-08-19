@@ -89,11 +89,20 @@ export function formatMoney(value: string | number | null | undefined, currency 
   return `${formatted} ${currency}`;
 }
 
-export function formatDate(val: string | null | undefined) {
+export function formatDate(val: string | null | undefined, includeTime = true) {
   if (!val) return "—";
   try {
     const d = new Date(val);
     if (Number.isNaN(d.getTime())) return String(val);
+    if (includeTime && (val.includes("T") || (val.includes(":") && val.length > 10))) {
+      return new Intl.DateTimeFormat("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(d).replace(":", "h");
+    }
     return new Intl.DateTimeFormat("fr-FR", {
       day: "2-digit",
       month: "2-digit",
@@ -396,7 +405,7 @@ export function SalesTableInteractive({
                   </button>
                 </td>
                 <td>
-                  <span className="kx-date-cell">{formatDate(sale.sale_date)}</span>
+                  <span className="kx-date-cell">{formatDate(sale.created_at || sale.sale_date, true)}</span>
                 </td>
                 <td>
                   {sale.client_name ? (

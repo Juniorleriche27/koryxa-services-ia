@@ -8,17 +8,13 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  ReceiptText,
-  Tag,
-  FileCheck2,
-  ArrowRight,
-  RefreshCw,
   Radio,
   Pencil,
+  RotateCcw,
+  Check,
 } from "lucide-react";
-import { Dialog, FormError } from "./Dialog";
-import { StatusPill } from "./Ui";
-import { formatMoney, formatLabel } from "./RegistersTable";
+import { Dialog } from "./Dialog";
+import { formatMoney, formatLabel, formatDate } from "./RegistersTable";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 
 interface VoiceParseResult {
@@ -62,7 +58,6 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [transcript, setTranscript] = useState("");
-  const [transcribing, setTranscribing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [parseResult, setParseResult] = useState<VoiceParseResult | null>(null);
@@ -70,9 +65,9 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
   const [successMessage, setSuccessMessage] = useState("");
   const [editingTranscript, setEditingTranscript] = useState(false);
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const transcriptBufferRef = useRef<string>("");
 
   // Recording Timer
   useEffect(() => {
@@ -89,89 +84,75 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
     };
   }, [isRecording]);
 
-  const startRecording = async () => {
+  const startRecording = () => {
     setError("");
     setSuccessMessage("");
     setParseResult(null);
     setTranscript("");
-    audioChunksRef.current = [];
+    transcriptBufferRef.current = "";
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setError("La dictée vocale en direct n'est pas supportée par ce navigateur. Vous pouvez saisir votre phrase manuellement.");
+      setEditingTranscript(true);
+      return;
+    }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      const recognition = new SpeechRecognition();
+      recognition.lang = "fr-FR";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
 
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : "audio/webm";
+      recognition.onstart = () => {
+        setIsRecording(true);
+      };
 
-      const recorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = recorder;
+      recognition.onresult = (event: any) => {
+        let currentTranscript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript + " ";
+        }
+        const cleaned = currentTranscript.trim();
+        transcriptBufferRef.current = cleaned;
+        setTranscript(cleaned);
+      };
 
-      recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+      recognition.onerror = (event: any) => {
+        console.warn("Speech error:", event.error);
+        if (event.error === "not-allowed") {
+          setError("Accès au microphone refusé. Veuillez autoriser l'accès au micro.");
+        }
+        setIsRecording(false);
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+        const finalText = transcriptBufferRef.current.trim();
+        if (finalText) {
+          void parseTranscriptText(finalText);
         }
       };
 
-      recorder.onstop = async () => {
-        // Stop all audio tracks to turn off mic indicator
-        stream.getTracks().forEach((track) => track.stop());
-
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        if (audioBlob.size > 100) {
-          await transcribeAudioBlob(audioBlob);
-        }
-      };
-
-      recorder.start(250); // Slice chunks every 250ms
-      setIsRecording(true);
+      recognitionRef.current = recognition;
+      recognition.start();
     } catch (err: any) {
-      console.error("Mic error:", err);
-      setError("Accès au microphone refusé ou indisponible. Veuillez autoriser le microphone.");
-      setIsRecording(false);
+      console.error("Recognition start error:", err);
+      setError("Impossible de démarrer la capture audio. Vous pouvez saisir le texte.");
+      setEditingTranscript(true);
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
     }
-  };
-
-  const transcribeAudioBlob = async (blob: Blob) => {
-    setTranscribing(true);
-    setError("");
-
-    try {
-      const formData = new FormData();
-      formData.append("file", blob, "voice_note.webm");
-
-      const transcription = await serviceIaFetch<{
-        transcript: string;
-        confidence: number;
-        engine: string;
-      }>("/voice/transcribe", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (transcription?.transcript) {
-        setTranscript(transcription.transcript);
-        await parseTranscriptText(transcription.transcript);
-      } else {
-        setError("Aucune parole détectée dans l'enregistrement audio.");
-      }
-    } catch (err: any) {
-      setError(err.message || "Erreur de transcription Whisper AI HD.");
-    } finally {
-      setTranscribing(false);
-    }
+    setIsRecording(false);
   };
 
   const parseTranscriptText = async (textToParse: string) => {
@@ -189,6 +170,19 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
       setError(err.message || "Erreur lors de l'analyse sémantique du texte.");
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  // Change quick payment status before confirming
+  const handleTogglePaymentStatus = (status: "paid" | "unpaid" | "partial") => {
+    if (parseResult?.sale) {
+      setParseResult({
+        ...parseResult,
+        sale: {
+          ...parseResult.sale,
+          payment_status: status,
+        },
+      });
     }
   };
 
@@ -230,7 +224,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
   };
 
   const resetModal = () => {
-    setIsRecording(false);
+    if (isRecording) stopRecording();
     setTranscript("");
     setParseResult(null);
     setError("");
@@ -253,22 +247,21 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
         onClose();
         resetModal();
       }}
-      title="Dictée Vocale Intelligente (Whisper AI HD)"
+      title="Dictée Vocale Intelligente"
       description="Dictez une vente, un tarif ou une procédure opérationnelle. L'IA extrait automatiquement les chiffres et entités."
     >
       <div className="space-y-5">
         {/* Recording Visualizer Card */}
         <div className="p-6 rounded-2xl bg-muted/40 border border-border flex flex-col items-center justify-center text-center relative overflow-hidden">
-          {/* Animated Wave Glow while recording */}
           {isRecording && (
             <div className="absolute inset-0 bg-rose-500/5 animate-pulse pointer-events-none" />
           )}
 
-          <div className="mb-4">
+          <div className="mb-3">
             <button
               type="button"
               onClick={isRecording ? stopRecording : startRecording}
-              disabled={transcribing || analyzing || saving}
+              disabled={analyzing || saving}
               className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${
                 isRecording
                   ? "bg-rose-600 hover:bg-rose-700 text-white animate-pulse ring-8 ring-rose-500/20"
@@ -285,21 +278,58 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
             </span>
             <p className="text-xs text-muted-foreground mt-1">
               {isRecording
-                ? "Parlez naturellement... Cliquez pour arrêter."
-                : "Cliquez sur le micro pour démarrer la note vocale."}
+                ? "Parlez naturellement... Cliquez sur le carré pour terminer."
+                : "Cliquez sur le micro et dictez votre opération."}
             </p>
           </div>
         </div>
 
-        {/* Status indicator */}
-        {(transcribing || analyzing) && (
-          <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs flex items-center justify-center gap-2">
-            <RefreshCw size={16} className="animate-spin" />
-            <span>
-              {transcribing
-                ? "Transcription haute fidélité par Whisper AI HD..."
-                : "Extraction sémantique des montants et entités..."}
+        {/* Live Audio / Transcribed Text Review */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <Radio size={14} className={isRecording ? "text-rose-600 animate-pulse" : "text-emerald-600"} />
+              <span>{isRecording ? "Écoute en direct..." : "Texte dicté"}</span>
             </span>
+            <button
+              type="button"
+              onClick={() => setEditingTranscript((prev) => !prev)}
+              className="text-primary hover:underline text-xs flex items-center gap-1"
+            >
+              <Pencil size={12} />
+              <span>{editingTranscript ? "Fermer l'éditeur" : "Corriger le texte"}</span>
+            </button>
+          </div>
+
+          {editingTranscript ? (
+            <div className="space-y-2">
+              <textarea
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+                placeholder="Exemple : Vente de 3 ordinateurs à 1 000 000 par ordinateur client Koffi"
+                rows={3}
+                className="w-full p-3 rounded-xl border border-border bg-background text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => parseTranscriptText(transcript)}
+                className="px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold"
+              >
+                Analyser ce texte
+              </button>
+            </div>
+          ) : (
+            <p className="p-3.5 rounded-xl bg-card border border-border text-sm text-foreground italic leading-relaxed min-h-[44px]">
+              {transcript ? `« ${transcript} »` : <span className="text-muted-foreground not-italic">Aucun texte dicté pour l'instant.</span>}
+            </p>
+          )}
+        </div>
+
+        {/* Status indicator */}
+        {analyzing && (
+          <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs flex items-center justify-center gap-2">
+            <RotateCcw size={15} className="animate-spin" />
+            <span>Extraction automatique des quantités, montants et statut...</span>
           </div>
         )}
 
@@ -317,48 +347,6 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
           </div>
         )}
 
-        {/* Transcribed Text Review */}
-        {transcript && (
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Radio size={14} className="text-emerald-600" />
-                <span>Transcription Whisper AI HD</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setEditingTranscript((prev) => !prev)}
-                className="text-primary hover:underline text-xs flex items-center gap-1"
-              >
-                <Pencil size={12} />
-                <span>{editingTranscript ? "Terminer" : "Corriger le texte"}</span>
-              </button>
-            </div>
-
-            {editingTranscript ? (
-              <div className="space-y-2">
-                <textarea
-                  value={transcript}
-                  onChange={(e) => setTranscript(e.target.value)}
-                  rows={3}
-                  className="w-full p-3 rounded-xl border border-border bg-background text-sm focus:ring-2 focus:ring-primary focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => parseTranscriptText(transcript)}
-                  className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold"
-                >
-                  Ré-analyser ce texte
-                </button>
-              </div>
-            ) : (
-              <p className="p-3.5 rounded-xl bg-card border border-border text-sm text-foreground italic leading-relaxed">
-                « {transcript} »
-              </p>
-            )}
-          </div>
-        )}
-
         {/* Extracted Structured Card */}
         {parseResult && parseResult.intent !== "unknown" && (
           <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-3">
@@ -369,35 +357,68 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
                   Entité Détectée : {parseResult.intent.toUpperCase()}
                 </strong>
               </div>
-              <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                Confiance : {Math.round(parseResult.confidence * 100)}%
+              <span className="text-[11px] text-muted-foreground font-mono">
+                {formatDate(new Date().toISOString(), true)}
               </span>
             </div>
 
             {/* Sale Intent Preview */}
             {parseResult.intent === "sale" && parseResult.sale && (
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2.5 rounded-xl bg-card border border-border/80">
-                  <span className="text-muted-foreground block text-[10px]">Article / Vente</span>
-                  <strong className="text-foreground">{parseResult.sale.item_label}</strong>
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-card border border-border/80">
+                    <span className="text-muted-foreground block text-[10px]">Article / Produit</span>
+                    <strong className="text-foreground">
+                      {parseResult.sale.quantity}x {parseResult.sale.item_label}
+                    </strong>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-card border border-border/80">
+                    <span className="text-muted-foreground block text-[10px]">Montant Total</span>
+                    <strong className="font-mono text-primary text-sm">
+                      {formatMoney(parseResult.sale.total_amount, parseResult.sale.currency)}
+                    </strong>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-card border border-border/80">
+                    <span className="text-muted-foreground block text-[10px]">Client</span>
+                    <span className="font-medium text-foreground">
+                      {parseResult.sale.client_name || "Client comptoir"}
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-card border border-border/80">
+                    <span className="text-muted-foreground block text-[10px]">Prix Unitaire</span>
+                    <span className="font-mono font-medium text-foreground">
+                      {formatMoney(parseResult.sale.unit_price, parseResult.sale.currency)}
+                    </span>
+                  </div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-card border border-border/80">
-                  <span className="text-muted-foreground block text-[10px]">Montant Total</span>
-                  <strong className="font-mono text-primary text-sm">
-                    {formatMoney(parseResult.sale.total_amount, parseResult.sale.currency)}
-                  </strong>
-                </div>
-                <div className="p-2.5 rounded-xl bg-card border border-border/80">
-                  <span className="text-muted-foreground block text-[10px]">Client</span>
-                  <span className="font-medium text-foreground">
-                    {parseResult.sale.client_name || "Client standard"}
-                  </span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-card border border-border/80">
-                  <span className="text-muted-foreground block text-[10px]">Règlement</span>
-                  <span className="font-medium text-foreground">
-                    {parseResult.sale.payment_method || "Espèces"} ({parseResult.sale.payment_status})
-                  </span>
+
+                {/* Quick Payment Status Toggle */}
+                <div className="p-2.5 rounded-xl bg-card border border-border/80 flex items-center justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground font-medium text-[11px]">Statut du paiement :</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleTogglePaymentStatus("unpaid")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                        parseResult.sale.payment_status === "unpaid"
+                          ? "bg-rose-500/15 text-rose-600 border border-rose-500/30"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      ⏳ Non Payé / Crédit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTogglePaymentStatus("paid")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                        parseResult.sale.payment_status === "paid"
+                          ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      🟢 Payé (Encaissé)
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
