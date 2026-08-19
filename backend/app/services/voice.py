@@ -75,10 +75,9 @@ class VoiceService:
         return results
 
     def _extract_currency(self, text: str) -> str:
-        lower = text.lower()
-        if any(c in lower for c in ["euro", "€", "eur"]):
+        if re.search(r"(?i)\b(?:euros?|eur|€)\b", text):
             return "EUR"
-        if any(c in lower for c in ["dollar", "$", "usd"]):
+        if re.search(r"(?i)\b(?:dollars?|usd|\$)\b", text):
             return "USD"
         return "XOF"
 
@@ -144,52 +143,56 @@ class VoiceService:
         payment_method, payment_status = self._extract_payment_method(text)
         client_name = self._extract_client_name(text)
 
-        # Quantity and Total calculation
-        quantity = Decimal("1")
-        total_amount = Decimal("0")
-        unit_price = Decimal("0")
+        # 1. Clean introductory verbs
+        cleaned = re.sub(
+            r"(?i)^(?:j\'ai\s+(?:fait\s+)?(?:effectuer\s+)?|nous\s+avons\s+(?:vendu\s+)?|veuillez\s+enregistrer\s+)?(?:une\s+)?(?:vente\s+(?:de\s+la\s+|du\s+|des\s+|d\'un\s+|d\'une\s+|de\s+|d\')?|vendu\s+)",
+            "",
+            text.strip(),
+        ).strip()
 
-        # 1. Quantity Detection (ex: "3 sacs", "3 ordinateurs", "10 cartons")
-        qty_match = re.search(
-            r"(?i)\b(?:quantité|qté)?\s*(\d{1,4})\s+(sacs?|cartons?|articles?|unités?|pièces?|boites?|heures?|jours?|ordinateurs?|produits?|exemplaires?|livres?|bouteilles?|packs?)\b",
-            text,
-        )
-        if qty_match:
+        # 2. Extract primary quantity
+        quantity = Decimal("1")
+        un_match = re.match(r"(?i)^(?:un|une)\s+", cleaned)
+        num_match = re.match(r"(?i)^(\d{1,3})\s+(sacs?|cartons?|articles?|unités?|pièces?|boites?|heures?|jours?|ordinateurs?|produits?|exemplaires?|livres?|bouteilles?|packs?|[a-zA-ZÀ-ÿ\'-]+)", cleaned)
+
+        if un_match:
+            quantity = Decimal("1")
+            cleaned = cleaned[un_match.end():].strip()
+        elif num_match:
             try:
-                quantity = Decimal(qty_match.group(1))
+                quantity = Decimal(num_match.group(1))
+                cleaned = cleaned[len(num_match.group(1)):].strip()
             except Exception:
                 quantity = Decimal("1")
 
-        # Exclude extracted quantity number from monetary amounts list
-        if qty_match and quantity in amounts and len(amounts) > 1:
-            amounts = [a for a in amounts if a != quantity]
-
-        # 2. Item Label Detection
+        # 3. Extract Item label
         item_label = "Vente non détaillée"
         item_match = re.search(
-            r"(?i)(?:vente\s+(?:de|d')?|vendu\s+|produit\s+|article\s+|service\s+)(.+?)(?=\s+(?:à|pour|au\s+prix|montant|payé|par|\d+|$))",
-            text,
+            r"(?i)^([a-zA-ZÀ-ÿ\s\'-]+?)(?=\s+(?:à|au\s+prix|pour|montant|payé|en|fcfa|cfa|francs?|\d+|$))",
+            cleaned,
         )
         if item_match:
             cand = item_match.group(1).strip()
-            normalized_cand = re.sub(r"[^a-zà-ÿ]+", " ", cand.lower()).strip()
             stopwords = {
                 "non", "non paye", "non payes", "non payee", "non payees",
                 "paye", "payes", "payee", "payees", "impaye", "impayee",
-                "partiel", "partielle", "credit", "a credit",
+                "partiel", "partielle", "credit", "a credit", "de", "d", "la", "le", "les",
             }
-            if (
-                len(cand) >= 2
-                and not bool(re.search(r"\d", cand))
-                and normalized_cand not in stopwords
-            ):
+            if len(cand) >= 2 and cand.lower() not in stopwords and not bool(re.search(r"\d", cand)):
                 item_label = cand
 
-        # 3. Per-unit price vs Total calculation
+        # Exclude extracted quantity number from monetary amounts list
+        if quantity in amounts and len(amounts) > 1:
+            amounts = [a for a in amounts if a != quantity]
+
+        # 4. Per-unit price vs Total calculation
         is_per_unit = bool(re.search(
             r"(?i)\b(?:par\s+(?:unité|unite|pièce|piece|article|sac|carton|ordinateur|personne|heure|jour|mois|licence|boite|bouteille|exemplaire|kg|kilo|litre|produit)|l'unité|l'unite|chacun|la\s+pièce|la\s+piece|l'une|par\s+tête)\b",
             text,
         ))
+
+        total_amount = Decimal("0")
+        unit_price = Decimal("0")
 
         if amounts:
             if is_per_unit and quantity > 1:
