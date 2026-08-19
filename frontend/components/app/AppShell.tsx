@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
   Building2,
+  ChevronDown,
+  ChevronRight,
   ExternalLink,
   FileCheck2,
   FileSpreadsheet,
@@ -62,23 +64,72 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const proConfig = getBusinessCategoryConfig(organization.business_category);
 
-  const navigation = [
-    ["Vue d’ensemble", "/espace", LayoutDashboard],
-    [proConfig.registers.offers.title, "/espace/offres", Tag],
-    [proConfig.registers.sales.title, "/espace/ventes", ReceiptText],
-    [proConfig.registers.expenses.title, "/espace/depenses", Wallet],
-    [proConfig.registers.suppliers.title, "/espace/fournisseurs", Building],
-    [proConfig.registers.procedures.title, "/espace/procedures", FileCheck2],
-    [proConfig.registers.attendance.title, "/espace/presence", UserCheck],
-    ["Imports", "/espace/imports", FileSpreadsheet],
-    ["Documents", "/espace/documents", FolderSync],
-    ["Radar", "/espace/radar", Radar],
-    ["Validations", "/espace/validations", Activity],
-    ["Actions", "/espace/actions", Zap],
-    ["WhatsApp Gateway", "/espace/whatsapp", MessageSquare],
-    ["Organisation", "/espace/organisation", Building2],
-    ["Paramètres", "/espace/parametres", Settings],
-  ] as const;
+  const navGroups = useMemo(() => [
+    {
+      id: "pilotage",
+      title: "Pilotage & Ventes",
+      items: [
+        { label: "Cockpit Décisionnel", href: "/espace", icon: LayoutDashboard },
+        { label: proConfig.registers.sales.title, href: "/espace/ventes", icon: ReceiptText },
+        { label: proConfig.registers.offers.title, href: "/espace/offres", icon: Tag },
+        { label: proConfig.registers.expenses.title, href: "/espace/depenses", icon: Wallet },
+        { label: proConfig.registers.suppliers.title, href: "/espace/fournisseurs", icon: Building },
+      ],
+    },
+    {
+      id: "operations",
+      title: "Équipe & Opérations",
+      items: [
+        { label: proConfig.registers.attendance.title, href: "/espace/presence", icon: UserCheck },
+        { label: proConfig.registers.procedures.title, href: "/espace/procedures", icon: FileCheck2 },
+        { label: "Documents & Preuves", href: "/espace/documents", icon: FolderSync },
+      ],
+    },
+    {
+      id: "radar",
+      title: "Radar & Qualité",
+      items: [
+        { label: "Radar Sentinelle", href: "/espace/radar", icon: Radar },
+        { label: "Validations IA", href: "/espace/validations", icon: Activity },
+        { label: "Plan d'Actions", href: "/espace/actions", icon: Zap },
+      ],
+    },
+    {
+      id: "system",
+      title: "Canaux & Système",
+      items: [
+        { label: "WhatsApp Gateway", href: "/espace/whatsapp", icon: MessageSquare },
+        { label: "Reprise & Imports", href: "/espace/imports", icon: FileSpreadsheet },
+        { label: "Organisation & Membres", href: "/espace/organisation", icon: Building2 },
+        { label: "Paramètres", href: "/espace/parametres", icon: Settings },
+      ],
+    },
+  ], [proConfig]);
+
+  // Open / closed accordion groups state
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    pilotage: true,
+    operations: false,
+    radar: false,
+    system: false,
+  });
+
+  // Automatically expand the group containing the active page
+  useEffect(() => {
+    navGroups.forEach((group) => {
+      const hasActive = group.items.some((item) => item.href === pathname);
+      if (hasActive) {
+        setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
+      }
+    });
+  }, [pathname, navGroups]);
+
+  const toggleGroup = (groupId: string) => {
+    setOpenGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }));
+  };
 
   const pageContext: Record<string, { eyebrow: string; description: string }> = {
     "/espace": { eyebrow: "Mémoire opérationnelle", description: `Pilotez votre activité (${proConfig.name})` },
@@ -228,19 +279,62 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <nav aria-label="Navigation principale">
-          {navigation.map(([label, href, Icon]) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setOpen(false)}
-              title={collapsed ? label : undefined}
-              className={clsx("app-nav-link", pathname === href && "is-active")}
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-            </Link>
-          ))}
+        <nav aria-label="Navigation principale" className="app-nav-accordion-container space-y-1.5 py-1">
+          {navGroups.map((group) => {
+            const isOpen = openGroups[group.id];
+            const hasActiveChild = group.items.some((item) => item.href === pathname);
+
+            return (
+              <div key={group.id} className="app-nav-group">
+                {/* Accordion Group Header (Hidden in collapsed mode) */}
+                {!collapsed && (
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.id)}
+                    className={clsx(
+                      "w-full flex items-center justify-between px-3 py-1.5 text-[10px] uppercase font-black tracking-wider transition rounded-lg cursor-pointer",
+                      hasActiveChild
+                        ? "text-primary hover:text-primary/90"
+                        : "text-muted-foreground/80 hover:text-foreground hover:bg-muted/40"
+                    )}
+                  >
+                    <span className="truncate">{group.title}</span>
+                    {isOpen ? (
+                      <ChevronDown size={13} className="opacity-70 shrink-0" />
+                    ) : (
+                      <ChevronRight size={13} className="opacity-70 shrink-0" />
+                    )}
+                  </button>
+                )}
+
+                {/* Sub-items (Always shown if open, or in collapsed mode) */}
+                {(isOpen || collapsed) && (
+                  <div className={clsx("app-nav-group-items space-y-0.5", !collapsed && "mt-0.5")}>
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href;
+
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setOpen(false)}
+                          title={collapsed ? item.label : undefined}
+                          className={clsx("app-nav-link", isActive && "is-active")}
+                        >
+                          <Icon size={18} />
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Subtle divider in collapsed mode */}
+                {collapsed && <hr className="my-1.5 border-border/40" />}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="app-sidebar-foot">
