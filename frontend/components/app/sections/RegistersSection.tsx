@@ -49,8 +49,11 @@ export function RegistersSection({
       .catch(() => {});
 
     // Pre-fetch offers for POS
-    serviceIaFetch<OfferItem[]>("/registers/offers")
-      .then(setAllOffers)
+    serviceIaFetch<any>("/registers/offers")
+      .then((res) => {
+        const list = Array.isArray(res) ? res : (res?.items || []);
+        setAllOffers(list);
+      })
       .catch(() => {});
 
     const updated = (e: Event) => {

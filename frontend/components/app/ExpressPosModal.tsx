@@ -19,6 +19,7 @@ import {
   User,
   Package,
   ArrowRight,
+  Zap,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { OfferItem, formatMoney } from "./RegistersTable";
@@ -63,18 +64,32 @@ export function ExpressPosModal({
   const [lastSaleResult, setLastSaleResult] = useState<any | null>(null);
   const [mobileTab, setMobileTab] = useState<"catalog" | "cart">("catalog");
 
+  // Custom free-sale item fields
+  const [customItemName, setCustomItemName] = useState("");
+  const [customItemPrice, setCustomItemPrice] = useState("");
+  const [customItemQty, setCustomItemQty] = useState("1");
+
+  // Ensure safe offers array even if backend returns paginated object
+  const safeOffers: OfferItem[] = useMemo(() => {
+    if (Array.isArray(offers)) return offers;
+    if (offers && typeof offers === "object" && Array.isArray((offers as any).items)) {
+      return (offers as any).items;
+    }
+    return [];
+  }, [offers]);
+
   // Extract categories
   const categories = useMemo(() => {
     const set = new Set<string>();
-    offers.forEach((o) => {
+    safeOffers.forEach((o) => {
       if (o.category) set.add(o.category);
     });
     return ["all", ...Array.from(set)];
-  }, [offers]);
+  }, [safeOffers]);
 
   // Filtered offers by query and category
   const filteredOffers = useMemo(() => {
-    return offers.filter((o) => {
+    return safeOffers.filter((o) => {
       if (selectedCategory !== "all" && o.category !== selectedCategory) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
@@ -84,7 +99,7 @@ export function ExpressPosModal({
         (o.description || "").toLowerCase().includes(q)
       );
     });
-  }, [offers, search, selectedCategory]);
+  }, [safeOffers, search, selectedCategory]);
 
   // Totals calculations
   const rawSubtotal = useMemo(() => {
@@ -121,6 +136,33 @@ export function ExpressPosModal({
       }
       return [...prev, { offer, quantity: 1, unitPrice: price }];
     });
+  };
+
+  const addCustomItemToCart = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const name = customItemName.trim() || "Article libre";
+    const price = parseFloat(customItemPrice) || 0;
+    const qty = parseFloat(customItemQty) || 1;
+
+    if (price <= 0) {
+      alert("Veuillez saisir un prix valide supérieur à 0.");
+      return;
+    }
+
+    const customOffer: OfferItem = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: name,
+      price: String(price),
+      currency: currency,
+      category: "Vente libre",
+      status: "active",
+      updated_at: new Date().toISOString(),
+    };
+
+    setCart((prev) => [...prev, { offer: customOffer, quantity: qty, unitPrice: price }]);
+    setCustomItemName("");
+    setCustomItemPrice("");
+    setCustomItemQty("1");
   };
 
   const updateQuantity = (offerId: string, delta: number) => {
@@ -180,7 +222,7 @@ export function ExpressPosModal({
         sale_date: new Date().toISOString().slice(0, 10),
         client_name: clientName.trim() || "Client Comptoir",
         item_label: itemLabelSummary,
-        offer_id: cart.length === 1 ? cart[0].offer.id : null,
+        offer_id: cart.length === 1 && !cart[0].offer.id.startsWith("custom-") ? cart[0].offer.id : null,
         quantity: cart.length === 1 ? cart[0].quantity : 1,
         unit_price: cart.length === 1 ? cart[0].unitPrice : totalAmount,
         discount: discountAmount,
@@ -236,13 +278,14 @@ export function ExpressPosModal({
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground hidden sm:block">
-                Encaissement rapide, décrémentation automatique des stocks et rendu de monnaie.
+                Encaissement rapide au comptoir, décrémentation des stocks et reçu de vente immédiat.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={clearCart}
               className="px-3 py-1.5 rounded-xl border border-border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition flex items-center gap-1"
             >
@@ -250,6 +293,7 @@ export function ExpressPosModal({
               <span className="hidden sm:inline">Nouveau Ticket</span>
             </button>
             <button
+              type="button"
               onClick={onClose}
               className="p-1.5 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition"
             >
@@ -306,6 +350,11 @@ export function ExpressPosModal({
             {/* Receipt Summary Card */}
             <div className="w-full max-w-md p-5 rounded-2xl border border-border bg-muted/30 text-left space-y-2.5 mb-6 text-xs sm:text-sm">
               <div className="flex justify-between border-b border-border/60 pb-2">
+                <span className="text-muted-foreground">Client</span>
+                <strong className="text-foreground">{clientName || "Client Comptoir"}</strong>
+              </div>
+
+              <div className="flex justify-between border-b border-border/60 pb-2">
                 <span className="text-muted-foreground">Total Encaissé</span>
                 <strong className="font-mono text-base text-foreground">
                   {formatMoney(lastSaleResult.totalAmount, currency)}
@@ -330,6 +379,7 @@ export function ExpressPosModal({
 
             <div className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={() => window.print()}
                 className="px-4 py-2.5 rounded-xl border border-border bg-muted hover:bg-muted/80 text-xs sm:text-sm font-semibold flex items-center gap-2"
               >
@@ -338,6 +388,7 @@ export function ExpressPosModal({
               </button>
 
               <button
+                type="button"
                 onClick={clearCart}
                 className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm hover:opacity-90 transition flex items-center gap-2"
               >
@@ -348,12 +399,53 @@ export function ExpressPosModal({
           </div>
         ) : (
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden relative">
-            {/* Left Panel: Catalogue (7 cols) */}
+            {/* Left Panel: Catalogue & Quick Add (7 cols) */}
             <div
               className={`lg:col-span-7 border-r border-border flex flex-col h-full bg-background overflow-hidden ${
                 mobileTab === "catalog" ? "flex" : "hidden lg:flex"
               }`}
             >
+              {/* Quick Free-Sale Form (Article Libre) */}
+              <div className="p-3 sm:p-4 border-b border-border bg-primary/5 shrink-0">
+                <form onSubmit={addCustomItemToCart} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Zap size={14} className="text-primary" />
+                      <span>Article libre / Vente directe</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Encaissez sans produit créé à l'avance
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-12 gap-1.5">
+                    <input
+                      type="text"
+                      value={customItemName}
+                      onChange={(e) => setCustomItemName(e.target.value)}
+                      placeholder="Ex: Clavier, Réparation, Café..."
+                      className="col-span-6 sm:col-span-6 px-2.5 py-1.5 rounded-xl border border-border bg-background text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                    />
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={customItemPrice}
+                      onChange={(e) => setCustomItemPrice(e.target.value)}
+                      placeholder={`Prix (${currency})`}
+                      className="col-span-3 sm:col-span-3 px-2 py-1.5 rounded-xl border border-border bg-background text-xs font-mono font-bold focus:ring-1 focus:ring-primary focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!customItemPrice || parseFloat(customItemPrice) <= 0}
+                      className="col-span-3 sm:col-span-3 px-2 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-1 shadow-sm"
+                    >
+                      <Plus size={13} />
+                      <span>Ajouter</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
               {/* Search & Category Pills */}
               <div className="p-3 sm:p-4 border-b border-border space-y-2.5 bg-card shrink-0">
                 <div className="relative">
@@ -365,88 +457,101 @@ export function ExpressPosModal({
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Rechercher un produit, article, code..."
+                    placeholder="Rechercher dans le catalogue d'articles..."
                     className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-background text-xs sm:text-sm focus:ring-2 focus:ring-primary focus:outline-none"
                   />
                 </div>
 
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
-                        selectedCategory === cat
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "bg-muted text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {cat === "all" ? "Tous les articles" : cat}
-                    </button>
-                  ))}
-                </div>
+                {categories.length > 1 && (
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
+                          selectedCategory === cat
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-muted text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {cat === "all" ? "Tous les articles" : cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Products Tiles Grid */}
               <div className="flex-1 p-3 sm:p-4 overflow-y-auto pb-20 lg:pb-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
-                  {filteredOffers.map((offer) => {
-                    const price = parseFloat(offer.price || "0") || 0;
-                    const stock = Number(offer.stock_quantity ?? 0);
-                    const minStock = Number(offer.min_stock_alert ?? 5);
-                    const isOutOfStock = offer.track_stock && stock <= 0;
-                    const isLowStock = offer.track_stock && stock > 0 && stock <= minStock;
+                {filteredOffers.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                    {filteredOffers.map((offer) => {
+                      const price = parseFloat(offer.price || "0") || 0;
+                      const stock = Number(offer.stock_quantity ?? 0);
+                      const minStock = Number(offer.min_stock_alert ?? 5);
+                      const isOutOfStock = offer.track_stock && stock <= 0;
+                      const isLowStock = offer.track_stock && stock > 0 && stock <= minStock;
 
-                    return (
-                      <button
-                        key={offer.id}
-                        onClick={() => addToCart(offer)}
-                        disabled={isOutOfStock}
-                        className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition group relative ${
-                          isOutOfStock
-                            ? "opacity-50 border-destructive/30 bg-destructive/5 cursor-not-allowed"
-                            : "border-border/80 bg-card hover:border-primary hover:shadow-md active:scale-95"
-                        }`}
-                      >
-                        <div>
-                          <strong className="text-xs sm:text-sm font-bold text-foreground line-clamp-2 group-hover:text-primary transition">
-                            {offer.name}
-                          </strong>
-                          {offer.category && (
-                            <span className="text-[10px] text-muted-foreground block mb-1 font-mono">
-                              {offer.category}
+                      return (
+                        <button
+                          key={offer.id}
+                          type="button"
+                          onClick={() => addToCart(offer)}
+                          disabled={isOutOfStock}
+                          className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition group relative ${
+                            isOutOfStock
+                              ? "opacity-50 border-destructive/30 bg-destructive/5 cursor-not-allowed"
+                              : "border-border/80 bg-card hover:border-primary hover:shadow-md active:scale-95 cursor-pointer"
+                          }`}
+                        >
+                          <div>
+                            <strong className="text-xs sm:text-sm font-bold text-foreground line-clamp-2 group-hover:text-primary transition">
+                              {offer.name}
+                            </strong>
+                            {offer.category && (
+                              <span className="text-[10px] text-muted-foreground block mb-1 font-mono">
+                                {offer.category}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center justify-between">
+                            <span className="text-xs sm:text-sm font-black font-mono text-foreground">
+                              {formatMoney(price, offer.currency || currency)}
                             </span>
-                          )}
-                        </div>
 
-                        <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center justify-between">
-                          <span className="text-xs sm:text-sm font-black font-mono text-foreground">
-                            {formatMoney(price, offer.currency || currency)}
-                          </span>
-
-                          {offer.track_stock && (
-                            <span
-                              className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                                isOutOfStock
-                                  ? "bg-rose-500/10 text-rose-600"
-                                  : isLowStock
-                                  ? "bg-amber-500/10 text-amber-600"
-                                  : "bg-emerald-500/10 text-emerald-600"
-                              }`}
-                            >
-                              {isOutOfStock ? "Rupture" : `${stock} dispo`}
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {filteredOffers.length === 0 && (
-                  <div className="h-64 flex flex-col items-center justify-center text-center text-muted-foreground">
-                    <Package size={36} className="mb-2 opacity-40" />
-                    <p className="text-xs sm:text-sm">Aucun produit ne correspond à cette recherche.</p>
+                            {offer.track_stock && (
+                              <span
+                                className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                  isOutOfStock
+                                    ? "bg-rose-500/10 text-rose-600"
+                                    : isLowStock
+                                    ? "bg-amber-500/10 text-amber-600"
+                                    : "bg-emerald-500/10 text-emerald-600"
+                                }`}
+                              >
+                                {isOutOfStock ? "Rupture" : `${stock} dispo`}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-8 rounded-2xl bg-muted/20 border border-dashed border-border text-center space-y-3">
+                    <Package size={36} className="mx-auto text-primary opacity-50" />
+                    <h4 className="text-sm font-bold text-foreground">
+                      {safeOffers.length === 0
+                        ? "Catalogue d'articles vide"
+                        : "Aucun article correspondant à votre recherche"}
+                    </h4>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                      {safeOffers.length === 0
+                        ? "Vous n'avez pas encore d'articles enregistrés dans votre catalogue. Vous pouvez ajouter un article libre en haut pour encaisser tout de suite !"
+                        : "Essayez un autre mot-clé ou réinitialisez le filtre de recherche."}
+                    </p>
                   </div>
                 )}
               </div>
@@ -499,7 +604,7 @@ export function ExpressPosModal({
                     <ShoppingBag size={36} className="mb-2 opacity-30" />
                     <p className="text-sm font-semibold">Le panier est vide</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Sélectionnez des articles dans le catalogue.
+                      Sélectionnez des articles dans le catalogue ou utilisez l'article libre.
                     </p>
                   </div>
                 ) : (
@@ -616,7 +721,7 @@ export function ExpressPosModal({
 
                     {/* Presets */}
                     <div className="flex gap-1 justify-end">
-                      {[1000, 2000, 5000, 10000].map((preset) => (
+                      {[1000, 2000, 5000, 10000, 20000, 50000].map((preset) => (
                         <button
                           key={preset}
                           type="button"
@@ -644,7 +749,7 @@ export function ExpressPosModal({
                   type="button"
                   onClick={handleValidateSale}
                   disabled={busy || cart.length === 0}
-                  className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm shadow-md transition flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <CheckCircle2 size={18} />
                   <span>
