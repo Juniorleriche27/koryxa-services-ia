@@ -29,6 +29,7 @@ import {
   X,
   Zap,
   Bot,
+  HelpCircle,
 } from "lucide-react";
 
 import clsx from "clsx";
@@ -41,6 +42,8 @@ import { CommandPalette } from "./CommandPalette";
 import { VoiceCaptureModal } from "./VoiceCaptureModal";
 import { OfflineSyncBanner } from "./OfflineSyncBanner";
 import { AICopilotDrawer } from "./AICopilotDrawer";
+import { InteractiveSpotlightTour } from "./InteractiveSpotlightTour";
+import { QuickHelpModal } from "./QuickHelpModal";
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -48,6 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [organization, setOrganization] = useState<{
     name: string;
     business_category?: string;
@@ -225,6 +229,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         onClose={() => setCopilotOpen(false)}
       />
 
+      <InteractiveSpotlightTour proConfig={proConfig} />
+
+      <QuickHelpModal
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        proConfig={proConfig}
+        onStartTour={() => {
+          window.dispatchEvent(new CustomEvent("koryxa:start-tour"));
+        }}
+        onOpenVoice={() => setVoiceOpen(true)}
+        onOpenCopilot={() => setCopilotOpen(true)}
+      />
+
       {onboardingRequired && (
         <OrganizationOnboarding
           organization={organization}
@@ -278,7 +295,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <nav aria-label="Navigation principale" className="app-nav-accordion-container space-y-1.5 py-1 flex-1 overflow-y-auto">
+        <nav data-tour="nav-blocks" aria-label="Navigation principale" className="app-nav-accordion-container space-y-1.5 py-1 flex-1 overflow-y-auto">
           {navGroups.map((group) => {
             const isOpen = openGroups[group.id];
             const hasActiveChild = group.items.some((item) => item.href === pathname);
@@ -357,6 +374,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Direct AI Copilot Trigger Button */}
             <button
               type="button"
+              data-tour="cora-ia"
               className="kx-topbar-copilot-btn"
               onClick={() => setCopilotOpen(true)}
               title="Ouvrir Cora, votre assistante IA (Cmd + J / Ctrl + J)"
@@ -372,6 +390,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Direct Voice Capture Trigger Button (Desktop topbar) */}
             <button
               type="button"
+              data-tour="voice-mic"
               className="kx-topbar-voice-btn hidden sm:inline-flex"
               onClick={() => setVoiceOpen(true)}
               title="Dictée vocale intelligente (Micro)"
@@ -389,6 +408,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Search size={14} />
               <span className="kx-topbar-search-text">Recherche & actions…</span>
               <kbd className="kx-cmd-kbd">⌘K</kbd>
+            </button>
+
+            {/* Quick Help & Guidance trigger */}
+            <button
+              type="button"
+              onClick={() => setHelpOpen(true)}
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-emerald-700 hover:border-emerald-400 transition text-xs font-bold shadow-2xs cursor-pointer"
+              title="Centre d'aide & visite guidée"
+            >
+              <HelpCircle size={15} className="text-emerald-600" />
+              <span>Guide</span>
             </button>
 
             <Link href="/" className="app-public-link hidden lg:inline-flex" title="Retourner sur le site public">
@@ -435,15 +465,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span>Ventes</span>
           </Link>
 
-          {/* Raised Pulsing Center Mic Button for Instant Voice Capture */}
+          {/* Center Orb Voice Dictation Action Button */}
           <button
             type="button"
+            data-tour="voice-mic"
             onClick={() => setVoiceOpen(true)}
-            className="relative -top-3 w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white shadow-[0_6px_20px_rgba(16,185,129,0.45)] active:scale-95 transition-all flex items-center justify-center ring-4 ring-background cursor-pointer"
-            title="Dictée vocale directe"
-            aria-label="Dictée vocale"
+            className="flex flex-col items-center justify-center -mt-5"
+            aria-label="Dicter une vente"
           >
-            <Mic size={22} />
+            <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 text-white shadow-[0_8px_20px_rgba(0,168,107,0.4)] flex items-center justify-center active:scale-95 transition-transform border-4 border-background">
+              <Mic size={24} className="text-white animate-pulse" />
+            </div>
+            <span className="text-[9.5px] font-black text-primary mt-0.5 tracking-tight">
+              Dicter
+            </span>
           </button>
 
           <Link
@@ -462,8 +497,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-muted-foreground hover:text-foreground transition text-[10px] font-bold cursor-pointer"
-            aria-label="Ouvrir le menu complet"
+            className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
           >
             <Menu size={20} />
             <span>Menu</span>
