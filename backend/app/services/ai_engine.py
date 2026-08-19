@@ -166,14 +166,23 @@ class AIEngineService:
     ) -> AIChatResponse:
         context_data = await self._build_context(s, org, request)
         cfg = await self.configs.get(s, org)
-        prompt = f"{cfg.ai_custom_system_prompt or 'Tu es le copilote opérationnel KORYXA. Réponds en français, précisément et sans inventer.'}\nContexte réel de l’entreprise: {json.dumps(context_data, ensure_ascii=False)}\nHistorique: {json.dumps([m.model_dump() for m in request.messages], ensure_ascii=False)}"
-        reply, model = await self._ask_knowlia(s, org, user, prompt)
-        return AIChatResponse(
-            reply=reply,
-            provider_used="Knowlia Intelligence",
-            model_used=model,
-            suggested_actions=self._extract_actions(context_data),
-        )
+        prompt = f"{cfg.ai_custom_system_prompt or 'Tu es Cora, directrice des opérations et assistante IA pour KORYXA. Réponds en français de façon précise, chaleureuse et directement exploitable.'}\nContexte réel de l’entreprise: {json.dumps(context_data, ensure_ascii=False)}\nHistorique: {json.dumps([m.model_dump() for m in request.messages], ensure_ascii=False)}"
+        try:
+            reply, model = await self._ask_knowlia(s, org, user, prompt)
+            return AIChatResponse(
+                reply=reply,
+                provider_used="Knowlia Intelligence",
+                model_used=model,
+                suggested_actions=self._extract_actions(context_data),
+            )
+        except Exception:
+            native_reply = self._native_chat_reasoning(request.messages, context_data)
+            return AIChatResponse(
+                reply=native_reply,
+                provider_used="Cora Intelligence (KORYXA Core)",
+                model_used="koryxa-cora-operational",
+                suggested_actions=self._extract_actions(context_data),
+            )
 
     # ------------------ PAYMENT REMINDER GENERATION ------------------
     async def generate_payment_reminder(
@@ -466,10 +475,26 @@ class AIEngineService:
 
     # ------------------ NATIVE REASONING ENGINE ------------------
     def _native_chat_reasoning(self, messages: list[Any], ctx: dict[str, Any]) -> str:
-        last_msg = messages[-1].content.lower() if messages else ""
+        last_msg = messages[-1].content.lower().strip() if messages else ""
 
+        # 1. Greetings and presentation
+        if any(w in last_msg for w in ["salut", "bonjour", "bonsoir", "coucou", "hello", "qui es-tu", "qui es tu", "présente-toi", "presente toi", "bonjour !"]):
+            return (
+                f"👋 **Bonjour ! Je suis Cora, votre directrice des opérations et assistante IA.**\n\n"
+                f"Je suis connectée en temps réel à l'ensemble des registres opérationnels de votre entreprise :\n"
+                f"• 💰 **Total Encaissé** : **{ctx['total_sales_paid']} XOF** ({ctx['total_sales_count']} ventes enregistrées)\n"
+                f"• ⏳ **Créances en attente** : **{ctx['total_sales_unpaid']} XOF**\n"
+                f"• 💳 **Dépenses réglées** : **{ctx['total_expenses_paid']} XOF**\n"
+                f"• 🛡️ **Alertes Radar actives** : **{ctx['open_alerts_count']}** point(s) d'attention\n\n"
+                f"Comment puis-je vous aider aujourd'hui ? Vous pouvez par exemple me demander :\n"
+                f"• « *Quelle est ma situation de trésorerie actuelle ?* »\n"
+                f"• « *Quels clients dois-je relancer en priorité ?* »\n"
+                f"• « *Y a-t-il des alertes critiques du Radar ?* »"
+            )
+
+        # 2. Cashflow & Treasury
         if any(
-            w in last_msg for w in ["trésorerie", "solde", "cash", "argent", "banque", "disponible"]
+            w in last_msg for w in ["trésorerie", "tresorerie", "solde", "cash", "argent", "banque", "disponible"]
         ):
             return (
                 f"📊 **Analyse de votre Trésorerie en Temps Réel** :\n\n"
@@ -480,9 +505,10 @@ class AIEngineService:
                 f"💡 **Conseil stratégique** : Relancez sans tarder les clients débiteurs ({len(ctx['unpaid_sales'])} créances en cours) pour consolider vos liquidités avant le règlement des prochaines échéances fournisseurs."
             )
 
-        if any(w in last_msg for w in ["relance", "impayé", "créance", "débiteur", "qui me doit"]):
+        # 3. Unpaid & Reminders
+        if any(w in last_msg for w in ["relance", "impayé", "impayes", "impayee", "créance", "creance", "débiteur", "debiteur", "qui me doit", "qui doit"]):
             if not ctx["unpaid_sales"]:
-                return "✅ Excellente nouvelle : Vous n'avez aucune créance client impayée actuellement enregistrée dans vos registres !"
+                return "✅ **Excellente nouvelle** : Vous n'avez aucune créance client impayée actuellement enregistrée dans vos registres !"
 
             unpaid_list = "\n".join(
                 [
@@ -496,9 +522,29 @@ class AIEngineService:
                 f"👉 Vous pouvez utiliser le **Générateur de Relances IA** pour envoyer un rappel WhatsApp ou Email en 1 clic directement depuis l'onglet Ventes."
             )
 
-        if any(w in last_msg for w in ["radar", "alerte", "problème", "anomalie", "risque"]):
+        # 4. Sales and Revenue
+        if any(w in last_msg for w in ["vente", "ventes", "chiffre", "ca", "combien j'ai vendu", "combien de vente"]):
+            return (
+                f"📈 **Synthèse Commerciale** :\n\n"
+                f"• **Nombre total de ventes** : **{ctx['total_sales_count']} vente(s)**\n"
+                f"• **Montant total encaissé** : **{ctx['total_sales_paid']} XOF**\n"
+                f"• **Montant restant à recouvrer** : **{ctx['total_sales_unpaid']} XOF**\n\n"
+                f"👉 Vous pouvez enregistrer une nouvelle vente immédiatement via le micro de dictée vocale ou la Caisse Express."
+            )
+
+        # 5. Expenses and Purchases
+        if any(w in last_msg for w in ["dépense", "depense", "depenses", "achat", "achats", "charge", "charges"]):
+            return (
+                f"💸 **Synthèse des Dépenses & Achats** :\n\n"
+                f"• **Dépenses réglées** : **{ctx['total_expenses_paid']} XOF**\n"
+                f"• **Dépenses engagées non réglées** : **{ctx['total_expenses_unpaid']} XOF**\n\n"
+                f"👉 Vous pouvez consulter et catégoriser toutes vos charges dans la section 'Achats & Dépenses'."
+            )
+
+        # 6. Radar & Health Alerts
+        if any(w in last_msg for w in ["radar", "alerte", "alertes", "problème", "probleme", "anomalie", "risque", "santé", "sante"]):
             if ctx["open_alerts_count"] == 0:
-                return "🛡️ **Radar KORYXA est au vert** : Aucune anomalie, tarif expiré ou incohérence de procédure n'a été détectée."
+                return "🛡️ **Radar KORYXA est au vert** : Aucune anomalie, écart de caisse ou tarif expiré n'a été détecté aujourd'hui. Votre mémoire opérationnelle est saine."
 
             alerts_text = "\n".join(
                 [f"• 🔴 **{a['title']}** : {a['explanation']}" for a in ctx["critical_alerts"]]
@@ -509,7 +555,8 @@ class AIEngineService:
                 f"👉 Rendez-vous dans la section **Radar** ou transformez ces alertes en **Actions correctives Kanban** pour les attribuer à votre équipe."
             )
 
-        if any(w in last_msg for w in ["procédure", "sop", "process", "méthode", "règle"]):
+        # 7. Procedures & SOP
+        if any(w in last_msg for w in ["procédure", "procedure", "procedures", "sop", "process", "méthode", "methode", "règle", "regle"]):
             return (
                 f"📋 **Mémoire Opérationnelle & Procédures** :\n\n"
                 f"Votre entreprise dispose de **{ctx['procedures_count']} procédure(s)** formalisée(s).\n\n"
@@ -518,7 +565,7 @@ class AIEngineService:
 
         # General Executive Briefing
         return (
-            f"👋 **Bonjour ! Je suis le Copilote IA KORYXA de votre entreprise.**\n\n"
+            f"👋 **Bonjour ! Je suis Cora, votre directrice des opérations IA.**\n\n"
             f"Voici un aperçu synthétique de votre situation opérationnelle et financière :\n"
             f"• 💰 **Chiffre d'affaires encaissé** : **{ctx['total_sales_paid']} XOF** (Créances en attente : {ctx['total_sales_unpaid']} XOF)\n"
             f"• 📉 **Dépenses décaissées** : **{ctx['total_expenses_paid']} XOF** (Dettes fournisseurs : {ctx['total_expenses_unpaid']} XOF)\n"

@@ -28,7 +28,6 @@ import { formatMoney, formatDate, formatLabel } from "./RegistersTable";
 import { OperationalAuditReport, OperationalAuditData } from "./OperationalAuditReport";
 import { getBusinessCategoryConfig } from "@/lib/service-ia/business-categories";
 import { serviceIaFetch } from "@/lib/service-ia/api";
-import { ActivationChecklistWidget } from "./ActivationChecklistWidget";
 
 interface SummaryData {
   total_sales_count: number;
@@ -450,13 +449,6 @@ export function ExecutiveDashboard({
           </article>
         </div>
       </section>
-
-      {/* Interactive Activation Checklist Widget */}
-      <ActivationChecklistWidget
-        proConfig={proConfig}
-        totalSalesCount={summary?.total_sales_count || 0}
-        offersCount={summary?.offers_count || 0}
-      />
     </div>
   );
 }
