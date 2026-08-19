@@ -264,22 +264,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
         </button>
 
-        <div className="app-company">
-          {organization.logo_updated_at ? (
-            <img
-              className="app-company-logo"
-              src={`/api/service-ia/organizations/current/logo?v=${encodeURIComponent(organization.logo_updated_at)}`}
-              alt=""
-            />
-          ) : null}
-          <div>
-            <span>{proConfig.emoji} {proConfig.shortName}</span>
-            <strong>{organization.name}</strong>
-            <small>{proConfig.badge}</small>
+        <div className="app-company-card">
+          <div className="app-company-avatar">
+            {organization.logo_updated_at ? (
+              <img
+                className="h-full w-full rounded-xl object-contain bg-white p-0.5"
+                src={`/api/service-ia/organizations/current/logo?v=${encodeURIComponent(organization.logo_updated_at)}`}
+                alt={organization.name}
+              />
+            ) : (
+              <span className="app-company-initials">
+                {organization.name.slice(0, 2).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="app-company-info min-w-0 flex-1">
+            <strong className="app-company-name truncate block text-sm font-extrabold text-foreground tracking-tight">
+              {organization.name}
+            </strong>
+            <span className="app-company-category truncate block text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+              {proConfig.emoji} {proConfig.badge}
+            </span>
           </div>
         </div>
 
-        <nav aria-label="Navigation principale" className="app-nav-accordion-container space-y-1.5 py-1">
+        <nav aria-label="Navigation principale" className="app-nav-accordion-container space-y-1.5 py-1 flex-1 overflow-y-auto">
           {navGroups.map((group) => {
             const isOpen = openGroups[group.id];
             const hasActiveChild = group.items.some((item) => item.href === pathname);
@@ -292,7 +301,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     type="button"
                     onClick={() => toggleGroup(group.id)}
                     className={clsx(
-                      "w-full flex items-center justify-between px-3 py-1.5 text-[10px] uppercase font-black tracking-wider transition rounded-lg cursor-pointer",
+                      "w-full flex items-center justify-between px-3 py-1.5 text-[10.5px] uppercase font-extrabold tracking-wider transition rounded-lg cursor-pointer",
                       hasActiveChild
                         ? "text-primary hover:text-primary/90"
                         : "text-muted-foreground/80 hover:text-foreground hover:bg-muted/40"
@@ -336,20 +345,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-
-        <div className="app-sidebar-foot">
-          <div className="app-user-avatar">
-            {user?.imageUrl ? (
-              <img src={user.imageUrl} alt="" className="h-full w-full rounded-full object-cover" />
-            ) : (
-              initials
-            )}
-          </div>
-          <div>
-            <strong>{userName}</strong>
-            <small>Compte KORYXA</small>
-          </div>
-        </div>
       </aside>
 
       {open && <button className="app-overlay" aria-label="Fermer le menu" onClick={() => setOpen(false)} />}
