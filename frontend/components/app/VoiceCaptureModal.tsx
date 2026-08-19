@@ -12,29 +12,51 @@ import {
   Pencil,
   RotateCcw,
   Check,
+  Layers,
 } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { formatMoney, formatLabel, formatDate } from "./RegistersTable";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 
+const CURRENCY_OPTIONS = [
+  { code: "XOF", label: "XOF - Franc CFA (UEMOA)" },
+  { code: "XAF", label: "XAF - Franc CFA (CEMAC)" },
+  { code: "GNF", label: "GNF - Franc Guinéen" },
+  { code: "CDF", label: "CDF - Franc Congolais" },
+  { code: "EUR", label: "EUR - Euro (€)" },
+  { code: "USD", label: "USD - Dollar US ($)" },
+  { code: "MAD", label: "MAD - Dirham Marocain" },
+  { code: "CAD", label: "CAD - Dollar Canadien" },
+  { code: "GBP", label: "GBP - Livre Sterling (£)" },
+  { code: "CHF", label: "CHF - Franc Suisse" },
+  { code: "NGN", label: "NGN - Naira Nigérian" },
+  { code: "GHS", label: "GHS - Cedi Ghanéen" },
+  { code: "KES", label: "KES - Shilling Kenyan" },
+  { code: "TND", label: "TND - Dinar Tunisien" },
+  { code: "RWF", label: "RWF - Franc Rwandais" },
+];
+
+export interface VoiceSaleItem {
+  reference: string;
+  sale_date: string;
+  client_name?: string | null;
+  item_label: string;
+  quantity: string | number;
+  unit_price: string | number;
+  total_amount: string | number;
+  currency: string;
+  payment_method?: string | null;
+  payment_status: string;
+  sales_channel?: string | null;
+  comment?: string | null;
+}
+
 interface VoiceParseResult {
   intent: "sale" | "offer" | "procedure" | "unknown";
   confidence: number;
   original_transcript: string;
-  sale?: {
-    reference: string;
-    sale_date: string;
-    client_name?: string | null;
-    item_label: string;
-    quantity: string | number;
-    unit_price: string | number;
-    total_amount: string | number;
-    currency: string;
-    payment_method?: string | null;
-    payment_status: string;
-    sales_channel?: string | null;
-    comment?: string | null;
-  };
+  sale?: VoiceSaleItem;
+  sales?: VoiceSaleItem[];
   offer?: {
     name: string;
     price?: string | number | null;
@@ -61,6 +83,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [parseResult, setParseResult] = useState<VoiceParseResult | null>(null);
+  const [salesList, setSalesList] = useState<VoiceSaleItem[]>([]);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [editingTranscript, setEditingTranscript] = useState(false);
@@ -88,6 +111,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
     setError("");
     setSuccessMessage("");
     setParseResult(null);
+    setSalesList([]);
     setTranscript("");
     transcriptBufferRef.current = "";
 
@@ -166,6 +190,13 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
         body: JSON.stringify({ transcript: textToParse.trim() }),
       });
       setParseResult(result);
+      if (result.sales && result.sales.length > 0) {
+        setSalesList(result.sales);
+      } else if (result.sale) {
+        setSalesList([result.sale]);
+      } else {
+        setSalesList([]);
+      }
     } catch (err: any) {
       setError(err.message || "Erreur lors de l'analyse sémantique du texte.");
     } finally {
@@ -173,17 +204,28 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
     }
   };
 
-  // Change quick payment status before confirming
-  const handleTogglePaymentStatus = (status: "paid" | "unpaid" | "partial") => {
-    if (parseResult?.sale) {
-      setParseResult({
-        ...parseResult,
-        sale: {
-          ...parseResult.sale,
-          payment_status: status,
-        },
-      });
-    }
+  // Modify individual sale in multi-sales list
+  const handleUpdateSale = (index: number, field: keyof VoiceSaleItem, value: any) => {
+    setSalesList((prev) => {
+      const copy = [...prev];
+      const target = { ...copy[index], [field]: value };
+
+      // Recompute total if quantity or unit_price changes
+      if (field === "quantity" || field === "unit_price") {
+        const q = Number(field === "quantity" ? value : target.quantity) || 1;
+        const p = Number(field === "unit_price" ? value : target.unit_price) || 0;
+        target.total_amount = q * p;
+      }
+      // Recompute unit_price if total_amount changes
+      if (field === "total_amount") {
+        const q = Number(target.quantity) || 1;
+        const t = Number(value) || 0;
+        target.unit_price = q > 0 ? t / q : t;
+      }
+
+      copy[index] = target;
+      return copy;
+    });
   };
 
   const confirmRecord = async () => {
@@ -193,8 +235,8 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
 
     try {
       let payload: any = null;
-      if (parseResult.intent === "sale" && parseResult.sale) {
-        payload = parseResult.sale;
+      if (parseResult.intent === "sale") {
+        payload = salesList.length > 1 ? salesList : salesList[0] || parseResult.sale;
       } else if (parseResult.intent === "offer" && parseResult.offer) {
         payload = parseResult.offer;
       } else if (parseResult.intent === "procedure" && parseResult.procedure) {
@@ -210,7 +252,8 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
         }),
       });
 
-      setSuccessMessage("Enregistrement réussi et archivé dans votre registre !");
+      const countMsg = salesList.length > 1 ? `${salesList.length} ventes enregistrées` : "Enregistrement réussi";
+      setSuccessMessage(`${countMsg} et archivé dans votre registre !`);
       onSuccess();
       setTimeout(() => {
         onClose();
@@ -227,6 +270,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
     if (isRecording) stopRecording();
     setTranscript("");
     setParseResult(null);
+    setSalesList([]);
     setError("");
     setSuccessMessage("");
     setEditingTranscript(false);
@@ -248,7 +292,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
         resetModal();
       }}
       title="Dictée Vocale Intelligente"
-      description="Dictez une vente, un tarif ou une procédure opérationnelle. L'IA extrait automatiquement les chiffres et entités."
+      description="Dictez une ou plusieurs ventes, un tarif ou une procédure. L'IA extrait automatiquement les articles, montants et devises."
     >
       <div className="space-y-5">
         {/* Recording Visualizer Card */}
@@ -278,7 +322,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
             </span>
             <p className="text-xs text-muted-foreground mt-1">
               {isRecording
-                ? "Parlez naturellement... Cliquez sur le carré pour terminer."
+                ? "Parlez naturellement (vous pouvez dicter plusieurs ventes)... Cliquez sur le carré pour terminer."
                 : "Cliquez sur le micro et dictez votre opération."}
             </p>
           </div>
@@ -306,7 +350,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
               <textarea
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
-                placeholder="Exemple : Vente de 3 ordinateurs à 1 000 000 par ordinateur client Koffi"
+                placeholder="Exemple : Vente d'un ordinateur à 50 000 FCFA et aussi 10 téléphones à 80 000 par téléphone"
                 rows={3}
                 className="w-full p-3 rounded-xl border border-border bg-background text-sm focus:ring-2 focus:ring-primary focus:outline-none"
               />
@@ -329,7 +373,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
         {analyzing && (
           <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs flex items-center justify-center gap-2">
             <RotateCcw size={15} className="animate-spin" />
-            <span>Extraction automatique des quantités, montants et statut...</span>
+            <span>Extraction intelligente des ventes, devises et quantités...</span>
           </div>
         )}
 
@@ -354,7 +398,9 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-primary" />
                 <strong className="text-xs uppercase font-bold tracking-wider text-foreground">
-                  Entité Détectée : {parseResult.intent.toUpperCase()}
+                  {parseResult.intent === "sale" && salesList.length > 1
+                    ? `✨ ${salesList.length} Ventes Détectées`
+                    : `Entité Détectée : ${parseResult.intent.toUpperCase()}`}
                 </strong>
               </div>
               <span className="text-[11px] text-muted-foreground font-mono">
@@ -362,64 +408,101 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
               </span>
             </div>
 
-            {/* Sale Intent Preview */}
-            {parseResult.intent === "sale" && parseResult.sale && (
-              <div className="space-y-2.5">
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2.5 rounded-xl bg-card border border-border/80">
-                    <span className="text-muted-foreground block text-[10px]">Article / Produit</span>
-                    <strong className="text-foreground">
-                      {parseResult.sale.quantity}x {parseResult.sale.item_label}
-                    </strong>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-card border border-border/80">
-                    <span className="text-muted-foreground block text-[10px]">Montant Total</span>
-                    <strong className="font-mono text-primary text-sm">
-                      {formatMoney(parseResult.sale.total_amount, parseResult.sale.currency)}
-                    </strong>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-card border border-border/80">
-                    <span className="text-muted-foreground block text-[10px]">Client</span>
-                    <span className="font-medium text-foreground">
-                      {parseResult.sale.client_name || "Client comptoir"}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-card border border-border/80">
-                    <span className="text-muted-foreground block text-[10px]">Prix Unitaire</span>
-                    <span className="font-mono font-medium text-foreground">
-                      {formatMoney(parseResult.sale.unit_price, parseResult.sale.currency)}
-                    </span>
-                  </div>
-                </div>
+            {/* Multiple Sales / Single Sale Preview */}
+            {parseResult.intent === "sale" && salesList.length > 0 && (
+              <div className="space-y-3">
+                {salesList.map((item, idx) => (
+                  <div key={idx} className="p-3 rounded-xl bg-card border border-border/80 space-y-2.5 shadow-sm">
+                    {salesList.length > 1 && (
+                      <div className="flex items-center justify-between border-b border-border/60 pb-1.5">
+                        <span className="text-xs font-bold text-primary flex items-center gap-1.5">
+                          <Layers size={13} />
+                          <span>Vente #{idx + 1}</span>
+                        </span>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          Réf : {item.reference}
+                        </span>
+                      </div>
+                    )}
 
-                {/* Quick Payment Status Toggle */}
-                <div className="p-2.5 rounded-xl bg-card border border-border/80 flex items-center justify-between gap-2 text-xs">
-                  <span className="text-muted-foreground font-medium text-[11px]">Statut du paiement :</span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleTogglePaymentStatus("unpaid")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                        parseResult.sale.payment_status === "unpaid"
-                          ? "bg-rose-500/15 text-rose-600 border border-rose-500/30"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      ⏳ Non Payé / Crédit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleTogglePaymentStatus("paid")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                        parseResult.sale.payment_status === "paid"
-                          ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      🟢 Payé (Encaissé)
-                    </button>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] mb-0.5">Article / Produit</span>
+                        <input
+                          type="text"
+                          value={item.item_label}
+                          onChange={(e) => handleUpdateSale(idx, "item_label", e.target.value)}
+                          className="w-full px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] mb-0.5">Quantité</span>
+                        <input
+                          type="number"
+                          step="any"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => handleUpdateSale(idx, "quantity", e.target.value)}
+                          className="w-full px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] mb-0.5">Montant Total</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={item.total_amount}
+                          onChange={(e) => handleUpdateSale(idx, "total_amount", e.target.value)}
+                          placeholder="Prix total"
+                          className="w-full px-2 py-1 rounded-lg border border-border bg-background text-xs font-bold font-mono text-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] mb-0.5">Devise</span>
+                        <select
+                          value={item.currency}
+                          onChange={(e) => handleUpdateSale(idx, "currency", e.target.value)}
+                          className="w-full px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                        >
+                          {CURRENCY_OPTIONS.map((c) => (
+                            <option key={c.code} value={c.code}>
+                              {c.code}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Payment status toggle per sale */}
+                    <div className="flex items-center justify-between pt-1 border-t border-border/40 text-xs">
+                      <span className="text-muted-foreground text-[10px]">Règlement :</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateSale(idx, "payment_status", "unpaid")}
+                          className={`px-2 py-0.5 rounded text-[11px] font-bold transition ${
+                            item.payment_status === "unpaid"
+                              ? "bg-rose-500/15 text-rose-600 border border-rose-500/30"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          ⏳ Non Payé
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateSale(idx, "payment_status", "paid")}
+                          className={`px-2 py-0.5 rounded text-[11px] font-bold transition ${
+                            item.payment_status === "paid"
+                              ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          🟢 Payé
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             )}
 
@@ -473,7 +556,13 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
               className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition flex items-center gap-2 shadow-md"
             >
               <CheckCircle2 size={16} />
-              <span>{saving ? "Validation..." : "Enregistrer dans le Registre"}</span>
+              <span>
+                {saving
+                  ? "Validation..."
+                  : parseResult.intent === "sale" && salesList.length > 1
+                  ? `Enregistrer les ${salesList.length} ventes dans le Registre`
+                  : "Enregistrer dans le Registre"}
+              </span>
             </button>
           )}
         </div>

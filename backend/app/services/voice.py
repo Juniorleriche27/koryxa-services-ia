@@ -74,12 +74,38 @@ class VoiceService:
                 continue
         return results
 
-    def _extract_currency(self, text: str) -> str:
+    def _extract_currency(self, text: str, default_currency: str = "XOF") -> str:
         if re.search(r"(?i)\b(?:euros?|eur|€)\b", text):
             return "EUR"
-        if re.search(r"(?i)\b(?:dollars?|usd|\$)\b", text):
+        if re.search(r"(?i)\b(?:dollars?|usd|\$|cad)\b", text):
             return "USD"
-        return "XOF"
+        if re.search(r"(?i)\b(?:livres?|gbp|£)\b", text):
+            return "GBP"
+        if re.search(r"(?i)\b(?:dirhams?|mad|dhs?)\b", text):
+            return "MAD"
+        if re.search(r"(?i)\b(?:dinars?|tnd|dzd)\b", text):
+            return "TND"
+        if re.search(r"(?i)\b(?:nairas?|ngn|₦)\b", text):
+            return "NGN"
+        if re.search(r"(?i)\b(?:cedis?|ghs|₵)\b", text):
+            return "GHS"
+        if re.search(r"(?i)\b(?:shillings?|kes)\b", text):
+            return "KES"
+        if re.search(r"(?i)\b(?:guinéens?|guineens?|gnf)\b", text):
+            return "GNF"
+        if re.search(r"(?i)\b(?:congolais|cdf)\b", text):
+            return "CDF"
+        if re.search(r"(?i)\b(?:rwandais|rwf)\b", text):
+            return "RWF"
+        if re.search(r"(?i)\b(?:ariary|mga)\b", text):
+            return "MGA"
+        if re.search(r"(?i)\b(?:cemac|xaf)\b", text):
+            return "XAF"
+        if re.search(r"(?i)\b(?:cfa|fcfa|f cfa|uemoa|xof)\b", text):
+            return "XOF"
+        if re.search(r"(?i)\b(?:francs?|f)\b", text):
+            return default_currency
+        return default_currency
 
     def _extract_payment_method(self, text: str) -> tuple[str | None, PaymentStatus]:
         lower = text.lower()
@@ -137,15 +163,15 @@ class VoiceService:
                     return candidate
         return None
 
-    def _parse_sale(self, text: str) -> VoiceParseResponse:
+    def _parse_single_sale_segment(self, text: str, default_currency: str = "XOF") -> VoiceSaleCandidate:
         amounts = self._extract_amounts(text)
-        currency = self._extract_currency(text)
+        currency = self._extract_currency(text, default_currency)
         payment_method, payment_status = self._extract_payment_method(text)
         client_name = self._extract_client_name(text)
 
         # 1. Clean introductory verbs
         cleaned = re.sub(
-            r"(?i)^(?:j\'ai\s+(?:fait\s+)?(?:effectuer\s+)?|nous\s+avons\s+(?:vendu\s+)?|veuillez\s+enregistrer\s+)?(?:une\s+)?(?:vente\s+(?:de\s+la\s+|du\s+|des\s+|d\'un\s+|d\'une\s+|de\s+|d\')?|vendu\s+)",
+            r"(?i)^(?:j\'ai\s+(?:fait\s+)?(?:effectuer\s+)?|nous\s+avons\s+(?:vendu\s+)?|on\s+a\s+(?:vendu\s+)?|veuillez\s+enregistrer\s+)?(?:une\s+)?(?:vente\s+(?:de\s+la\s+|du\s+|des\s+|d\'un\s+|d\'une\s+|de\s+|d\')?|vendu\s+)",
             "",
             text.strip(),
         ).strip()
@@ -168,11 +194,12 @@ class VoiceService:
         # 3. Extract Item label
         item_label = "Vente non détaillée"
         item_match = re.search(
-            r"(?i)^([a-zA-ZÀ-ÿ\s\'-]+?)(?=\s+(?:à|au\s+prix|pour|montant|payé|en|fcfa|cfa|francs?|\d+|$))",
+            r"(?i)^([a-zA-ZÀ-ÿ\s\'-]+?)(?=\s+(?:à|au\s+prix|pour|montant|payé|en|fcfa|cfa|francs?|\d+)|$)",
             cleaned,
         )
         if item_match:
             cand = item_match.group(1).strip()
+            cand = re.sub(r"(?i)^(?:pièces?\s+de|pieces?\s+de|articles?\s+de|unités?\s+de|unites?\s+de)\s+", "", cand).strip()
             stopwords = {
                 "non", "non paye", "non payes", "non payee", "non payees",
                 "paye", "payes", "payee", "payees", "impaye", "impayee",
@@ -194,7 +221,21 @@ class VoiceService:
         total_amount = Decimal("0")
         unit_price = Decimal("0")
 
-        if amounts:
+        # Check explicit price pattern
+        price_match = re.search(r"(?i)(?:à|au\s+prix\s+de|pour|montant\s+de)\s+(\d+(?:[\s\.]\d{3})*(?:,\d+)?)", text)
+        if price_match:
+            clean_p = price_match.group(1).replace(" ", "").replace(".", "").replace(",", ".")
+            try:
+                detected_price = Decimal(clean_p)
+                if is_per_unit and quantity > 1:
+                    unit_price = detected_price
+                    total_amount = quantity * unit_price
+                else:
+                    total_amount = detected_price
+                    unit_price = total_amount / quantity
+            except Exception:
+                pass
+        elif amounts:
             if is_per_unit and quantity > 1:
                 unit_price = amounts[0]
                 total_amount = quantity * unit_price
@@ -206,9 +247,8 @@ class VoiceService:
                 unit_price = total_amount / quantity
 
         ref_code = f"VOC-{date.today().strftime('%Y%m%d')}-{str(uuid4())[:4].upper()}"
-        confidence = 0.90 if amounts and item_label != "Vente non détaillée" else 0.70 if amounts else 0.50
 
-        candidate = VoiceSaleCandidate(
+        return VoiceSaleCandidate(
             reference=ref_code,
             sale_date=date.today(),
             client_name=client_name,
@@ -224,30 +264,51 @@ class VoiceService:
             comment=f"Transcription vocale : \"{text}\"",
         )
 
-        payment_label = {
-            PaymentStatus.PAID: "payée",
-            PaymentStatus.UNPAID: "non payée",
-            PaymentStatus.PARTIAL: "partiellement payée",
-            PaymentStatus.REFUNDED: "remboursée",
-        }.get(payment_status, str(payment_status))
+    def _parse_sale(self, text: str, default_currency: str = "XOF") -> VoiceParseResponse:
+        # Multi-sale segmentation (split on explicit conjunctions, avoiding periods in abbreviations like M. or prices)
+        split_pattern = r"(?i)(?:\s*(?:;|\bet\s+aussi\b|\bnous\s+avons\s+aussi\s+(?:vendu\s+)?|\bon\s+a\s+aussi\s+vendu\b|\baussi\s+vendu\b|\bet\s+puis\b|\bdeuxième\s+vente\b|\b2e\s+vente\b|\bet\s+une\s+vente\s+de\b|\bainsi\s+que\s+la\s+vente\b|\bainsi\s+que\s+une\s+vente\b|\bplus\s+une\s+vente\b)\s*)"
+        raw_segments = re.split(split_pattern, text)
+        segments = [s.strip() for s in raw_segments if len(s.strip()) > 3]
+
+        if len(segments) > 1:
+            sales = [self._parse_single_sale_segment(s, default_currency) for s in segments]
+        else:
+            sales = [self._parse_single_sale_segment(text, default_currency)]
+
+        primary_sale = sales[0]
+        confidence = 0.90 if primary_sale.item_label != "Vente non détaillée" else 0.70
+
+        if len(sales) > 1:
+            summary = f"{len(sales)} ventes détectées : " + " ; ".join(
+                [f"{s.quantity}x {s.item_label} ({s.total_amount} {s.currency})" for s in sales]
+            )
+        else:
+            payment_label = {
+                PaymentStatus.PAID: "payée",
+                PaymentStatus.UNPAID: "non payée",
+                PaymentStatus.PARTIAL: "partiellement payée",
+                PaymentStatus.REFUNDED: "remboursée",
+            }.get(primary_sale.payment_status, str(primary_sale.payment_status))
+            summary = f"{primary_sale.item_label} — total de {primary_sale.total_amount} {primary_sale.currency}, {payment_label}, client : {primary_sale.client_name or 'non renseigné'}."
 
         return VoiceParseResponse(
             intent=VoiceIntent.SALE,
             confidence=confidence,
             original_transcript=text,
-            sale=candidate,
+            sale=primary_sale,
+            sales=sales,
             extracted_entities={
-                "client": client_name,
-                "amount": str(total_amount),
-                "unit_price": str(unit_price),
-                "quantity": str(quantity),
-                "currency": currency,
-                "payment_method": payment_method,
-                "payment_status": payment_status,
-                "item": item_label,
+                "client": primary_sale.client_name,
+                "amount": str(primary_sale.total_amount),
+                "unit_price": str(primary_sale.unit_price),
+                "quantity": str(primary_sale.quantity),
+                "currency": primary_sale.currency,
+                "payment_method": primary_sale.payment_method,
+                "payment_status": primary_sale.payment_status,
+                "item": primary_sale.item_label,
+                "sales_count": len(sales),
             },
-            summary_message=f"{item_label} — total de {total_amount} {currency}, "
-            f"{payment_label}, client : {client_name or 'non renseigné'}.",
+            summary_message=summary,
         )
 
     def _parse_offer(self, text: str) -> VoiceParseResponse:
@@ -311,16 +372,43 @@ class VoiceService:
         self, s: AsyncSession, org: str, user: str, req: VoiceConfirmRequest
     ) -> dict[str, Any]:
         if req.intent == VoiceIntent.SALE:
-            data = SaleCreate(**req.payload, source=req.source)
-            created = await self.register_service.create_sale(s, org, user, data)
+            # Check if payload is a list (batch) or contains 'sales' list
+            items_to_create = []
+            if isinstance(req.payload, list):
+                items_to_create = req.payload
+            elif isinstance(req.payload, dict) and "sales" in req.payload and isinstance(req.payload["sales"], list):
+                items_to_create = req.payload["sales"]
+            else:
+                items_to_create = [req.payload]
+
+            created_results = []
+            for item in items_to_create:
+                data = SaleCreate(**item, source=req.source)
+                created = await self.register_service.create_sale(s, org, user, data)
+                created_results.append({
+                    "id": created.id,
+                    "reference": created.reference,
+                    "total_amount": str(created.total_amount),
+                    "currency": created.currency,
+                    "client_name": created.client_name,
+                    "item_label": created.item_label,
+                })
+
+            if len(created_results) > 1:
+                return {
+                    "type": "sales_batch",
+                    "count": len(created_results),
+                    "sales": created_results,
+                }
+            created_first = created_results[0]
             return {
                 "type": "sale",
-                "id": created.id,
-                "reference": created.reference,
-                "total_amount": str(created.total_amount),
-                "currency": created.currency,
-                "client_name": created.client_name,
-                "item_label": created.item_label,
+                "id": created_first["id"],
+                "reference": created_first["reference"],
+                "total_amount": created_first["total_amount"],
+                "currency": created_first["currency"],
+                "client_name": created_first["client_name"],
+                "item_label": created_first["item_label"],
             }
         elif req.intent == VoiceIntent.OFFER:
             data = OfferCreate(**req.payload, source=req.source)

@@ -98,3 +98,61 @@ def test_whatsapp_webhook_handshake_and_inbound_message() -> None:
         assert sales.status_code == 200
         assert sales.json()["total"] == 1
         assert Decimal(str(sales.json()["items"][0]["total_amount"])) == Decimal("500000")
+
+
+def test_voice_multi_sales_and_currencies() -> None:
+    with TestClient(app) as client:
+        owner = create_org(client, "tenant-multi-voice", "user-multi-voice")
+
+        # 1. Multi-sales in a single voice dictation
+        phrase = "vente d'un ordinateur portable à 50000 francs nous avons aussi vendu 10 pièces de téléphone Android marque Motorola"
+        res = client.post(
+            "/api/v1/voice/parse",
+            headers=owner,
+            json={"transcript": phrase},
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["intent"] == "sale"
+        assert len(data["sales"]) == 2
+        assert data["sales"][0]["item_label"] == "ordinateur portable"
+        assert Decimal(data["sales"][0]["quantity"]) == Decimal("1")
+        assert Decimal(data["sales"][0]["total_amount"]) == Decimal("50000")
+        assert data["sales"][0]["currency"] == "XOF"
+
+        assert "téléphone" in data["sales"][1]["item_label"].lower()
+        assert Decimal(data["sales"][1]["quantity"]) == Decimal("10")
+
+        # 2. Batch confirmation of multi-sales
+        confirm_res = client.post(
+            "/api/v1/voice/confirm",
+            headers=owner,
+            json={"intent": "sale", "payload": data["sales"], "source": "voice"},
+        )
+        assert confirm_res.status_code == 200 or confirm_res.status_code == 201
+        confirm_data = confirm_res.json()
+        assert confirm_data["type"] == "sales_batch"
+        assert confirm_data["count"] == 2
+
+        # 3. International currencies parsing
+        gnf_res = client.post(
+            "/api/v1/voice/parse",
+            headers=owner,
+            json={"transcript": "Vente de 5 sacs de riz à 150000 GNF"},
+        )
+        assert gnf_res.json()["sale"]["currency"] == "GNF"
+
+        mad_res = client.post(
+            "/api/v1/voice/parse",
+            headers=owner,
+            json={"transcript": "Vente de 2 formations à 3000 dirhams"},
+        )
+        assert mad_res.json()["sale"]["currency"] == "MAD"
+
+        usd_res = client.post(
+            "/api/v1/voice/parse",
+            headers=owner,
+            json={"transcript": "Vente de 3 licences à 500 dollars"},
+        )
+        assert usd_res.json()["sale"]["currency"] == "USD"
+

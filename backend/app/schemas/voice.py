@@ -60,6 +60,7 @@ class VoiceParseResponse(BaseModel):
     confidence: float
     original_transcript: str
     sale: VoiceSaleCandidate | None = None
+    sales: list[VoiceSaleCandidate] = Field(default_factory=list)
     offer: VoiceOfferCandidate | None = None
     procedure: VoiceProcedureCandidate | None = None
     extracted_entities: dict[str, Any] = Field(default_factory=dict)
@@ -68,7 +69,7 @@ class VoiceParseResponse(BaseModel):
 
 class VoiceConfirmRequest(BaseModel):
     intent: VoiceIntent
-    payload: dict[str, Any]
+    payload: dict[str, Any] | list[dict[str, Any]]
     source: RecordSource = RecordSource.VOICE
 
 
