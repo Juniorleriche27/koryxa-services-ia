@@ -426,12 +426,22 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
                     )}
 
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
+                      <div className="col-span-2 sm:col-span-1">
                         <span className="text-muted-foreground block text-[10px] mb-0.5">Article / Produit</span>
                         <input
                           type="text"
                           value={item.item_label}
                           onChange={(e) => handleUpdateSale(idx, "item_label", e.target.value)}
+                          className="w-full px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                        />
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                        <span className="text-muted-foreground block text-[10px] mb-0.5">Client</span>
+                        <input
+                          type="text"
+                          value={item.client_name || ""}
+                          placeholder="Client comptoir"
+                          onChange={(e) => handleUpdateSale(idx, "client_name", e.target.value)}
                           className="w-full px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
                         />
                       </div>
@@ -457,7 +467,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
                           className="w-full px-2 py-1 rounded-lg border border-border bg-background text-xs font-bold font-mono text-primary focus:ring-1 focus:ring-primary focus:outline-none"
                         />
                       </div>
-                      <div>
+                      <div className="col-span-2">
                         <span className="text-muted-foreground block text-[10px] mb-0.5">Devise</span>
                         <select
                           value={item.currency}

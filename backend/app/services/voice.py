@@ -169,14 +169,39 @@ class VoiceService:
         payment_method, payment_status = self._extract_payment_method(text)
         client_name = self._extract_client_name(text)
 
-        # 1. Clean introductory verbs
+        working_text = text.strip()
+
+        # 1. Subject Client Extraction (e.g., "Sylvie a acheté 3 téléphones...", "M. Koffi a pris...", "Client Diallo a commandé...")
+        subject_match = re.search(
+            r"(?i)^(?:pour\s+)?(?:le\s+client|la\s+cliente|m\.|mr\.|monsieur|mme|madame)?\s*([a-zA-ZÀ-ÿ\s'-]+?)\s+(?:a\s+(?:acheté|achete|pris|commandé|commande|payé|paye|réglé|regle|demandé|demande)|est\s+venu(?:e)?\s+(?:acheter|prendre)|nous\s+a\s+(?:acheté|commandé|pris))\s+(.+)$",
+            working_text,
+        )
+        if subject_match:
+            cand_client = subject_match.group(1).strip()
+            cand_client = re.sub(r"(?i)^(?:le\s+client|la\s+cliente|m\.|mr\.|monsieur|mme|madame)\s*", "", cand_client).strip()
+            if len(cand_client) >= 2 and cand_client.lower() not in ["on", "nous", "j'ai", "je", "vente", "il", "elle", "j"]:
+                client_name = cand_client.capitalize()
+                working_text = subject_match.group(2).strip()
+
+        # 2. Clean introductory verbs BEFORE number word replacements
         cleaned = re.sub(
-            r"(?i)^(?:j\'ai\s+(?:fait\s+)?(?:effectuer\s+)?|nous\s+avons\s+(?:vendu\s+)?|on\s+a\s+(?:vendu\s+)?|veuillez\s+enregistrer\s+)?(?:une\s+)?(?:vente\s+(?:de\s+la\s+|du\s+|des\s+|d\'un\s+|d\'une\s+|de\s+|d\')?|vendu\s+)",
+            r"(?i)^(?:j\'ai\s+(?:fait\s+)?(?:effectuer\s+|effectué\s+)?|nous\s+avons\s+(?:vendu\s+)?|on\s+a\s+(?:vendu\s+)?|veuillez\s+enregistrer\s+)?(?:une\s+)?(?:vente\s+(?:de\s+la\s+|du\s+|des\s+|d\'un\s+|d\'une\s+|de\s+|d\')?|vendu\s+)",
             "",
-            text.strip(),
+            working_text,
         ).strip()
 
-        # 2. Extract primary quantity
+        # 3. Convert spoken French number words to digits before nouns
+        word_numbers = {
+            "deux": "2", "trois": "3", "quatre": "4",
+            "cinq": "5", "six": "6", "sept": "7", "huit": "8", "neuf": "9",
+            "dix": "10", "onze": "11", "douze": "12", "treize": "13", "quatorze": "14",
+            "quinze": "15", "seize": "16", "vingt": "20", "trente": "30",
+            "quarante": "40", "cinquante": "50", "soixante": "60", "cent": "100",
+        }
+        for word, num in word_numbers.items():
+            cleaned = re.sub(rf"(?i)\b{word}\b(?=\s+[a-zA-ZÀ-ÿ])", num, cleaned)
+
+        # 4. Extract primary quantity
         quantity = Decimal("1")
         un_match = re.match(r"(?i)^(?:un|une)\s+", cleaned)
         num_match = re.match(r"(?i)^(\d{1,3})\s+(sacs?|cartons?|articles?|unités?|pièces?|boites?|heures?|jours?|ordinateurs?|produits?|exemplaires?|livres?|bouteilles?|packs?|[a-zA-ZÀ-ÿ\'-]+)", cleaned)
@@ -191,7 +216,7 @@ class VoiceService:
             except Exception:
                 quantity = Decimal("1")
 
-        # 3. Extract Item label
+        # 5. Extract Item label
         item_label = "Vente non détaillée"
         item_match = re.search(
             r"(?i)^([a-zA-ZÀ-ÿ\s\'-]+?)(?=\s+(?:à|au\s+prix|pour|montant|payé|en|fcfa|cfa|francs?|\d+)|$)",
@@ -212,7 +237,7 @@ class VoiceService:
         if quantity in amounts and len(amounts) > 1:
             amounts = [a for a in amounts if a != quantity]
 
-        # 4. Per-unit price vs Total calculation
+        # 6. Per-unit price vs Total calculation
         is_per_unit = bool(re.search(
             r"(?i)\b(?:par\s+(?:unité|unite|pièce|piece|article|sac|carton|ordinateur|personne|heure|jour|mois|licence|boite|bouteille|exemplaire|kg|kilo|litre|produit)|l'unité|l'unite|chacun|la\s+pièce|la\s+piece|l'une|par\s+tête)\b",
             text,
@@ -227,7 +252,7 @@ class VoiceService:
             clean_p = price_match.group(1).replace(" ", "").replace(".", "").replace(",", ".")
             try:
                 detected_price = Decimal(clean_p)
-                if is_per_unit and quantity > 1:
+                if is_per_unit:
                     unit_price = detected_price
                     total_amount = quantity * unit_price
                 else:

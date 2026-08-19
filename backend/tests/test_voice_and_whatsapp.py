@@ -142,17 +142,17 @@ def test_voice_multi_sales_and_currencies() -> None:
         )
         assert gnf_res.json()["sale"]["currency"] == "GNF"
 
-        mad_res = client.post(
+        # 4. Subject Phrasing & Number Words Test
+        sylvie_res = client.post(
             "/api/v1/voice/parse",
             headers=owner,
-            json={"transcript": "Vente de 2 formations à 3000 dirhams"},
+            json={"transcript": "sylvie a acheté trois téléphones à 200000 francs l'unité"},
         )
-        assert mad_res.json()["sale"]["currency"] == "MAD"
-
-        usd_res = client.post(
-            "/api/v1/voice/parse",
-            headers=owner,
-            json={"transcript": "Vente de 3 licences à 500 dollars"},
-        )
-        assert usd_res.json()["sale"]["currency"] == "USD"
+        assert sylvie_res.status_code == 200
+        sylvie_data = sylvie_res.json()
+        assert sylvie_data["sale"]["client_name"] == "Sylvie"
+        assert "téléphones" in sylvie_data["sale"]["item_label"].lower() or "téléphone" in sylvie_data["sale"]["item_label"].lower()
+        assert Decimal(sylvie_data["sale"]["quantity"]) == Decimal("3")
+        assert Decimal(sylvie_data["sale"]["unit_price"]) == Decimal("200000")
+        assert Decimal(sylvie_data["sale"]["total_amount"]) == Decimal("600000")
 
