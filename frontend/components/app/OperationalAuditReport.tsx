@@ -93,7 +93,7 @@ export function OperationalAuditReport({
             </div>
             <div className="kx-report-meta">
               <div>
-                <span>Entreprise audité</span>
+                <span>Entreprise auditée</span>
                 <strong>{data.organizationName}</strong>
               </div>
               <div>
