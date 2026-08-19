@@ -158,6 +158,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     organization.created_by_user_id === user?.id &&
     !organization.onboarding_completed_at;
 
+  if (pathname === "/espace/presence/borne") {
+    return <main className="min-h-screen w-full bg-slate-950">{children}</main>;
+  }
+
   return (
     <div className={clsx("app-shell", collapsed && "is-sidebar-collapsed")}>
       <CommandPalette

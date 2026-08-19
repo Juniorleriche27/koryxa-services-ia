@@ -75,7 +75,7 @@ export default function PresencePage() {
   const proConfig = getBusinessCategoryConfig(businessCategory);
 
   return (
-    <AppShell>
+    <>
       <div className="space-y-6">
         <PageHeader
           eyebrow={proConfig.badge}
@@ -253,6 +253,6 @@ export default function PresencePage() {
           }}
         />
       </div>
-    </AppShell>
+    </>
   );
 }
