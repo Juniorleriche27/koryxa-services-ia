@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  BookOpen,
   Building2,
   ChevronDown,
   ChevronRight,
@@ -16,6 +17,7 @@ import {
   Menu,
   Mic,
   MessageSquare,
+  MessageSquarePlus,
   PanelLeftClose,
   PanelLeftOpen,
   Radar,
@@ -108,6 +110,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         { label: "Paramètres", href: "/espace/parametres", icon: Settings },
       ],
     },
+    {
+      id: "aide",
+      title: "Aide & Accompagnement",
+      items: [
+        { label: "Manuel & Guide Détaillé", href: "/espace/aide", icon: BookOpen },
+        { label: "Foire Aux Questions (FAQ)", href: "/espace/aide?tab=faq", icon: HelpCircle },
+        { label: "Retours & Suggestions", href: "/espace/aide?tab=feedback", icon: MessageSquarePlus },
+      ],
+    },
   ], [proConfig]);
 
   // Open / closed accordion groups state - All closed by default
@@ -116,6 +127,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     operations: false,
     radar: false,
     system: false,
+    aide: false,
   });
 
   const toggleGroup = (groupId: string) => {
