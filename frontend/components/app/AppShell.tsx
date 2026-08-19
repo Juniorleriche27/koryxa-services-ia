@@ -106,23 +106,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
   ], [proConfig]);
 
-  // Open / closed accordion groups state
+  // Open / closed accordion groups state - All closed by default
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    pilotage: true,
+    pilotage: false,
     operations: false,
     radar: false,
     system: false,
   });
-
-  // Automatically expand the group containing the active page
-  useEffect(() => {
-    navGroups.forEach((group) => {
-      const hasActive = group.items.some((item) => item.href === pathname);
-      if (hasActive) {
-        setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
-      }
-    });
-  }, [pathname, navGroups]);
 
   const toggleGroup = (groupId: string) => {
     setOpenGroups((prev) => ({
@@ -301,17 +291,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     type="button"
                     onClick={() => toggleGroup(group.id)}
                     className={clsx(
-                      "w-full flex items-center justify-between px-3 py-1.5 text-[10.5px] uppercase font-extrabold tracking-wider transition rounded-lg cursor-pointer",
-                      hasActiveChild
-                        ? "text-primary hover:text-primary/90"
-                        : "text-muted-foreground/80 hover:text-foreground hover:bg-muted/40"
+                      "w-full flex items-center justify-between px-3 py-2 rounded-xl transition cursor-pointer text-left",
+                      isOpen
+                        ? "bg-muted/60 text-slate-950 font-bold shadow-xs"
+                        : "hover:bg-muted/30 text-slate-950 font-bold"
                     )}
                   >
-                    <span className="truncate">{group.title}</span>
+                    <span className="truncate text-[13.5px] font-bold text-slate-950 tracking-tight">
+                      {group.title}
+                    </span>
                     {isOpen ? (
-                      <ChevronDown size={13} className="opacity-70 shrink-0" />
+                      <ChevronDown size={15} className="text-slate-900 shrink-0" />
                     ) : (
-                      <ChevronRight size={13} className="opacity-70 shrink-0" />
+                      <ChevronRight size={15} className="text-slate-700 shrink-0" />
                     )}
                   </button>
                 )}
