@@ -282,16 +282,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               aria-label="Ouvrir Cora, votre assistante IA"
             >
               <span className="kx-cora-robot" aria-hidden="true">
-                <Bot size={18} strokeWidth={2.4} />
+                <Bot size={17} strokeWidth={2.4} />
               </span>
               <span className="kx-cora-label">Cora <small>IA</small></span>
               <kbd className="kx-cmd-kbd">⌘J</kbd>
             </button>
 
-            {/* Direct Voice Capture Trigger Button */}
+            {/* Direct Voice Capture Trigger Button (Desktop topbar) */}
             <button
               type="button"
-              className="kx-topbar-voice-btn"
+              className="kx-topbar-voice-btn hidden sm:inline-flex"
               onClick={() => setVoiceOpen(true)}
               title="Dictée vocale intelligente (Micro)"
             >
@@ -310,22 +310,84 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <kbd className="kx-cmd-kbd">⌘K</kbd>
             </button>
 
-
-            <Link href="/" className="app-public-link" title="Retourner sur le site public">
+            <Link href="/" className="app-public-link hidden lg:inline-flex" title="Retourner sur le site public">
               <ExternalLink size={15} />
               <span>Site public</span>
             </Link>
 
-            <span className="app-live">
+            <span className="app-live hidden xl:inline-flex">
               <i />
               API connectée
             </span>
 
-            <UserButton appearance={{ elements: { avatarBox: "h-11 w-11" } }} />
+            <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 sm:h-11 sm:w-11" } }} />
           </div>
         </header>
 
-        <div className="app-content">{children}</div>
+        <div className="app-content pb-24 lg:pb-8">{children}</div>
+
+        {/* Mobile Bottom Navigation Bar (Glassmorphism Dock) */}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/80 px-2 py-1.5 flex items-center justify-around lg:hidden shadow-[0_-10px_25px_rgba(0,0,0,0.06)]">
+          <Link
+            href="/espace"
+            className={clsx(
+              "flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold",
+              pathname === "/espace"
+                ? "text-primary font-black"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutDashboard size={20} />
+            <span>Cockpit</span>
+          </Link>
+
+          <Link
+            href="/espace/ventes"
+            className={clsx(
+              "flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold",
+              pathname === "/espace/ventes"
+                ? "text-primary font-black"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <ReceiptText size={20} />
+            <span>Ventes</span>
+          </Link>
+
+          {/* Raised Pulsing Center Mic Button for Instant Voice Capture */}
+          <button
+            type="button"
+            onClick={() => setVoiceOpen(true)}
+            className="relative -top-3 w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white shadow-[0_6px_20px_rgba(16,185,129,0.45)] active:scale-95 transition-all flex items-center justify-center ring-4 ring-background cursor-pointer"
+            title="Dictée vocale directe"
+            aria-label="Dictée vocale"
+          >
+            <Mic size={22} />
+          </button>
+
+          <Link
+            href="/espace/radar"
+            className={clsx(
+              "flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold",
+              pathname === "/espace/radar"
+                ? "text-primary font-black"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Radar size={20} />
+            <span>Radar</span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-muted-foreground hover:text-foreground transition text-[10px] font-bold cursor-pointer"
+            aria-label="Ouvrir le menu complet"
+          >
+            <Menu size={20} />
+            <span>Menu</span>
+          </button>
+        </nav>
       </main>
     </div>
   );
