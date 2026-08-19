@@ -64,13 +64,13 @@ export function RadarSection({
   return (
     <>
       <PageHeader
-        eyebrow="Qualité des données"
-        title="Knowlia Radar"
-        description="Analysez chaque alerte de qualité, créez une action ou marquez-la comme traitée."
+        eyebrow="Audit Automatique"
+        title="Radar des Anomalies"
+        description="Contrôleur de gestion virtuel : détecte automatiquement les erreurs de calcul, les impayés oubliés et les données incomplètes."
         action={
           <button className="app-button app-button-primary" disabled={running} onClick={run}>
             <Play size={16} />
-            <span>{running ? "Analyse en cours…" : "Lancer l'audit Radar"}</span>
+            <span>{running ? "Analyse en cours…" : "Relancer l'audit Radar"}</span>
           </button>
         }
       />

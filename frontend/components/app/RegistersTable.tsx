@@ -133,6 +133,21 @@ export function formatLabel(value: unknown) {
     direct: "Direct",
     whatsapp: "WhatsApp",
     web: "Site Web",
+    todo: "À faire",
+    in_progress: "En cours",
+    blocked: "Bloqué",
+    completed: "Terminé",
+    consistency: "Cohérence des calculs",
+    completeness: "Information manquante",
+    freshness: "Échéance dépassée",
+    traceability: "Traçabilité & Validation",
+    open: "À traiter",
+    acknowledged: "En cours de traitement",
+    resolved: "Résolu",
+    high: "Important",
+    critical: "Critique",
+    normal: "Normal",
+    low: "Faible",
   };
   const key = String(value).toLowerCase();
   return translations[key] ?? String(value).replaceAll("_", " ");

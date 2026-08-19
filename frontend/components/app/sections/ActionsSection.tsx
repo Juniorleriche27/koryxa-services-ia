@@ -69,13 +69,13 @@ export function ActionsSection({
   return (
     <>
       <PageHeader
-        eyebrow="Exécution"
-        title="Actions correctives"
-        description="Créez, assignez et faites progresser les actions issues de Radar."
+        eyebrow="Plan d'Action & Suivi"
+        title="Actions & Tâches Correctives"
+        description="Tableau de suivi des résolutions issues de Radar ou créées manuellement pour régulariser l'activité."
         action={
           <button className="app-button app-button-primary" onClick={() => setCreating(true)}>
             <Plus size={16} />
-            <span>Nouvelle action</span>
+            <span>Nouvelle tâche</span>
           </button>
         }
       />
