@@ -114,6 +114,8 @@ class Sale(Base):
     reference: Mapped[str] = mapped_column(String(100), index=True)
     sale_date: Mapped[date] = mapped_column(Date, index=True)
     client_name: Mapped[str | None] = mapped_column(String(180), index=True)
+    client_phone: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    client_email: Mapped[str | None] = mapped_column(String(180), nullable=True)
     offer_id: Mapped[str | None] = mapped_column(
         ForeignKey("offers.id", ondelete="SET NULL"), index=True
     )

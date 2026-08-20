@@ -28,6 +28,7 @@ export function RegisterEditDialog({
   const [saleReference, setSaleReference] = useState(sale?.reference || "");
   const [saleDate, setSaleDate] = useState(sale?.sale_date || "");
   const [saleClient, setSaleClient] = useState(sale?.client_name || "");
+  const [saleClientPhone, setSaleClientPhone] = useState(sale?.client_phone || "");
   const [saleItemLabel, setSaleItemLabel] = useState(sale?.item_label || "");
   const [saleQuantity, setSaleQuantity] = useState(sale?.quantity != null ? String(sale.quantity) : "1");
   const [saleUnitPrice, setSaleUnitPrice] = useState(sale?.unit_price != null ? String(sale.unit_price) : "0");
@@ -88,6 +89,7 @@ export function RegisterEditDialog({
             reference: saleReference,
             sale_date: saleDate,
             client_name: saleClient || null,
+            client_phone: saleClientPhone || null,
             item_label: saleItemLabel,
             quantity: saleQuantity,
             unit_price: saleUnitPrice,
@@ -185,6 +187,17 @@ export function RegisterEditDialog({
                 />
               </label>
               <label>
+                <span>Numéro WhatsApp / Téléphone Client</span>
+                <input
+                  placeholder="Ex: +228 90 12 34 56 ou 07080910"
+                  value={saleClientPhone}
+                  onChange={(e) => setSaleClientPhone(e.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="app-form-grid">
+              <label className="app-form-span">
                 <span>Désignation / Article *</span>
                 <input
                   required

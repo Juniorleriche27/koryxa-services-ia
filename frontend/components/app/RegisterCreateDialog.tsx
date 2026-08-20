@@ -117,6 +117,7 @@ export function RegisterCreateDialog({
         sale_date: text(data, "sale_date"),
         due_date: dueDate || null,
         client_name: optional(data, "client_name"),
+        client_phone: optional(data, "client_phone"),
         item_label: text(data, "item_label"),
         quantity: quantity || 1,
         unit_price: unitPrice || 0,
@@ -322,6 +323,15 @@ export function RegisterCreateDialog({
               <label>
                 Client / Destinataire
                 <input name="client_name" defaultValue={record?.client_name || ""} placeholder="Nom ou entreprise" />
+              </label>
+
+              <label>
+                Numéro WhatsApp / Téléphone Client
+                <input
+                  name="client_phone"
+                  defaultValue={record?.client_phone || ""}
+                  placeholder="Ex: +228 90 12 34 56 ou 07080910"
+                />
               </label>
 
               <label>

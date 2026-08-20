@@ -321,7 +321,11 @@ class AIEngineService:
         whatsapp_url = None
         if req.channel == PaymentReminderChannel.WHATSAPP:
             encoded_text = urllib.parse.quote(body)
-            whatsapp_url = f"https://api.whatsapp.com/send?text={encoded_text}"
+            clean_phone = re.sub(r"[^0-9]", "", req.client_phone or "")
+            if clean_phone:
+                whatsapp_url = f"https://api.whatsapp.com/send?phone={clean_phone}&text={encoded_text}"
+            else:
+                whatsapp_url = f"https://api.whatsapp.com/send?text={encoded_text}"
 
         return PaymentReminderResponse(
             subject=subject,

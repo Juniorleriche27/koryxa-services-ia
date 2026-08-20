@@ -18,10 +18,12 @@ import { serviceIaFetch } from "@/lib/service-ia/api";
 interface PaymentReminderDialogProps {
   open: boolean;
   onClose: () => void;
+  organizationName?: string;
   sale: {
     id: string;
     reference: string;
     client_name?: string | null;
+    client_phone?: string | null;
     total_amount: number | string;
     paid_amount?: number | string | null;
     due_date?: string | null;
@@ -40,6 +42,7 @@ interface ReminderResponse {
 export function PaymentReminderDialog({
   open,
   onClose,
+  organizationName = "ECO",
   sale,
 }: PaymentReminderDialogProps) {
   const [tone, setTone] = useState<"courteous" | "firm" | "legal">("courteous");
@@ -82,6 +85,8 @@ export function PaymentReminderDialog({
         body: JSON.stringify({
           sale_id: sale.id,
           client_name: sale.client_name || "Client",
+          client_phone: sale.client_phone || null,
+          organization_name: organizationName,
           amount: total,
           paid_amount: paid,
           balance_due: balance,

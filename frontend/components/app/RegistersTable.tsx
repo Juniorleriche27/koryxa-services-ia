@@ -37,6 +37,8 @@ export interface SaleItem {
   sale_date: string;
   due_date?: string | null;
   client_name?: string | null;
+  client_phone?: string | null;
+  client_email?: string | null;
   offer_id?: string | null;
   item_label: string;
   quantity: string | number;
@@ -209,6 +211,8 @@ export function getDueDateBadge(sale: SaleItem) {
    ========================================================================= */
 interface SalesTableInteractiveProps {
   sales: SaleItem[];
+  organizationName?: string;
+  organizationCategory?: string;
   onSelect: (sale: SaleItem) => void;
   onEdit: (sale: SaleItem) => void;
   onArchive: (id: string) => void;
@@ -217,6 +221,8 @@ interface SalesTableInteractiveProps {
 
 export function SalesTableInteractive({
   sales,
+  organizationName = "ECO",
+  organizationCategory = "Commerce & Distribution",
   onSelect,
   onEdit,
   onArchive,
@@ -571,11 +577,25 @@ export function SalesTableInteractive({
                         <strong className="text-xs font-black text-foreground block">
                           {sale.client_name || "Client comptant"}
                         </strong>
-                        {sale.sales_channel && (
-                          <span className="text-[10px] font-semibold text-muted-foreground">
-                            Canal : {sale.sales_channel}
-                          </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                          {sale.client_phone && (
+                            <a
+                              href={`https://api.whatsapp.com/send?phone=${sale.client_phone.replace(/[^0-9]/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-900 hover:bg-emerald-100 transition"
+                              title="Ouvrir WhatsApp directement avec ce client"
+                            >
+                              <span>📱</span>
+                              <span>{sale.client_phone}</span>
+                            </a>
+                          )}
+                          {sale.sales_channel && (
+                            <span className="text-[10px] font-semibold text-muted-foreground">
+                              Canal : {sale.sales_channel}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
 
@@ -702,6 +722,8 @@ export function SalesTableInteractive({
         open={Boolean(viewerDoc)}
         onClose={() => setViewerDoc(null)}
         document={viewerDoc}
+        organizationName={organizationName}
+        organizationCategory={organizationCategory}
         onRecordPayment={(doc) => {
           setViewerDoc(null);
           setPaymentSale(doc);

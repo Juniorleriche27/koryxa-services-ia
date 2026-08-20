@@ -95,6 +95,8 @@ class SaleBase(BaseModel):
     document_type: DocumentType = DocumentType.INVOICE
     sale_date: date
     client_name: str | None = None
+    client_phone: str | None = None
+    client_email: str | None = None
     offer_id: str | None = None
     item_label: str = Field(min_length=1, max_length=180)
     quantity: Decimal = Field(default=1, gt=0)
@@ -124,6 +126,8 @@ class SaleUpdate(BaseModel):
     document_type: DocumentType | None = None
     sale_date: date | None = None
     client_name: str | None = None
+    client_phone: str | None = None
+    client_email: str | None = None
     offer_id: str | None = None
     item_label: str | None = None
     quantity: Decimal | None = Field(default=None, gt=0)

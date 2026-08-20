@@ -26,6 +26,8 @@ async def run_auto_migrations(engine: AsyncEngine) -> None:
                 "ALTER TABLE sales ADD COLUMN IF NOT EXISTS due_date DATE",
                 "ALTER TABLE sales ADD COLUMN IF NOT EXISTS deposit_percentage NUMERIC(5, 2)",
                 "ALTER TABLE sales ADD COLUMN IF NOT EXISTS payment_history JSON DEFAULT '[]'::json",
+                "ALTER TABLE sales ADD COLUMN IF NOT EXISTS client_phone VARCHAR(50)",
+                "ALTER TABLE sales ADD COLUMN IF NOT EXISTS client_email VARCHAR(180)",
                 # Expenses table extensions
                 "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS document_type VARCHAR(32) DEFAULT 'expense_receipt'",
                 "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS paid_amount NUMERIC(14, 2)",

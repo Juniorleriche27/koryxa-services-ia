@@ -103,6 +103,8 @@ class PaymentReminderChannel(str, Enum):
 class PaymentReminderRequest(BaseModel):
     sale_id: str | None = None
     client_name: str
+    client_phone: str | None = None
+    organization_name: str | None = None
     amount: float
     paid_amount: float = 0.0
     balance_due: float | None = None

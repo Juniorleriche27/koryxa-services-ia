@@ -57,6 +57,7 @@ export function ExpressPosModal({
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [clientName, setClientName] = useState("Client Comptoir");
+  const [clientPhone, setClientPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [amountReceived, setAmountReceived] = useState<string>("");
   const [discountPercent, setDiscountPercent] = useState<number>(0);
@@ -221,6 +222,7 @@ export function ExpressPosModal({
         document_type: "receipt",
         sale_date: new Date().toISOString().slice(0, 10),
         client_name: clientName.trim() || "Client Comptoir",
+        client_phone: clientPhone.trim() || null,
         item_label: itemLabelSummary,
         offer_id: cart.length === 1 && !cart[0].offer.id.startsWith("custom-") ? cart[0].offer.id : null,
         quantity: cart.length === 1 ? cart[0].quantity : 1,
@@ -378,7 +380,34 @@ export function ExpressPosModal({
               )}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const cleanPhone = (clientPhone || "").replace(/[^0-9]/g, "");
+                  const lines = [
+                    `🧾 *TICKET DE CAISSE / REÇU D'ENCAISSEMENT*`,
+                    `📄 Réf : *${lastSaleResult?.reference || "Comptoir"}*`,
+                    `📅 Date : ${new Date().toLocaleDateString("fr-FR")}`,
+                    `👤 Client : *${clientName || "Client Comptoir"}*`,
+                    `💰 Montant réglé : *${formatMoney(lastSaleResult?.totalAmount || 0, currency)}* (${paymentMethod.toUpperCase()})`,
+                  ];
+                  if (lastSaleResult?.changeToReturn > 0) {
+                    lines.push(`💵 Monnaie rendue : ${formatMoney(lastSaleResult.changeToReturn, currency)}`);
+                  }
+                  lines.push(`\nMerci pour votre achat et à très bientôt !`);
+                  const text = lines.join("\n");
+                  const baseUrl = cleanPhone
+                    ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=`
+                    : `https://api.whatsapp.com/send?text=`;
+                  window.open(`${baseUrl}${encodeURIComponent(text)}`, "_blank");
+                }}
+                className="px-4 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm font-bold hover:bg-emerald-100 transition flex items-center gap-2 cursor-pointer"
+              >
+                <span>💬</span>
+                <span>WhatsApp Ticket</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => window.print()}
@@ -587,12 +616,22 @@ export function ExpressPosModal({
               {/* Client Name input */}
               <div className="p-3 sm:p-4 border-b border-border bg-muted/20 shrink-0">
                 <div className="flex items-center gap-2">
-                  <User size={15} className="text-muted-foreground" />
+                  <User size={15} className="text-muted-foreground shrink-0" />
                   <input
                     type="text"
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
                     placeholder="Nom du client (ex: Client Comptoir)"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-background text-xs font-medium text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Smartphone size={15} className="text-muted-foreground shrink-0" />
+                  <input
+                    type="tel"
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value)}
+                    placeholder="WhatsApp / Tél (ex: +228 90 12 34 56)"
                     className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-background text-xs font-medium text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
                   />
                 </div>

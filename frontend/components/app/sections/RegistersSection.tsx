@@ -37,13 +37,15 @@ export function RegistersSection({
   onReload: () => Promise<void>;
 }) {
   const [businessCategory, setBusinessCategory] = useState<string>("retail");
+  const [organizationName, setOrganizationName] = useState<string>("ECO");
   const [posOpen, setPosOpen] = useState(false);
   const [allOffers, setAllOffers] = useState<OfferItem[]>([]);
   const [adjustingStockOffer, setAdjustingStockOffer] = useState<OfferItem | null>(null);
 
   useEffect(() => {
-    serviceIaFetch<{ business_category?: string }>("/organizations/current")
+    serviceIaFetch<{ name?: string; business_category?: string }>("/organizations/current")
       .then((org) => {
+        if (org.name) setOrganizationName(org.name);
         if (org.business_category) setBusinessCategory(org.business_category);
       })
       .catch(() => {});
@@ -58,7 +60,9 @@ export function RegistersSection({
 
     const updated = (e: Event) => {
       const cat = (e as CustomEvent<any>)?.detail?.business_category;
+      const nm = (e as CustomEvent<any>)?.detail?.name;
       if (cat) setBusinessCategory(cat);
+      if (nm) setOrganizationName(nm);
     };
     window.addEventListener("koryxa:organization-updated", updated);
     return () => window.removeEventListener("koryxa:organization-updated", updated);
@@ -162,6 +166,8 @@ export function RegistersSection({
         {kind === "sales" && sales.length > 0 && (
           <SalesTableInteractive
             sales={sales}
+            organizationName={organizationName}
+            organizationCategory={proConfig.name}
             onSelect={(sale) => setSelectedRecord(sale)}
             onEdit={(sale) => setEditingRecord(sale)}
             onArchive={(id) => archiveRecord("sales", id)}

@@ -86,10 +86,40 @@ export function CommercialDocumentViewer({
   };
 
   const handleShareWhatsApp = () => {
-    const text = `Bonjour ${doc.client_name || "Client"},\n\nVeuillez trouver le document *${currentMeta.title}* réf. *${doc.reference}* d'un montant total de *${formatMoney(total, currency)}*`
-      + (balance > 0 ? ` (Solde restant : *${formatMoney(balance, currency)}*).` : ` (Entièrement réglé ✅).`)
-      + `\n\nÉmis par *${organizationName}*.\nMerci pour votre confiance !`;
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    const cleanPhone = (doc.client_phone || "").replace(/[^0-9]/g, "");
+    const lines = [
+      `*${currentMeta.title}*`,
+      `📄 Réf : *${doc.reference}*`,
+      `📅 Date : ${formatDate(doc.sale_date, false)}`,
+      `🏢 Émis par : *${organizationName}*`,
+      `👤 Client : *${doc.client_name || "Client"}*`,
+      `📦 Désignation : ${doc.item_label} (Qté : ${doc.quantity})`,
+      `💰 Total Net : *${formatMoney(total, currency)}*`,
+    ];
+
+    if (balance > 0) {
+      if (paid > 0) {
+        lines.push(`💳 Acompte déjà versé : *${formatMoney(paid, currency)}*`);
+      }
+      lines.push(`🚨 *Solde restant dû : ${formatMoney(balance, currency)}*`);
+      if (doc.due_date) {
+        lines.push(`⏳ Date d'échéance : ${formatDate(doc.due_date, false)}`);
+      }
+    } else {
+      lines.push(`✅ *Statut : Document entièrement réglé et acquitté.*`);
+    }
+
+    lines.push(
+      `\nModalités de règlement : Wave / Orange Money / MoMo / Virement / Espèces.`,
+      `\nMerci pour votre confiance !`,
+      `_${organizationName}_`
+    );
+
+    const text = lines.join("\n");
+    const baseUrl = cleanPhone
+      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=`
+      : `https://api.whatsapp.com/send?text=`;
+    const url = `${baseUrl}${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
 
