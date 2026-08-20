@@ -37,8 +37,21 @@ async def run_auto_migrations(engine: AsyncEngine) -> None:
                 "ALTER TABLE offers ADD COLUMN IF NOT EXISTS cost_price NUMERIC(14, 2)",
                 # Backfill data for consistency
                 "UPDATE sales SET document_type = 'invoice' WHERE document_type IS NULL",
-                "UPDATE sales SET paid_amount = total_amount WHERE (paid_amount IS NULL OR paid_amount = 0) AND payment_status = 'paid'",
+                "UPDATE sales SET paid_amount = total_amount WHERE (paid_amount IS NULL OR paid_amount = 0) AND (payment_status = 'paid' OR payment_status = 'PAID')",
                 "UPDATE expenses SET document_type = 'expense_receipt' WHERE document_type IS NULL",
+                # Normalize legacy uppercase enum values to lowercase
+                "UPDATE sales SET payment_status = LOWER(payment_status) WHERE payment_status IS NOT NULL",
+                "UPDATE sales SET status = LOWER(status) WHERE status IS NOT NULL",
+                "UPDATE sales SET source = LOWER(source) WHERE source IS NOT NULL",
+                "UPDATE sales SET document_type = LOWER(document_type) WHERE document_type IS NOT NULL",
+                "UPDATE expenses SET payment_status = LOWER(payment_status) WHERE payment_status IS NOT NULL",
+                "UPDATE expenses SET status = LOWER(status) WHERE status IS NOT NULL",
+                "UPDATE expenses SET source = LOWER(source) WHERE source IS NOT NULL",
+                "UPDATE expenses SET document_type = LOWER(document_type) WHERE document_type IS NOT NULL",
+                "UPDATE offers SET status = LOWER(status) WHERE status IS NOT NULL",
+                "UPDATE offers SET source = LOWER(source) WHERE source IS NOT NULL",
+                "UPDATE procedures SET status = LOWER(status) WHERE status IS NOT NULL",
+                "UPDATE procedures SET source = LOWER(source) WHERE source IS NOT NULL",
             ]
             for stmt in statements:
                 try:

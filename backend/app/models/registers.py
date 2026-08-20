@@ -21,6 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.types import SafeStrEnum
 
 
 class RecordStatus(StrEnum):
@@ -63,8 +64,8 @@ class ExpenseDocumentType(StrEnum):
     VOUCHER = "voucher"                   # Bon de caisse / Décaissement
 
 
-def str_enum_type(enum_cls: type[StrEnum], **kwargs) -> Enum:
-    return Enum(enum_cls, values_callable=lambda x: [e.value for e in x], native_enum=False, **kwargs)
+def str_enum_type(enum_cls: type[StrEnum], length: int = 40, **kwargs: Any) -> SafeStrEnum:
+    return SafeStrEnum(enum_cls, length=length)
 
 
 class Offer(Base):
