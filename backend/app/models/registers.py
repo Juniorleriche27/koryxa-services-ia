@@ -63,6 +63,10 @@ class ExpenseDocumentType(StrEnum):
     VOUCHER = "voucher"                   # Bon de caisse / Décaissement
 
 
+def str_enum_type(enum_cls: type[StrEnum], **kwargs) -> Enum:
+    return Enum(enum_cls, values_callable=lambda x: [e.value for e in x], native_enum=False, **kwargs)
+
+
 class Offer(Base):
     __tablename__ = "offers"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -84,10 +88,10 @@ class Offer(Base):
     cost_price: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
     responsible_user_id: Mapped[str | None] = mapped_column(String(128), index=True)
     status: Mapped[RecordStatus] = mapped_column(
-        Enum(RecordStatus, native_enum=False), default=RecordStatus.DRAFT, index=True
+        str_enum_type(RecordStatus), default=RecordStatus.DRAFT, index=True
     )
     source: Mapped[RecordSource] = mapped_column(
-        Enum(RecordSource, native_enum=False), default=RecordSource.MANUAL
+        str_enum_type(RecordSource), default=RecordSource.MANUAL
     )
     effective_from: Mapped[date | None] = mapped_column(Date)
     expires_at: Mapped[date | None] = mapped_column(Date)
@@ -114,7 +118,7 @@ class Sale(Base):
     )
     item_label: Mapped[str] = mapped_column(String(180), index=True)
     document_type: Mapped[DocumentType] = mapped_column(
-        Enum(DocumentType, native_enum=False), default=DocumentType.INVOICE, index=True
+        str_enum_type(DocumentType), default=DocumentType.INVOICE, index=True
     )
     quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3), default=1)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=0)
@@ -126,17 +130,17 @@ class Sale(Base):
     currency: Mapped[str] = mapped_column(String(3), default="XOF")
     payment_method: Mapped[str | None] = mapped_column(String(80), index=True)
     payment_status: Mapped[PaymentStatus] = mapped_column(
-        Enum(PaymentStatus, native_enum=False), default=PaymentStatus.UNPAID, index=True
+        str_enum_type(PaymentStatus), default=PaymentStatus.UNPAID, index=True
     )
     payment_history: Mapped[list[dict]] = mapped_column(JSON, default=list)
     seller_user_id: Mapped[str | None] = mapped_column(String(128), index=True)
     sales_channel: Mapped[str | None] = mapped_column(String(80), index=True)
     comment: Mapped[str | None] = mapped_column(Text)
     status: Mapped[RecordStatus] = mapped_column(
-        Enum(RecordStatus, native_enum=False), default=RecordStatus.DRAFT, index=True
+        str_enum_type(RecordStatus), default=RecordStatus.DRAFT, index=True
     )
     source: Mapped[RecordSource] = mapped_column(
-        Enum(RecordSource, native_enum=False), default=RecordSource.MANUAL
+        str_enum_type(RecordSource), default=RecordSource.MANUAL
     )
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_by_user_id: Mapped[str] = mapped_column(String(128))
@@ -166,10 +170,10 @@ class Procedure(Base):
     validation_date: Mapped[date | None] = mapped_column(Date)
     next_review_date: Mapped[date | None] = mapped_column(Date, index=True)
     status: Mapped[RecordStatus] = mapped_column(
-        Enum(RecordStatus, native_enum=False), default=RecordStatus.DRAFT, index=True
+        str_enum_type(RecordStatus), default=RecordStatus.DRAFT, index=True
     )
     source: Mapped[RecordSource] = mapped_column(
-        Enum(RecordSource, native_enum=False), default=RecordSource.MANUAL
+        str_enum_type(RecordSource), default=RecordSource.MANUAL
     )
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_by_user_id: Mapped[str] = mapped_column(String(128))
@@ -216,7 +220,7 @@ class Expense(Base):
     reference: Mapped[str] = mapped_column(String(100), index=True)
     expense_date: Mapped[date] = mapped_column(Date, index=True)
     document_type: Mapped[ExpenseDocumentType] = mapped_column(
-        Enum(ExpenseDocumentType, native_enum=False),
+        str_enum_type(ExpenseDocumentType),
         default=ExpenseDocumentType.EXPENSE_RECEIPT,
         index=True,
     )
@@ -228,15 +232,15 @@ class Expense(Base):
     currency: Mapped[str] = mapped_column(String(3), default="XOF")
     payment_method: Mapped[str | None] = mapped_column(String(80))
     payment_status: Mapped[PaymentStatus] = mapped_column(
-        Enum(PaymentStatus, native_enum=False), default=PaymentStatus.PAID, index=True
+        str_enum_type(PaymentStatus), default=PaymentStatus.PAID, index=True
     )
     invoice_number: Mapped[str | None] = mapped_column(String(120))
     comment: Mapped[str | None] = mapped_column(Text)
     status: Mapped[RecordStatus] = mapped_column(
-        Enum(RecordStatus, native_enum=False), default=RecordStatus.VALIDATED, index=True
+        str_enum_type(RecordStatus), default=RecordStatus.VALIDATED, index=True
     )
     source: Mapped[RecordSource] = mapped_column(
-        Enum(RecordSource, native_enum=False), default=RecordSource.MANUAL
+        str_enum_type(RecordSource), default=RecordSource.MANUAL
     )
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_by_user_id: Mapped[str] = mapped_column(String(128))
