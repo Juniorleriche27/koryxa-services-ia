@@ -194,6 +194,8 @@ export function RegistersSection({
             onRefresh={onReload}
             isFullscreen={isFullscreen}
             onToggleFullscreen={toggleFullscreen}
+            onAddSale={() => setCreating(true)}
+            onOpenPos={() => setPosOpen(true)}
           />
         )}
 

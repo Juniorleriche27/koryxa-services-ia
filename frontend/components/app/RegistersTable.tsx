@@ -26,6 +26,8 @@ import {
   Share2,
   Maximize2,
   Minimize2,
+  Plus,
+  ShoppingBag,
 } from "lucide-react";
 import { StatusPill } from "./Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
@@ -222,6 +224,8 @@ interface SalesTableInteractiveProps {
   onRefresh: () => void;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
+  onAddSale?: () => void;
+  onOpenPos?: () => void;
 }
 
 export function SalesTableInteractive({
@@ -234,6 +238,8 @@ export function SalesTableInteractive({
   onRefresh,
   isFullscreen,
   onToggleFullscreen,
+  onAddSale,
+  onOpenPos,
 }: SalesTableInteractiveProps) {
   const [internalFullscreen, setInternalFullscreen] = useState(false);
   const isTableFullscreen = isFullscreen !== undefined ? isFullscreen : internalFullscreen;
@@ -417,30 +423,56 @@ export function SalesTableInteractive({
           "!fixed !inset-0 !z-50 !bg-background !w-screen !h-screen !overflow-y-auto !p-4 sm:!p-8 !m-0 shadow-2xl"
       )}
     >
-      {/* Fullscreen Sticky Exit Bar */}
+      {/* Fullscreen Sticky Exit Bar with Operations Actions */}
       {isTableFullscreen && (
-        <div className="flex items-center justify-between pb-3 border-b border-border/80 bg-background/95 backdrop-blur-md sticky top-0 z-30">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/80 bg-background/95 backdrop-blur-md sticky top-0 z-30">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
               ⛶
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-black text-foreground tracking-tight m-0">
-                Registre des Ventes & Opérations — Plein Écran
+                Ventes & Caisse — Mode Plein Écran
               </h2>
               <p className="text-[11px] text-muted-foreground m-0">
-                Mode pleine page immersif sans barre latérale
+                Affichage étendu de vos opérations et factures
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={toggleTableFullscreen}
-            className="px-3.5 py-2 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold text-xs flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer shadow-md"
-          >
-            <Minimize2 size={14} />
-            <span>Quitter Plein Écran (Échap)</span>
-          </button>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {onOpenPos && (
+              <button
+                type="button"
+                className="app-button app-button-secondary text-xs"
+                onClick={onOpenPos}
+                title="Ouvrir la caisse tactile comptoir pour encaissement rapide"
+              >
+                <ShoppingBag size={14} className="text-emerald-600 dark:text-emerald-400" />
+                <span>Mode Caisse Express (POS)</span>
+              </button>
+            )}
+
+            {onAddSale && (
+              <button
+                type="button"
+                className="app-button app-button-primary text-xs"
+                onClick={onAddSale}
+              >
+                <Plus size={14} />
+                <span>+ Ajouter une Vente</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={toggleTableFullscreen}
+              className="px-3.5 py-2 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold text-xs flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer shadow-md"
+            >
+              <Minimize2 size={14} />
+              <span>Quitter Plein Écran (Échap)</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -504,39 +536,15 @@ export function SalesTableInteractive({
             />
           </label>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className={clsx(
-                "app-button text-xs font-bold",
-                isTableFullscreen ? "app-button-primary bg-emerald-600 text-white" : "app-button-secondary"
-              )}
-              onClick={toggleTableFullscreen}
-              title={isTableFullscreen ? "Quitter le mode plein écran" : "Agrandir le panneau des opérations en plein écran"}
-            >
-              {isTableFullscreen ? (
-                <>
-                  <Minimize2 size={14} />
-                  <span>Quitter Plein Écran</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 size={14} />
-                  <span>Plein Écran</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              className="app-button app-button-secondary text-xs"
-              onClick={exportFilteredCsv}
-              title="Exporter en CSV"
-            >
-              <Download size={14} />
-              <span>Exporter CSV ({filteredSales.length})</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            className="app-button app-button-secondary text-xs"
+            onClick={exportFilteredCsv}
+            title="Exporter en CSV"
+          >
+            <Download size={14} />
+            <span>Exporter CSV ({filteredSales.length})</span>
+          </button>
         </div>
 
         {/* Quick Filter Tabs - Single Row Horizontal Swipe Bar */}
