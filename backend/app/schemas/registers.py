@@ -1,10 +1,8 @@
-# mypy: disable-error-code="no-untyped-def,assignment"
-from __future__ import annotations
-
+import re
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.registers import (
     DocumentType,
@@ -116,6 +114,23 @@ class SaleBase(BaseModel):
     status: RecordStatus = RecordStatus.DRAFT
     source: RecordSource = RecordSource.MANUAL
 
+    @field_validator("client_phone")
+    @classmethod
+    def validate_client_phone(cls, v: str | None) -> str | None:
+        if not v or not v.strip():
+            return None
+        clean = v.strip()
+        if not clean.startswith("+") and not clean.startswith("00"):
+            raise ValueError(
+                "Le numéro WhatsApp doit obligatoirement inclure l'indicatif international du pays avec '+' (ex: +225..., +33..., +221...)."
+            )
+        digits = re.sub(r"[^0-9]", "", clean)
+        if len(digits) < 7 or len(digits) > 15:
+            raise ValueError(
+                "Le numéro WhatsApp international doit comporter entre 7 et 15 chiffres."
+            )
+        return f"+{digits}"
+
 
 class SaleCreate(SaleBase):
     reference: str | None = Field(default=None, max_length=100)
@@ -145,6 +160,23 @@ class SaleUpdate(BaseModel):
     sales_channel: str | None = None
     comment: str | None = None
     status: RecordStatus | None = None
+
+    @field_validator("client_phone")
+    @classmethod
+    def validate_client_phone(cls, v: str | None) -> str | None:
+        if not v or not v.strip():
+            return None
+        clean = v.strip()
+        if not clean.startswith("+") and not clean.startswith("00"):
+            raise ValueError(
+                "Le numéro WhatsApp doit obligatoirement inclure l'indicatif international du pays avec '+' (ex: +225..., +33..., +221...)."
+            )
+        digits = re.sub(r"[^0-9]", "", clean)
+        if len(digits) < 7 or len(digits) > 15:
+            raise ValueError(
+                "Le numéro WhatsApp international doit comporter entre 7 et 15 chiffres."
+            )
+        return f"+{digits}"
 
 
 class RecordPaymentRequest(BaseModel):

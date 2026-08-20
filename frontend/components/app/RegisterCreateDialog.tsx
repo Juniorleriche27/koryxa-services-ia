@@ -111,13 +111,25 @@ export function RegisterCreateDialog({
         status: text(data, "status") || "draft",
       };
     } else if (kind === "sales") {
+      const phoneInput = optional(data, "client_phone");
+      if (phoneInput) {
+        const clean = phoneInput.trim();
+        if (!clean.startsWith("+") && !clean.startsWith("00")) {
+          setError(
+            "Le numéro WhatsApp doit obligatoirement inclure l'indicatif international du pays avec '+' (ex: +225..., +33..., +221...)."
+          );
+          setSaving(false);
+          return;
+        }
+      }
+
       payload = {
         reference: reference.trim() || undefined,
         document_type: docType,
         sale_date: text(data, "sale_date"),
         due_date: dueDate || null,
         client_name: optional(data, "client_name"),
-        client_phone: optional(data, "client_phone"),
+        client_phone: phoneInput || null,
         item_label: text(data, "item_label"),
         quantity: quantity || 1,
         unit_price: unitPrice || 0,
@@ -330,7 +342,7 @@ export function RegisterCreateDialog({
                 <input
                   name="client_phone"
                   defaultValue={record?.client_phone || ""}
-                  placeholder="Ex: +228 90 12 34 56 ou 07080910"
+                  placeholder="Ex: +225 07 12 34 56 78 ou +33 6 12 34 56 78 (Indicatif obligatoire)"
                 />
               </label>
 

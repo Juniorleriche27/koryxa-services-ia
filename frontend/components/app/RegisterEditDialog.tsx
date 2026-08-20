@@ -82,6 +82,15 @@ export function RegisterEditDialog({
 
     try {
       if (kind === "sales" && sale) {
+        const cleanPhone = saleClientPhone.trim();
+        if (cleanPhone && !cleanPhone.startsWith("+") && !cleanPhone.startsWith("00")) {
+          setError(
+            "Le numéro WhatsApp doit obligatoirement inclure l'indicatif international du pays avec '+' (ex: +225..., +33..., +221...)."
+          );
+          setSubmitting(false);
+          return;
+        }
+
         await serviceIaFetch(`/registers/sales/${sale.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -89,7 +98,7 @@ export function RegisterEditDialog({
             reference: saleReference,
             sale_date: saleDate,
             client_name: saleClient || null,
-            client_phone: saleClientPhone || null,
+            client_phone: cleanPhone || null,
             item_label: saleItemLabel,
             quantity: saleQuantity,
             unit_price: saleUnitPrice,
@@ -189,7 +198,7 @@ export function RegisterEditDialog({
               <label>
                 <span>Numéro WhatsApp / Téléphone Client</span>
                 <input
-                  placeholder="Ex: +228 90 12 34 56 ou 07080910"
+                  placeholder="Ex: +225 07 12 34 56 78 ou +33 6 12 34 56 78 (Indicatif obligatoire)"
                   value={saleClientPhone}
                   onChange={(e) => setSaleClientPhone(e.target.value)}
                 />

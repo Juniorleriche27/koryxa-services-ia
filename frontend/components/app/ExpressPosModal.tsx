@@ -210,6 +210,14 @@ export function ExpressPosModal({
       return;
     }
 
+    const cleanPhone = clientPhone.trim();
+    if (cleanPhone && !cleanPhone.startsWith("+") && !cleanPhone.startsWith("00")) {
+      alert(
+        "Le numéro WhatsApp doit obligatoirement inclure l'indicatif international du pays avec '+' (ex: +225..., +33..., +221...)."
+      );
+      return;
+    }
+
     setBusy(true);
 
     try {
@@ -631,7 +639,7 @@ export function ExpressPosModal({
                     type="tel"
                     value={clientPhone}
                     onChange={(e) => setClientPhone(e.target.value)}
-                    placeholder="WhatsApp / Tél (ex: +228 90 12 34 56)"
+                    placeholder="WhatsApp / Tél (ex: +225 07 12 34 56 78)"
                     className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-background text-xs font-medium text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
                   />
                 </div>
