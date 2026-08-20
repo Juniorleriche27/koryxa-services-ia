@@ -8,29 +8,46 @@ const sans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: 
 const display = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "KORYXA Service IA & Web", template: "%s" },
-  description: "Sites web, applications, intelligence artificielle et automatisations pour les entreprises.",
-  applicationName: "KORYXA Service IA & Web",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://services.koryxa.fr"),
+  title: { default: "KORYXA — Mémoire Opérationnelle & Service IA", template: "%s | KORYXA" },
+  description: "Application d'entreprise, facturation, encaissement, stocks, présence et sentinelle IA KORYXA.",
+  applicationName: "KORYXA",
+  manifest: "/manifest.webmanifest",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://service-ia.koryxa.fr"),
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "KORYXA",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   openGraph: {
-    title: "KORYXA Service IA & Web",
-    description: "Sites web, applications, intelligence artificielle et automatisations pour les entreprises.",
+    title: "KORYXA — Mémoire Opérationnelle & Service IA",
+    description: "Application d'entreprise, facturation, encaissement, stocks, présence et sentinelle IA KORYXA.",
     url: "/",
-    siteName: "KORYXA Service IA & Web",
+    siteName: "KORYXA Service IA",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "KORYXA Service IA & Web",
-    description: "Sites web, applications, intelligence artificielle et automatisations pour les entreprises.",
+    title: "KORYXA — Mémoire Opérationnelle & Service IA",
+    description: "Application d'entreprise, facturation, encaissement, stocks, présence et sentinelle IA KORYXA.",
   },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
-  themeColor: "#f8fbf8",
+  themeColor: "#047857",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -33,6 +33,7 @@ import {
   Bot,
   Sparkles,
   HelpCircle,
+  Download,
 } from "lucide-react";
 
 import clsx from "clsx";
@@ -47,6 +48,7 @@ import { OfflineSyncBanner } from "./OfflineSyncBanner";
 import { AICopilotDrawer } from "./AICopilotDrawer";
 import { InteractiveSpotlightTour } from "./InteractiveSpotlightTour";
 import { QuickHelpModal } from "./QuickHelpModal";
+import { PwaInstaller } from "./PwaInstaller";
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -255,6 +257,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         onOpenCopilot={() => setCopilotOpen(true)}
       />
 
+      <PwaInstaller />
+
       {onboardingRequired && (
         <OrganizationOnboarding
           organization={organization}
@@ -367,6 +371,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+
+        {/* PWA Install Trigger in Sidebar */}
+        <div className="p-2.5 border-t border-border/60">
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("koryxa:open-install-pwa"));
+              setOpen(false);
+            }}
+            title={collapsed ? "Installer l'application sur cet appareil" : undefined}
+            className={clsx(
+              "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 shadow-2xs",
+              collapsed && "justify-center px-1.5"
+            )}
+          >
+            <Download size={15} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+            {!collapsed && <span>Installer l'app</span>}
+          </button>
+        </div>
       </aside>
 
       {open && <button className="app-overlay" aria-label="Fermer le menu" onClick={() => setOpen(false)} />}

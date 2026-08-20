@@ -11,6 +11,7 @@ import {
   X,
   ExternalLink,
   ShieldCheck,
+  Download,
 } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { BusinessCategoryConfig } from "@/lib/service-ia/business-categories";
@@ -63,7 +64,7 @@ export function QuickHelpModal({
         </div>
 
         {/* 3 Interactive Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div
             onClick={() => {
               onClose();
@@ -76,11 +77,11 @@ export function QuickHelpModal({
                 <Mic size={18} />
               </div>
               <div className="min-w-0 flex-1">
-                <strong className="text-xs font-bold text-slate-900 dark:text-white block">
-                  Tester la Dictée Vocale
+                <strong className="text-xs font-bold text-slate-900 dark:text-white block truncate">
+                  Dictée Vocale
                 </strong>
-                <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-0.5">
-                  Saisie de ventes à la voix sans clavier
+                <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-0.5 line-clamp-1">
+                  Saisie à la voix
                 </span>
               </div>
             </div>
@@ -98,11 +99,33 @@ export function QuickHelpModal({
                 <Bot size={18} />
               </div>
               <div className="min-w-0 flex-1">
-                <strong className="text-xs font-bold text-slate-900 dark:text-white block">
-                  Discuter avec Cora IA
+                <strong className="text-xs font-bold text-slate-900 dark:text-white block truncate">
+                  Cora IA
                 </strong>
-                <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-0.5">
-                  Posez vos questions sur vos chiffres réels
+                <span className="text-[11px] text-slate-600 dark:text-slate-400 block mt-0.5 line-clamp-1">
+                  Questions & calculs
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div
+            onClick={() => {
+              onClose();
+              window.dispatchEvent(new CustomEvent("koryxa:open-install-pwa"));
+            }}
+            className="p-3.5 rounded-2xl border border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/60 dark:bg-emerald-950/30 hover:border-emerald-500 hover:bg-emerald-100/50 transition cursor-pointer group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
+                <Download size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <strong className="text-xs font-bold text-emerald-900 dark:text-emerald-200 block truncate">
+                  Installer l'App
+                </strong>
+                <span className="text-[11px] text-emerald-700 dark:text-emerald-400 block mt-0.5 line-clamp-1">
+                  Sur PC & mobile
                 </span>
               </div>
             </div>
