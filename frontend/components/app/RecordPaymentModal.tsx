@@ -149,6 +149,7 @@ export function RecordPaymentModal({
             step="any"
             required
             value={amount}
+            onFocus={(e) => e.target.select()}
             onChange={(e) => setAmount(e.target.value)}
             placeholder={`Ex: ${balanceDue}`}
             className="w-full p-2.5 rounded-xl border border-input bg-background text-sm font-black text-foreground outline-none focus:border-primary"

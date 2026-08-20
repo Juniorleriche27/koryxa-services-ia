@@ -33,19 +33,24 @@ export function RegisterCreateDialog({
   const labels = { offers: "une offre", sales: "une vente / devis / facture", procedures: "une procédure" };
   const editing = Boolean(record?.id);
 
-  // Sales interactive fields
+  // Sales interactive fields (strings so inputs can be cleared without stubborn zeroes)
   const [docType, setDocType] = useState<string>(record?.document_type || "invoice");
   const [reference, setReference] = useState<string>(record?.reference || "");
   const [loadingRef, setLoadingRef] = useState(false);
-  const [quantity, setQuantity] = useState<number>(Number(record?.quantity) || 1);
-  const [unitPrice, setUnitPrice] = useState<number>(Number(record?.unit_price) || 0);
-  const [discount, setDiscount] = useState<number>(Number(record?.discount) || 0);
-  const [paidAmount, setPaidAmount] = useState<number>(Number(record?.paid_amount) || 0);
+  const [quantity, setQuantity] = useState<string>(record?.quantity != null ? String(record.quantity) : "1");
+  const [unitPrice, setUnitPrice] = useState<string>(record?.unit_price != null ? String(record.unit_price) : "");
+  const [discount, setDiscount] = useState<string>(record?.discount != null ? String(record.discount) : "");
+  const [paidAmount, setPaidAmount] = useState<string>(record?.paid_amount != null ? String(record.paid_amount) : "");
   const [paymentStatus, setPaymentStatus] = useState<string>(record?.payment_status || "unpaid");
   const [dueDate, setDueDate] = useState<string>(record?.due_date || "");
 
-  const calculatedTotal = Math.max(0, quantity * unitPrice - discount);
-  const balanceDue = Math.max(0, calculatedTotal - paidAmount);
+  const numQuantity = parseFloat(quantity) || 0;
+  const numUnitPrice = parseFloat(unitPrice) || 0;
+  const numDiscount = parseFloat(discount) || 0;
+  const numPaidAmount = parseFloat(paidAmount) || 0;
+
+  const calculatedTotal = Math.max(0, (numQuantity || 1) * numUnitPrice - numDiscount);
+  const balanceDue = Math.max(0, calculatedTotal - numPaidAmount);
 
   // Auto-generate reference for sales if not editing
   useEffect(() => {
@@ -75,11 +80,11 @@ export function RegisterCreateDialog({
 
   const handleApplyPreset = (percent: number) => {
     if (percent === 100) {
-      setPaidAmount(calculatedTotal);
+      setPaidAmount(String(calculatedTotal));
       setPaymentStatus("paid");
     } else {
       const val = Math.round((calculatedTotal * percent) / 100);
-      setPaidAmount(val);
+      setPaidAmount(String(val));
       setPaymentStatus("partial");
     }
   };
@@ -131,11 +136,11 @@ export function RegisterCreateDialog({
         client_name: optional(data, "client_name"),
         client_phone: phoneInput || null,
         item_label: text(data, "item_label"),
-        quantity: quantity || 1,
-        unit_price: unitPrice || 0,
-        discount: discount || 0,
+        quantity: numQuantity || 1,
+        unit_price: numUnitPrice,
+        discount: numDiscount,
         total_amount: calculatedTotal,
-        paid_amount: paidAmount,
+        paid_amount: numPaidAmount,
         currency: text(data, "currency") || "XOF",
         payment_method: optional(data, "payment_method"),
         payment_status: paymentStatus,
@@ -199,7 +204,15 @@ export function RegisterCreateDialog({
               </label>
               <label>
                 Prix de vente
-                <input name="price" type="number" min="0" step="0.01" defaultValue={record?.price || ""} />
+                <input
+                  name="price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  defaultValue={record?.price || ""}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <label>
                 Prix de revient (Coût)
@@ -210,6 +223,7 @@ export function RegisterCreateDialog({
                   step="0.01"
                   defaultValue={record?.cost_price || ""}
                   placeholder="Ex: 3500"
+                  onFocus={(e) => e.target.select()}
                 />
               </label>
               <label>
@@ -240,11 +254,25 @@ export function RegisterCreateDialog({
               </label>
               <label>
                 Quantité en stock
-                <input name="stock_quantity" type="number" step="any" defaultValue={record?.stock_quantity ?? "0"} />
+                <input
+                  name="stock_quantity"
+                  type="number"
+                  step="any"
+                  defaultValue={record?.stock_quantity ?? ""}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <label>
                 Seuil d&apos;alerte stock faible
-                <input name="min_stock_alert" type="number" step="any" defaultValue={record?.min_stock_alert ?? "5"} />
+                <input
+                  name="min_stock_alert"
+                  type="number"
+                  step="any"
+                  defaultValue={record?.min_stock_alert ?? "5"}
+                  placeholder="5"
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <StatusField value={record?.status} />
               <label>
@@ -358,7 +386,9 @@ export function RegisterCreateDialog({
                   min="0.01"
                   step="any"
                   value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value) || 1)}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="1"
                   required
                 />
               </label>
@@ -370,7 +400,9 @@ export function RegisterCreateDialog({
                   min="0"
                   step="any"
                   value={unitPrice}
-                  onChange={(e) => setUnitPrice(Number(e.target.value) || 0)}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setUnitPrice(e.target.value)}
+                  placeholder="0"
                   required
                 />
               </label>
@@ -382,7 +414,9 @@ export function RegisterCreateDialog({
                   min="0"
                   step="any"
                   value={discount}
-                  onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setDiscount(e.target.value)}
+                  placeholder="0"
                 />
               </label>
 
@@ -432,11 +466,14 @@ export function RegisterCreateDialog({
                       max={calculatedTotal}
                       step="any"
                       value={paidAmount}
+                      onFocus={(e) => e.target.select()}
+                      placeholder="0"
                       onChange={(e) => {
-                        const val = Number(e.target.value) || 0;
-                        setPaidAmount(val);
-                        if (val >= calculatedTotal && calculatedTotal > 0) setPaymentStatus("paid");
-                        else if (val > 0) setPaymentStatus("partial");
+                        const valStr = e.target.value;
+                        setPaidAmount(valStr);
+                        const valNum = parseFloat(valStr) || 0;
+                        if (valNum >= calculatedTotal && calculatedTotal > 0) setPaymentStatus("paid");
+                        else if (valNum > 0) setPaymentStatus("partial");
                         else setPaymentStatus("unpaid");
                       }}
                       className="font-black text-emerald-600"
@@ -474,8 +511,8 @@ export function RegisterCreateDialog({
                   onChange={(e) => {
                     const st = e.target.value;
                     setPaymentStatus(st);
-                    if (st === "paid") setPaidAmount(calculatedTotal);
-                    else if (st === "unpaid") setPaidAmount(0);
+                    if (st === "paid") setPaidAmount(String(calculatedTotal));
+                    else if (st === "unpaid") setPaidAmount("");
                   }}
                 >
                   <option value="unpaid">Non payé (0%)</option>

@@ -170,7 +170,9 @@ export function StockAdjustmentDialog({
               min="0"
               step="any"
               value={quantity}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => setQuantity(e.target.value)}
+              placeholder="0"
               className="w-full px-3 py-2 rounded-xl border border-border bg-background text-base font-bold font-mono text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               autoFocus
             />

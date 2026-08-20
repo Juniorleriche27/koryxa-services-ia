@@ -225,6 +225,8 @@ export function RegisterEditDialog({
                   step="0.01"
                   required
                   value={saleQuantity}
+                  placeholder="1"
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => handleUnitPriceOrQtyChange(saleUnitPrice, e.target.value)}
                 />
               </label>
@@ -235,6 +237,8 @@ export function RegisterEditDialog({
                   step="0.01"
                   required
                   value={saleUnitPrice}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => handleUnitPriceOrQtyChange(e.target.value, saleQuantity)}
                 />
               </label>
@@ -248,6 +252,8 @@ export function RegisterEditDialog({
                   step="0.01"
                   required
                   value={saleTotalAmount}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setSaleTotalAmount(e.target.value)}
                 />
               </label>
@@ -332,6 +338,7 @@ export function RegisterEditDialog({
                   step="0.01"
                   placeholder="Ex: 50000"
                   value={offerPrice}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setOfferPrice(e.target.value)}
                 />
               </label>
@@ -342,6 +349,7 @@ export function RegisterEditDialog({
                   step="0.01"
                   placeholder="Ex: 35000"
                   value={offerCostPrice}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setOfferCostPrice(e.target.value)}
                 />
               </label>
@@ -384,7 +392,9 @@ export function RegisterEditDialog({
                     <input
                       type="number"
                       step="any"
+                      placeholder="0"
                       value={offerStockQuantity}
+                      onFocus={(e) => e.target.select()}
                       onChange={(e) => setOfferStockQuantity(e.target.value)}
                     />
                   </label>
@@ -393,7 +403,9 @@ export function RegisterEditDialog({
                     <input
                       type="number"
                       step="any"
+                      placeholder="5"
                       value={offerMinStockAlert}
+                      onFocus={(e) => e.target.select()}
                       onChange={(e) => setOfferMinStockAlert(e.target.value)}
                     />
                   </label>
