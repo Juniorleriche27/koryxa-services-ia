@@ -240,6 +240,17 @@ export function SalesTableInteractive({
   const toggleTableFullscreen = onToggleFullscreen || (() => setInternalFullscreen((prev) => !prev));
 
   useEffect(() => {
+    if (isTableFullscreen) {
+      document.body.classList.add("kx-fullpage-mode");
+    } else {
+      document.body.classList.remove("kx-fullpage-mode");
+    }
+    return () => {
+      document.body.classList.remove("kx-fullpage-mode");
+    };
+  }, [isTableFullscreen]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isTableFullscreen) {
         toggleTableFullscreen();
