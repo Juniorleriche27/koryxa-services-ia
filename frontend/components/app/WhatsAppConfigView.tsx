@@ -327,15 +327,19 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                 )}
               </div>
 
-              <div className="space-y-1">
-                <strong className="text-sm text-foreground block">
-                  Comment connecter votre WhatsApp ?
+              <div className="space-y-2.5 max-w-md text-left">
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-xs">
+                  <strong className="font-bold block mb-1">ℹ️ Pourquoi le scan de code QR nécessite le pont actif :</strong>
+                  WhatsApp sur smartphone (*Appareils connectés*) n&apos;accepte que les flux de session WebSocket WhatsApp Web en direct. Pour une intégration d&apos;entreprise permanente et stable 24h/24 sans dépendre de la batterie d&apos;un smartphone, nous recommandons l&apos;onglet <strong>Meta Cloud API</strong>.
+                </div>
+
+                <strong className="text-sm text-foreground block pt-1">
+                  Procédure de liaison :
                 </strong>
-                <ol className="text-xs text-muted-foreground text-left max-w-sm mx-auto space-y-1.5 list-decimal pl-4 pt-2">
-                  <li>Ouvrez l&apos;application <strong>WhatsApp</strong> sur votre smartphone.</li>
-                  <li>Allez dans <strong>Réglages &gt; Appareils connectés &gt; Connecter un appareil</strong>.</li>
-                  <li>Scannez le <strong>QR Code</strong> affiché ci-dessus.</li>
-                  <li>Votre session est liée automatiquement !</li>
+                <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal pl-4">
+                  <li>Pour un numéro officiel d&apos;entreprise : Utilisez l&apos;onglet <strong>Meta Cloud API</strong> ci-dessus.</li>
+                  <li>Pour tester immédiatement les commandes et l&apos;IA de vente : Utilisez le <strong>Simulateur en direct</strong> à droite.</li>
+                  <li>Pour lier un téléphone personnel : Assurez-vous que le démon de pont OpenClaw local est démarré.</li>
                 </ol>
               </div>
 
