@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import clsx from "clsx";
 import {
   Search,
   Filter,
@@ -23,6 +24,8 @@ import {
   FileText,
   Tag,
   Share2,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { StatusPill } from "./Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
@@ -217,6 +220,8 @@ interface SalesTableInteractiveProps {
   onEdit: (sale: SaleItem) => void;
   onArchive: (id: string) => void;
   onRefresh: () => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 export function SalesTableInteractive({
@@ -227,7 +232,23 @@ export function SalesTableInteractive({
   onEdit,
   onArchive,
   onRefresh,
+  isFullscreen,
+  onToggleFullscreen,
 }: SalesTableInteractiveProps) {
+  const [internalFullscreen, setInternalFullscreen] = useState(false);
+  const isTableFullscreen = isFullscreen !== undefined ? isFullscreen : internalFullscreen;
+  const toggleTableFullscreen = onToggleFullscreen || (() => setInternalFullscreen((prev) => !prev));
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isTableFullscreen) {
+        toggleTableFullscreen();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isTableFullscreen, toggleTableFullscreen]);
+
   const [query, setQuery] = useState("");
   const [filterTab, setFilterTab] = useState<string>("all");
   const [sortField, setSortField] = useState<keyof SaleItem>("sale_date");
@@ -378,7 +399,40 @@ export function SalesTableInteractive({
   const paidCount = sales.filter((s) => s.payment_status === "paid").length;
 
   return (
-    <div className="kx-table-wrapper flex flex-col gap-4">
+    <div
+      className={clsx(
+        "kx-table-wrapper flex flex-col gap-4 transition-all duration-150",
+        isTableFullscreen &&
+          "!fixed !inset-0 !z-50 !bg-background !w-screen !h-screen !overflow-y-auto !p-4 sm:!p-8 !m-0 shadow-2xl"
+      )}
+    >
+      {/* Fullscreen Sticky Exit Bar */}
+      {isTableFullscreen && (
+        <div className="flex items-center justify-between pb-3 border-b border-border/80 bg-background/95 backdrop-blur-md sticky top-0 z-30">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
+              ⛶
+            </div>
+            <div>
+              <h2 className="text-sm sm:text-base font-black text-foreground tracking-tight m-0">
+                Registre des Ventes & Opérations — Plein Écran
+              </h2>
+              <p className="text-[11px] text-muted-foreground m-0">
+                Mode pleine page immersif sans barre latérale
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={toggleTableFullscreen}
+            className="px-3.5 py-2 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold text-xs flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer shadow-md"
+          >
+            <Minimize2 size={14} />
+            <span>Quitter Plein Écran (Échap)</span>
+          </button>
+        </div>
+      )}
+
       {/* Live KPIs Header - High Contrast Clean Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-card p-4 rounded-2xl border border-border/80 shadow-2xs">
@@ -439,15 +493,39 @@ export function SalesTableInteractive({
             />
           </label>
 
-          <button
-            type="button"
-            className="app-button app-button-secondary text-xs"
-            onClick={exportFilteredCsv}
-            title="Exporter en CSV"
-          >
-            <Download size={14} />
-            <span>Exporter CSV ({filteredSales.length})</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className={clsx(
+                "app-button text-xs font-bold",
+                isTableFullscreen ? "app-button-primary bg-emerald-600 text-white" : "app-button-secondary"
+              )}
+              onClick={toggleTableFullscreen}
+              title={isTableFullscreen ? "Quitter le mode plein écran" : "Agrandir le panneau des opérations en plein écran"}
+            >
+              {isTableFullscreen ? (
+                <>
+                  <Minimize2 size={14} />
+                  <span>Quitter Plein Écran</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 size={14} />
+                  <span>Plein Écran</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="app-button app-button-secondary text-xs"
+              onClick={exportFilteredCsv}
+              title="Exporter en CSV"
+            >
+              <Download size={14} />
+              <span>Exporter CSV ({filteredSales.length})</span>
+            </button>
+          </div>
         </div>
 
         {/* Quick Filter Tabs - Single Row Horizontal Swipe Bar */}

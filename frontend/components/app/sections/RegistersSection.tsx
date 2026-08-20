@@ -208,6 +208,8 @@ export function RegistersSection({
             onEdit={(sale) => setEditingRecord(sale)}
             onArchive={(id) => archiveRecord("sales", id)}
             onRefresh={onReload}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
           />
         )}
 
