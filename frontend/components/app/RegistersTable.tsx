@@ -379,52 +379,51 @@ export function SalesTableInteractive({
 
   return (
     <div className="kx-table-wrapper flex flex-col gap-4">
-      {/* Live KPIs Header */}
+      {/* Live KPIs Header - High Contrast Clean Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-2xl border border-border">
-          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-            Total Facturé / Émis
-          </span>
-          <div className="text-lg sm:text-xl font-black text-foreground mt-1">
+        <div className="bg-card p-4 rounded-2xl border border-border/80 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              Total Facturé / Émis
+            </span>
+            <span className="w-2 h-2 rounded-full bg-foreground/40" />
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-foreground mt-1.5 font-mono">
             {formatMoney(totalAmount, currency)}
           </div>
-          <small className="text-xs text-muted-foreground">{filteredSales.length} documents</small>
+          <div className="text-xs text-muted-foreground mt-1 font-medium">
+            {filteredSales.length} document{filteredSales.length > 1 ? "s" : ""} émis
+          </div>
         </div>
 
-        <div className="bg-emerald-50/60 dark:bg-emerald-950/30 p-3.5 rounded-2xl border border-emerald-200 dark:border-emerald-900/50">
-          <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
-            Encaissé Réel
-          </span>
-          <div className="text-lg sm:text-xl font-black text-emerald-700 dark:text-emerald-400 mt-1">
+        <div className="bg-card p-4 rounded-2xl border border-border/80 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              Encaissé Réel
+            </span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1.5 font-mono">
             {formatMoney(paidAmount, currency)}
           </div>
-          <small className="text-xs font-bold text-emerald-600">{recoveryRate}% taux de recouvrement</small>
+          <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+            {recoveryRate}% taux de recouvrement
+          </div>
         </div>
 
-        <div
-          className={`p-3.5 rounded-2xl border ${
-            unpaidAmount > 0
-              ? "bg-amber-50/60 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50"
-              : "bg-slate-50 dark:bg-slate-900/60 border-border"
-          }`}
-        >
-          <span
-            className={`text-[11px] font-bold uppercase tracking-wider ${
-              unpaidAmount > 0 ? "text-amber-800 dark:text-amber-300" : "text-muted-foreground"
-            }`}
-          >
-            Créances & Acomptes Restants
-          </span>
-          <div
-            className={`text-lg sm:text-xl font-black mt-1 ${
-              unpaidAmount > 0 ? "text-amber-700 dark:text-amber-400" : "text-foreground"
-            }`}
-          >
+        <div className="bg-card p-4 rounded-2xl border border-border/80 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              Créances & Acomptes Restants
+            </span>
+            <span className={`w-2 h-2 rounded-full ${unpaidAmount > 0 ? "bg-amber-500" : "bg-muted"}`} />
+          </div>
+          <div className={`text-xl sm:text-2xl font-black mt-1.5 font-mono ${unpaidAmount > 0 ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>
             {formatMoney(unpaidAmount, currency)}
           </div>
-          <small className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground mt-1 font-medium">
             {filteredSales.filter((s) => s.payment_status !== "paid").length} document(s) à solder
-          </small>
+          </div>
         </div>
       </div>
 
@@ -451,29 +450,29 @@ export function SalesTableInteractive({
           </button>
         </div>
 
-        {/* Quick Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1">
+        {/* Quick Filter Tabs - Single Row Horizontal Swipe Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 shrink-0 -mx-1 px-1">
           {[
             { id: "all", label: "Tous", count: sales.length },
-            { id: "invoices", label: "🧾 Factures", count: sales.length - quotesCount },
-            { id: "quotes", label: "🏷️ Devis & Pro Forma", count: quotesCount },
-            { id: "partials", label: "⏳ Acomptes & Partiels", count: partialsCount },
-            { id: "overdue", label: "🚨 En retard", count: overdueCount },
-            { id: "paid", label: "✅ Soldées", count: paidCount },
+            { id: "invoices", label: "Factures", count: sales.length - quotesCount },
+            { id: "quotes", label: "Devis & Pro Forma", count: quotesCount },
+            { id: "partials", label: "Acomptes & Partiels", count: partialsCount },
+            { id: "overdue", label: "En retard", count: overdueCount },
+            { id: "paid", label: "Soldées", count: paidCount },
           ].map((tab) => (
             <button
               key={tab.id}
               type="button"
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5 border ${
                 filterTab === tab.id
-                  ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-950 dark:border-white shadow-xs"
+                  ? "bg-slate-950 text-white border-slate-950 dark:bg-white dark:text-slate-950 dark:border-white shadow-xs"
                   : "bg-card text-muted-foreground border-border hover:border-slate-400 hover:text-foreground"
               }`}
               onClick={() => setFilterTab(tab.id)}
             >
               <span>{tab.label}</span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
                   filterTab === tab.id
                     ? "bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-950"
                     : "bg-muted text-muted-foreground"

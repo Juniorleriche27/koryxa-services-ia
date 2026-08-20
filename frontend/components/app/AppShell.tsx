@@ -384,18 +384,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="app-topbar-actions">
-            {/* Direct Voice Capture Trigger Button (Desktop topbar) */}
-            <button
-              type="button"
-              data-tour="voice-mic"
-              className="kx-topbar-voice-btn hidden sm:inline-flex"
-              onClick={() => setVoiceOpen(true)}
-              title="Dictée vocale intelligente (Micro)"
-            >
-              <Mic size={15} />
-              <span className="kx-topbar-search-text">Dicter</span>
-            </button>
-
             {/* Quick Cmd+K search button */}
             <button
               className="kx-topbar-search-trigger"
