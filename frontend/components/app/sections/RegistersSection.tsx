@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Sparkles, ShoppingBag, Package } from "lucide-react";
+import { Plus, Sparkles, ShoppingBag, Package, Maximize2, Minimize2 } from "lucide-react";
 import { PageHeader } from "../PageHeader";
 import { EmptyState, TableSkeleton } from "../Ui";
 import { RegisterCreateDialog } from "../RegisterCreateDialog";
@@ -103,6 +103,27 @@ export function RegistersSection({
       alert(e instanceof Error ? e.message : "Erreur lors de l'archivage");
     }
   };
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", handleFsChange);
+    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (e) {
+      console.warn("Fullscreen toggle failed:", e);
+    }
+  };
 
   return (
     <>
@@ -111,7 +132,26 @@ export function RegistersSection({
         title={regConfig.title}
         description={regConfig.subtitle}
         action={
-          <div className="kx-header-actions-row">
+          <div className="kx-header-actions-row flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              className="app-button app-button-secondary"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "Quitter le mode plein écran" : "Afficher en plein écran immersif"}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+                  <span>Quitter Plein Écran</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+                  <span>Plein Écran</span>
+                </>
+              )}
+            </button>
+
             {(kind === "sales" || kind === "offers") && (
               <button
                 type="button"
