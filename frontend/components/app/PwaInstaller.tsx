@@ -9,7 +9,7 @@ import {
   Share,
   PlusSquare,
   Zap,
-  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -23,7 +23,7 @@ export function PwaInstaller() {
   const [isIos, setIsIos] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(true); // Default true until checked
+  const [bannerDismissed, setBannerDismissed] = useState(true);
 
   useEffect(() => {
     // 1. Detect standalone mode
@@ -42,22 +42,40 @@ export function PwaInstaller() {
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIos(isIosDevice);
 
-    // 3. Register Service Worker with instant auto-update
-    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+    // 3. Register Service Worker with active background updates
+    if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {
+          // Check for updates on mount and on window focus
+          registration.update().catch(() => {});
+
+          const handleFocus = () => {
+            registration.update().catch(() => {});
+          };
+          window.addEventListener("focus", handleFocus);
+
+          // Periodic background check every 60s
+          const interval = setInterval(() => {
+            registration.update().catch(() => {});
+          }, 60000);
+
           registration.addEventListener("updatefound", () => {
             const newWorker = registration.installing;
             if (newWorker) {
               newWorker.addEventListener("statechange", () => {
                 if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                  newWorker.postMessage({ type: "SKIP_WAITING" });
                   setUpdateAvailable(true);
-                  setTimeout(() => setUpdateAvailable(false), 6000);
                 }
               });
             }
           });
+
+          return () => {
+            window.removeEventListener("focus", handleFocus);
+            clearInterval(interval);
+          };
         })
         .catch((err) => {
           console.warn("Service Worker registration failed:", err);
@@ -68,7 +86,6 @@ export function PwaInstaller() {
         if (!refreshing) {
           refreshing = true;
           setUpdateAvailable(true);
-          setTimeout(() => setUpdateAvailable(false), 5000);
         }
       });
     }
@@ -151,25 +168,39 @@ export function PwaInstaller() {
         </div>
       )}
 
-      {/* Auto-Update Toast Notification */}
+      {/* Auto-Update Notification Banner (Instant 1-click apply) */}
       {updateAvailable && (
-        <div className="fixed top-4 right-4 left-4 sm:left-auto sm:max-w-md z-50 animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 p-4 rounded-2xl shadow-2xl border border-emerald-500/40 backdrop-blur-xl flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 dark:text-emerald-600 flex items-center justify-center shrink-0">
-              <Zap size={20} className="animate-pulse" />
+        <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:max-w-md z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-emerald-500/50 backdrop-blur-xl flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <RefreshCw size={20} className="animate-spin" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black tracking-tight text-white">
+                  Mise � jour KORYXA disponible !
+                </div>
+                <p className="text-[11px] text-slate-300 truncate">
+                  Nouvelles am�liorations pr�tes.
+                </p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-black tracking-tight">Mise � jour KORYXA appliqu�e</div>
-              <p className="text-[11px] text-slate-300 dark:text-slate-600 truncate">
-                Vos �crans et donn�es sont synchronis�s avec la derni�re version.
-              </p>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md transition cursor-pointer"
+              >
+                Actualiser
+              </button>
+              <button
+                type="button"
+                onClick={() => setUpdateAvailable(false)}
+                className="p-1.5 text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <button
-              onClick={() => setUpdateAvailable(false)}
-              className="p-1 rounded-lg text-slate-400 hover:text-white dark:hover:text-slate-950 transition cursor-pointer"
-            >
-              <X size={16} />
-            </button>
           </div>
         </div>
       )}
