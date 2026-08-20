@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Play, Radar as RadarIcon } from "lucide-react";
 import { PageHeader } from "../PageHeader";
-import { EmptyState, StatusPill } from "../Ui";
+import { EmptyState, StatusPill, TableSkeleton } from "../Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { formatLabel } from "../RegistersTable";
 
@@ -75,12 +75,13 @@ export function RadarSection({
         }
       />
 
-      {loading && <EmptyState title="Chargement…" detail="Récupération des alertes Radar." />}
-      {error && <EmptyState title="Données indisponibles" detail={error} />}
+      {loading && <TableSkeleton />}
+      {error && <EmptyState title="Données indisponibles" detail={error} onRetry={onReload} />}
       {!loading && !error && (!data || data.length === 0) && (
         <EmptyState
           title="Aucune anomalie détectée"
-          detail="Le Radar n’a identifié aucune contradiction ou donnée manquante."
+          detail="Le Radar n'a identifié aucune contradiction ou donnée manquante."
+          onRetry={onReload}
         />
       )}
 

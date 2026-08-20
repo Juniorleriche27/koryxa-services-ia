@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Sparkles, ShoppingBag, Package } from "lucide-react";
 import { PageHeader } from "../PageHeader";
-import { EmptyState } from "../Ui";
+import { EmptyState, TableSkeleton } from "../Ui";
 import { RegisterCreateDialog } from "../RegisterCreateDialog";
 import { RegisterEditDialog } from "../RegisterEditDialog";
 import { RegisterDetailDialog } from "../RegisterDetailDialog";
@@ -148,17 +148,13 @@ export function RegistersSection({
       />
 
       <section className="app-panel">
-        {loading && (
-          <EmptyState
-            title="Chargement…"
-            detail="Connexion au registre en cours."
-          />
-        )}
-        {error && <EmptyState title="Données indisponibles" detail={error} />}
+        {loading && <TableSkeleton />}
+        {error && <EmptyState title="Données indisponibles" detail={error} onRetry={onReload} />}
         {!loading && !error && items.length === 0 && (
           <EmptyState
             title="Aucune donnée enregistrée"
             detail="Aucun élément n'a encore été créé dans ce registre pour votre organisation."
+            onRetry={onReload}
           />
         )}
 

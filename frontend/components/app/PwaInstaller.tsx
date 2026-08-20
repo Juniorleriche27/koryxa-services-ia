@@ -9,6 +9,7 @@ import {
   Share,
   PlusSquare,
   Zap,
+  Sparkles,
 } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -22,13 +23,19 @@ export function PwaInstaller() {
   const [isIos, setIsIos] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(true); // Default true until checked
 
   useEffect(() => {
     // 1. Detect standalone mode
     const isStandaloneMode =
       window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true;
+      (window.navigator as any).standalone === true ||
+      document.referrer.includes("android-app://");
     setIsStandalone(isStandaloneMode);
+
+    // Check banner dismissed in localStorage
+    const dismissed = window.localStorage.getItem("koryxa:pwa-banner-dismissed") === "true";
+    setBannerDismissed(dismissed);
 
     // 2. Detect iOS
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -40,7 +47,6 @@ export function PwaInstaller() {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {
-          // Check for updates on page load and intervals
           registration.addEventListener("updatefound", () => {
             const newWorker = registration.installing;
             if (newWorker) {
@@ -92,12 +98,59 @@ export function PwaInstaller() {
       if (choice.outcome === "accepted") {
         setDeferredPrompt(null);
         setShowModal(false);
+        setBannerDismissed(true);
+        window.localStorage.setItem("koryxa:pwa-banner-dismissed", "true");
       }
+    } else {
+      setShowModal(true);
     }
+  };
+
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    window.localStorage.setItem("koryxa:pwa-banner-dismissed", "true");
   };
 
   return (
     <>
+      {/* Mobile Floating Install Banner (Hidden if installed or dismissed) */}
+      {!isStandalone && !bannerDismissed && (
+        <div className="fixed top-2 left-2 right-2 sm:hidden z-40 animate-in fade-in slide-in-from-top-3 duration-300">
+          <div className="bg-card/95 border border-emerald-500/30 p-2.5 rounded-2xl shadow-xl backdrop-blur-xl flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 p-1 flex items-center justify-center shrink-0 shadow-xs">
+                <img src="/icons/icon-192x192.png" alt="KORYXA" className="w-full h-full object-contain" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11.5px] font-black text-foreground truncate">
+                  Installer l'application KORYXA
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">
+                  Acc�s 1-clic direct sur votre �cran
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowModal(true)}
+                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs cursor-pointer"
+              >
+                Installer
+              </button>
+              <button
+                type="button"
+                onClick={dismissBanner}
+                aria-label="Masquer le bandeau"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Auto-Update Toast Notification */}
       {updateAvailable && (
         <div className="fixed top-4 right-4 left-4 sm:left-auto sm:max-w-md z-50 animate-in fade-in slide-in-from-top-4 duration-300">

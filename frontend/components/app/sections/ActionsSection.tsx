@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Plus, UserRound, CalendarDays } from "lucide-react";
 import { PageHeader } from "../PageHeader";
-import { EmptyState, StatusPill } from "../Ui";
+import { EmptyState, StatusPill, TableSkeleton } from "../Ui";
 import { Dialog, FormError } from "../Dialog";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { formatDate, formatLabel } from "../RegistersTable";
@@ -80,12 +80,13 @@ export function ActionsSection({
         }
       />
 
-      {loading && <EmptyState title="Chargement…" detail="Récupération des actions." />}
-      {error && <EmptyState title="Données indisponibles" detail={error} />}
+      {loading && <TableSkeleton />}
+      {error && <EmptyState title="Données indisponibles" detail={error} onRetry={onReload} />}
       {!loading && !error && (!data || data.length === 0) && (
         <EmptyState
           title="Aucune action"
-          detail="Aucune action corrective n’est en cours pour le moment."
+          detail="Aucune action corrective n'est en cours pour le moment."
+          onRetry={onReload}
         />
       )}
 
