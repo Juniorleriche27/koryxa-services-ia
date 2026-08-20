@@ -93,37 +93,23 @@ export function AutomationsHubView() {
     }
   };
 
-  const copyN8nJson = (type: "21h" | "09h") => {
-    const json21h = JSON.stringify(
-      {
-        name: "KORYXA - Bilan Soir 21h",
-        nodes: [{ type: "n8n-nodes-base.cron", parameters: { triggerTimes: { item: [{ hour: 21 }] } } }],
-      },
-      null,
-      2
-    );
-    navigator.clipboard.writeText(json21h);
-    setCopiedWorkflow(type);
-    setTimeout(() => setCopiedWorkflow(null), 2000);
-  };
-
   return (
     <div className="space-y-6 my-8">
       <div className="flex items-center justify-between">
         <div>
           <span className="text-xs uppercase font-bold tracking-wider text-primary">
-            Orchestration n8n & Tâches de Fond
+            Routines & Clôtures Automatiques
           </span>
           <h2 className="text-xl font-bold text-foreground mt-0.5">
-            Automatisations & Routines Métier
+            Automatisations Métier
           </h2>
           <p className="text-xs text-muted-foreground">
-            Clôture journalière à 21h00 et relance intelligente des créances à 09h00.
+            Bilan de caisse journalier à 21h00 et suivi automatique des créances à 09h00.
           </p>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold">
           <Zap size={14} />
-          <span>n8n Connecté</span>
+          <span>Automatisé</span>
         </div>
       </div>
 

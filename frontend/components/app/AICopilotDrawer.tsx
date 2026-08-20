@@ -60,7 +60,6 @@ export function AICopilotDrawer({
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [providerUsed, setProviderUsed] = useState("Knowlia Intelligence");
   const [actions, setActions] = useState<SuggestedAction[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -98,21 +97,21 @@ export function AICopilotDrawer({
         method: "POST",
         body: JSON.stringify({
           messages: newMessages,
-          include_financial_context: true,
-          include_radar_context: true,
         }),
       });
 
-      setMessages((prev) => [...prev, { role: "assistant", content: res.reply }]);
-      setProviderUsed(res.provider_used);
-      setActions(res.suggested_actions || []);
+      setMessages([...newMessages, { role: "assistant", content: res.reply }]);
+      if (res.suggested_actions && res.suggested_actions.length > 0) {
+        setActions(res.suggested_actions);
+      } else {
+        setActions([]);
+      }
     } catch (err) {
-      setMessages((prev) => [
-        ...prev,
+      setMessages([
+        ...newMessages,
         {
           role: "assistant",
-          content:
-            "⚠️ Impossible de joindre le service d'intelligence pour le moment. Veuillez vérifier votre connexion ou votre configuration IA.",
+          content: "Désolé, je rencontre une difficulté pour analyser cette demande en ce moment.",
         },
       ]);
     } finally {
@@ -121,15 +120,9 @@ export function AICopilotDrawer({
   };
 
   const handleActionClick = (action: SuggestedAction) => {
-    if (action.action_type === "navigate" && action.payload?.path) {
+    if (action.action_type === "navigate" && action.payload?.href) {
       onClose();
-      router.push(action.payload.path);
-    } else if (action.action_type === "send_reminder") {
-      onClose();
-      router.push("/espace/ventes");
-    } else if (action.action_type === "run_radar") {
-      onClose();
-      router.push("/espace/radar");
+      router.push(action.payload.href);
     }
   };
 
@@ -146,7 +139,7 @@ export function AICopilotDrawer({
             </div>
             <div>
               <h3>Cora</h3>
-              <span className="kx-copilot-provider-tag">Source : {providerUsed}</span>
+              <span className="kx-copilot-provider-tag">Assistante IA KORYXA</span>
             </div>
           </div>
 
@@ -155,12 +148,18 @@ export function AICopilotDrawer({
               type="button"
               className="kx-copilot-settings-btn"
               onClick={() => {
-                onClose();
-                router.push("/espace/parametres");
+                setMessages([
+                  {
+                    role: "assistant",
+                    content:
+                      "👋 **Bonjour ! Je suis Cora, votre assistante IA.**\n\nJe suis connectée en direct à vos registres (Ventes, Dépenses, Trésorerie, Radar de conformité et Procédures). Comment puis-je vous aider aujourd'hui ?",
+                  },
+                ]);
+                setActions([]);
               }}
-              title="Configurer Cora et sa source d'intelligence Knowlia"
+              title="Nouvelle discussion"
             >
-              <Settings2 size={16} />
+              <RotateCcw size={16} />
             </button>
             <button type="button" className="kx-copilot-close-btn" onClick={onClose}>
               <X size={18} />

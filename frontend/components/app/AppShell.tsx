@@ -31,6 +31,7 @@ import {
   X,
   Zap,
   Bot,
+  Sparkles,
   HelpCircle,
 } from "lucide-react";
 
@@ -383,22 +384,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="app-topbar-actions">
-            {/* Direct AI Copilot Trigger Button */}
-            <button
-              type="button"
-              data-tour="cora-ia"
-              className="kx-topbar-copilot-btn"
-              onClick={() => setCopilotOpen(true)}
-              title="Ouvrir Cora, votre assistante IA (Cmd + J / Ctrl + J)"
-              aria-label="Ouvrir Cora, votre assistante IA"
-            >
-              <span className="kx-cora-robot" aria-hidden="true">
-                <Bot size={17} strokeWidth={2.4} />
-              </span>
-              <span className="kx-cora-label">Cora <small>IA</small></span>
-              <kbd className="kx-cmd-kbd">⌘J</kbd>
-            </button>
-
             {/* Direct Voice Capture Trigger Button (Desktop topbar) */}
             <button
               type="button"
@@ -448,6 +433,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <div className="app-content pb-24 lg:pb-8">{children}</div>
+
+        {/* Floating Premium CORA AI Round Bubble Widget */}
+        <div className="fixed bottom-20 right-4 lg:bottom-7 lg:right-7 z-40 group">
+          <button
+            type="button"
+            data-tour="cora-ia"
+            onClick={() => setCopilotOpen(true)}
+            aria-label="Ouvrir Cora, votre assistante IA"
+            title="Demandez à Cora IA (Cmd + J / Ctrl + J)"
+            className="relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-[0_10px_25px_rgba(16,185,129,0.45)] hover:shadow-[0_15px_35px_rgba(16,185,129,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-white/30 dark:border-white/15 cursor-pointer"
+          >
+            {/* Ambient glowing pulse aura */}
+            <span className="absolute -inset-1 rounded-full bg-emerald-500/25 animate-ping opacity-60 pointer-events-none" />
+
+            {/* Robot AI Icon */}
+            <Bot size={26} strokeWidth={2.3} className="relative z-10" />
+
+            {/* Online Green Indicator Dot */}
+            <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-300 border-2 border-emerald-800 shadow-xs z-20 flex items-center justify-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-950" />
+            </span>
+          </button>
+
+          {/* Hover Tooltip / Floating Label */}
+          <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 rounded-xl bg-slate-900/95 text-white text-xs font-bold whitespace-nowrap shadow-xl backdrop-blur-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5 border border-white/10">
+            <Sparkles size={13} className="text-emerald-400" />
+            <span>Cora IA Métier</span>
+            <kbd className="text-[10px] bg-slate-800 px-1 py-0.5 rounded text-slate-300">⌘J</kbd>
+          </div>
+        </div>
 
         {/* Mobile Bottom Navigation Bar (Glassmorphism Dock) */}
         <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/80 px-2 py-1.5 flex items-center justify-around lg:hidden shadow-[0_-10px_25px_rgba(0,0,0,0.06)]">
