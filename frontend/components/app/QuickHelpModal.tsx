@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   HelpCircle,
   Sparkles,
@@ -33,6 +34,16 @@ export function QuickHelpModal({
   onOpenVoice,
   onOpenCopilot,
 }: QuickHelpModalProps) {
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    const isStandaloneMode =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true ||
+      document.referrer.includes("android-app://");
+    setIsStandalone(isStandaloneMode);
+  }, []);
+
   if (!open) return null;
 
   return (
@@ -109,27 +120,45 @@ export function QuickHelpModal({
             </div>
           </div>
 
-          <div
-            onClick={() => {
-              onClose();
-              window.dispatchEvent(new CustomEvent("koryxa:open-install-pwa"));
-            }}
-            className="p-3.5 rounded-2xl border border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/60 dark:bg-emerald-950/30 hover:border-emerald-500 hover:bg-emerald-100/50 transition cursor-pointer group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
-                <Download size={18} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <strong className="text-xs font-bold text-emerald-900 dark:text-emerald-200 block truncate">
-                  Installer l'App
-                </strong>
-                <span className="text-[11px] text-emerald-700 dark:text-emerald-400 block mt-0.5 line-clamp-1">
-                  Sur PC & mobile
-                </span>
+          {isStandalone ? (
+            <div className="p-3.5 rounded-2xl border border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/60 dark:bg-emerald-950/30">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white grid place-items-center shrink-0">
+                  <ShieldCheck size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <strong className="text-xs font-bold text-emerald-900 dark:text-emerald-200 block truncate">
+                    App Installée
+                  </strong>
+                  <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold block mt-0.5 line-clamp-1">
+                    ✓ Version Logiciel
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new CustomEvent("koryxa:open-install-pwa"));
+              }}
+              className="p-3.5 rounded-2xl border border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/60 dark:bg-emerald-950/30 hover:border-emerald-500 hover:bg-emerald-100/50 transition cursor-pointer group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Download size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <strong className="text-xs font-bold text-emerald-900 dark:text-emerald-200 block truncate">
+                    Installer l'App
+                  </strong>
+                  <span className="text-[11px] text-emerald-700 dark:text-emerald-400 block mt-0.5 line-clamp-1">
+                    Sur PC & mobile
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Category Examples */}

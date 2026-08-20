@@ -205,6 +205,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
 
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    const checkStandalone = () => {
+      const isStandaloneMode =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.includes("android-app://");
+      setIsStandalone(isStandaloneMode);
+    };
+    checkStandalone();
+    const mediaQuery = window.matchMedia("(display-mode: standalone)");
+    mediaQuery.addEventListener?.("change", checkStandalone);
+    return () => mediaQuery.removeEventListener?.("change", checkStandalone);
+  }, []);
+
   const toggleCollapsed = () =>
     setCollapsed((value) => {
       const next = !value;
@@ -372,24 +388,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* PWA Install Trigger in Sidebar */}
-        <div className="p-2.5 border-t border-border/60">
-          <button
-            type="button"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent("koryxa:open-install-pwa"));
-              setOpen(false);
-            }}
-            title={collapsed ? "Installer l'application sur cet appareil" : undefined}
-            className={clsx(
-              "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 shadow-2xs",
-              collapsed && "justify-center px-1.5"
-            )}
-          >
-            <Download size={15} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
-            {!collapsed && <span>Installer l'app</span>}
-          </button>
-        </div>
+        {/* PWA Install Trigger in Sidebar (Hidden if already installed/standalone) */}
+        {!isStandalone && (
+          <div className="p-2.5 border-t border-border/60">
+            <button
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent("koryxa:open-install-pwa"));
+                setOpen(false);
+              }}
+              title={collapsed ? "Installer l'application sur cet appareil" : undefined}
+              className={clsx(
+                "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 shadow-2xs",
+                collapsed && "justify-center px-1.5"
+              )}
+            >
+              <Download size={15} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+              {!collapsed && <span>Installer l'app</span>}
+            </button>
+          </div>
+        )}
       </aside>
 
       {open && <button className="app-overlay" aria-label="Fermer le menu" onClick={() => setOpen(false)} />}
