@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -388,6 +388,23 @@ export function ExpenseCreateDialog({
 }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [reference, setReference] = useState(expense?.reference || "");
+  const [loadingRef, setLoadingRef] = useState(false);
+  const [docType, setDocType] = useState<string>("expense_receipt");
+  const [paymentStatus, setPaymentStatus] = useState<string>(expense?.payment_status || "paid");
+  const [dueDate, setDueDate] = useState<string>("");
+
+  useEffect(() => {
+    if (open && !expense && !reference) {
+      setLoadingRef(true);
+      serviceIaFetch<{ reference: string }>("/registers/generate-reference?type=expense")
+        .then((res) => {
+          if (res?.reference) setReference(res.reference);
+        })
+        .catch(() => {})
+        .finally(() => setLoadingRef(false));
+    }
+  }, [open, expense, reference]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -396,16 +413,16 @@ export function ExpenseCreateDialog({
     const form = new FormData(e.currentTarget);
     try {
       const payload = {
-        reference: expense?.reference || `DEP-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${Math.floor(
-          1000 + Math.random() * 9000
-        )}`,
+        reference: reference.trim() || undefined,
+        document_type: docType,
         expense_date: String(form.get("expense_date") || new Date().toISOString().slice(0, 10)),
+        due_date: dueDate || null,
         category: String(form.get("category") || "Divers"),
         beneficiary: String(form.get("beneficiary") || ""),
         amount: Number(form.get("amount") || 0),
         currency: String(form.get("currency") || "XOF"),
         payment_method: String(form.get("payment_method") || "") || null,
-        payment_status: String(form.get("payment_status") || "paid"),
+        payment_status: paymentStatus,
         invoice_number: String(form.get("invoice_number") || "") || null,
         comment: String(form.get("comment") || "") || null,
       };
@@ -429,12 +446,42 @@ export function ExpenseCreateDialog({
   return (
     <Dialog
       open
-      title={expense ? `Modifier ${expense.reference}` : "Enregistrer une Dépense"}
-      description="Ajoutez une facture fournisseur, un loyer, salaire ou achat opérationnel."
+      title={expense ? `Modifier ${expense.reference}` : "Enregistrer une Dépense / Achat"}
+      description="Ajoutez une facture fournisseur, un achat de stock, loyer ou décaissement."
       onClose={onClose}
     >
       <form onSubmit={handleSubmit}>
         <div className="app-form-grid">
+          {/* Reference Auto-generated */}
+          <label>
+            Référence auto-générée *
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <input
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                required
+                className="font-black tracking-wide"
+                placeholder={loadingRef ? "Génération..." : "Ex: DEP-2026-001"}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setLoadingRef(true);
+                  serviceIaFetch<{ reference: string }>("/registers/generate-reference?type=expense")
+                    .then((res) => {
+                      if (res?.reference) setReference(res.reference);
+                    })
+                    .catch(() => {})
+                    .finally(() => setLoadingRef(false));
+                }}
+                className="p-2 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground cursor-pointer"
+                title="Régénérer une nouvelle référence"
+              >
+                <RefreshCw size={14} className={loadingRef ? "animate-spin" : ""} />
+              </button>
+            </div>
+          </label>
+
           <label>
             Date de dépense *
             <input
@@ -459,7 +506,7 @@ export function ExpenseCreateDialog({
             </select>
           </label>
 
-          <label className="app-form-span">
+          <label>
             Fournisseur / Bénéficiaire *
             <input
               name="beneficiary"
@@ -471,7 +518,15 @@ export function ExpenseCreateDialog({
 
           <label>
             Montant *
-            <input name="amount" type="number" step="any" min="1" required placeholder="Ex : 50000" defaultValue={expense?.amount || ""}/>
+            <input
+              name="amount"
+              type="number"
+              step="any"
+              min="1"
+              required
+              placeholder="Ex : 50000"
+              defaultValue={expense?.amount || ""}
+            />
           </label>
 
           <label>
@@ -485,26 +540,53 @@ export function ExpenseCreateDialog({
 
           <label>
             État du règlement
-            <select name="payment_status" defaultValue={expense?.payment_status || "paid"}>
-              <option value="paid">Payé / Réglé</option>
+            <select
+              value={paymentStatus}
+              onChange={(e) => setPaymentStatus(e.target.value)}
+            >
+              <option value="paid">Payé / Réglé (Comptant)</option>
               <option value="unpaid">En attente / Non payé</option>
-              <option value="partial">Partiel (Acompte)</option>
+              <option value="partial">Partiel (Acompte versé)</option>
             </select>
           </label>
 
+          {paymentStatus !== "paid" && (
+            <label>
+              Date d&apos;échéance de paiement
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                placeholder="Date limite"
+              />
+            </label>
+          )}
+
           <label>
             Mode de paiement
-            <input name="payment_method" placeholder="Ex : Wave, Virement, Espèces…" defaultValue={expense?.payment_method || ""}/>
+            <input
+              name="payment_method"
+              placeholder="Ex : Wave, Virement, Espèces…"
+              defaultValue={expense?.payment_method || ""}
+            />
           </label>
 
           <label className="app-form-span">
-            N° de Facture / Justificatif
-            <input name="invoice_number" placeholder="Ex : FAC-2026-089" defaultValue={expense?.invoice_number || ""}/>
+            N° de Facture Fournisseur / Justificatif
+            <input
+              name="invoice_number"
+              placeholder="Ex : FAC-FOURN-089"
+              defaultValue={expense?.invoice_number || ""}
+            />
           </label>
 
           <label className="app-form-span">
             Commentaire
-            <textarea name="comment" placeholder="Précisions sur cette dépense…" defaultValue={expense?.comment || ""}/>
+            <textarea
+              name="comment"
+              placeholder="Précisions sur cet achat / facture…"
+              defaultValue={expense?.comment || ""}
+            />
           </label>
         </div>
 

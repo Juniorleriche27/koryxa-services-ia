@@ -218,7 +218,7 @@ export function ExpressPosModal({
           : `${cart[0].offer.name} + ${cart.length - 1} autre(s) article(s)`;
 
       const payload = {
-        reference: `POS-${Date.now().toString().slice(-6)}`,
+        document_type: "receipt",
         sale_date: new Date().toISOString().slice(0, 10),
         client_name: clientName.trim() || "Client Comptoir",
         item_label: itemLabelSummary,
@@ -227,6 +227,7 @@ export function ExpressPosModal({
         unit_price: cart.length === 1 ? cart[0].unitPrice : totalAmount,
         discount: discountAmount,
         total_amount: totalAmount,
+        paid_amount: totalAmount,
         currency: currency,
         payment_method: paymentMethod,
         payment_status: "paid",

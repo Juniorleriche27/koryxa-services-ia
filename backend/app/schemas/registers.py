@@ -6,7 +6,13 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.registers import PaymentStatus, RecordSource, RecordStatus
+from app.models.registers import (
+    DocumentType,
+    ExpenseDocumentType,
+    PaymentStatus,
+    RecordSource,
+    RecordStatus,
+)
 
 
 class Page(BaseModel):
@@ -85,7 +91,8 @@ class OfferRead(OfferBase):
 
 
 class SaleBase(BaseModel):
-    reference: str = Field(min_length=1, max_length=100)
+    reference: str = Field(default="", max_length=100)
+    document_type: DocumentType = DocumentType.INVOICE
     sale_date: date
     client_name: str | None = None
     offer_id: str | None = None
@@ -94,9 +101,13 @@ class SaleBase(BaseModel):
     unit_price: Decimal = Field(default=0, ge=0)
     discount: Decimal = Field(default=0, ge=0)
     total_amount: Decimal | None = Field(default=None, ge=0)
+    paid_amount: Decimal = Field(default=Decimal("0.00"), ge=0)
+    due_date: date | None = None
+    deposit_percentage: Decimal | None = Field(default=None, ge=0, le=100)
     currency: str = Field(default="XOF", min_length=3, max_length=3)
     payment_method: str | None = None
     payment_status: PaymentStatus = PaymentStatus.UNPAID
+    payment_history: list[dict] = Field(default_factory=list)
     seller_user_id: str | None = None
     sales_channel: str | None = None
     comment: str | None = None
@@ -105,11 +116,12 @@ class SaleBase(BaseModel):
 
 
 class SaleCreate(SaleBase):
-    pass
+    reference: str | None = Field(default=None, max_length=100)
 
 
 class SaleUpdate(BaseModel):
-    reference: str | None = Field(default=None, min_length=1, max_length=100)
+    reference: str | None = Field(default=None, max_length=100)
+    document_type: DocumentType | None = None
     sale_date: date | None = None
     client_name: str | None = None
     offer_id: str | None = None
@@ -118,13 +130,34 @@ class SaleUpdate(BaseModel):
     unit_price: Decimal | None = Field(default=None, ge=0)
     discount: Decimal | None = Field(default=None, ge=0)
     total_amount: Decimal | None = Field(default=None, ge=0)
+    paid_amount: Decimal | None = Field(default=None, ge=0)
+    due_date: date | None = None
+    deposit_percentage: Decimal | None = Field(default=None, ge=0, le=100)
     currency: str | None = None
     payment_method: str | None = None
     payment_status: PaymentStatus | None = None
+    payment_history: list[dict] | None = None
     seller_user_id: str | None = None
     sales_channel: str | None = None
     comment: str | None = None
     status: RecordStatus | None = None
+
+
+class RecordPaymentRequest(BaseModel):
+    amount: Decimal = Field(gt=0, description="Montant encaissé (acompte ou solde)")
+    payment_method: str = Field(default="Espèces", max_length=80)
+    payment_date: date | None = None
+    comment: str | None = None
+
+
+class ConvertDocumentRequest(BaseModel):
+    target_type: DocumentType
+    due_date: date | None = None
+
+
+class ReferenceGenerationResponse(BaseModel):
+    reference: str
+    document_type: str
 
 
 class SaleRead(SaleBase):
@@ -132,6 +165,7 @@ class SaleRead(SaleBase):
     id: str
     organization_id: str
     total_amount: Decimal
+    paid_amount: Decimal
     is_archived: bool
     created_by_user_id: str
     updated_by_user_id: str
@@ -243,11 +277,14 @@ class RegistersSummary(BaseModel):
 
 
 class ExpenseBase(BaseModel):
-    reference: str = Field(min_length=1, max_length=100)
+    reference: str = Field(default="", max_length=100)
+    document_type: ExpenseDocumentType = ExpenseDocumentType.EXPENSE_RECEIPT
     expense_date: date
     category: str = Field(default="Divers", max_length=80)
     beneficiary: str = Field(min_length=1, max_length=180)
     amount: Decimal = Field(gt=0)
+    paid_amount: Decimal | None = None
+    due_date: date | None = None
     currency: str = Field(default="XOF", min_length=3, max_length=3)
     payment_method: str | None = None
     payment_status: PaymentStatus = PaymentStatus.PAID
@@ -258,15 +295,18 @@ class ExpenseBase(BaseModel):
 
 
 class ExpenseCreate(ExpenseBase):
-    pass
+    reference: str | None = Field(default=None, max_length=100)
 
 
 class ExpenseUpdate(BaseModel):
     reference: str | None = None
+    document_type: ExpenseDocumentType | None = None
     expense_date: date | None = None
     category: str | None = None
     beneficiary: str | None = None
     amount: Decimal | None = Field(default=None, gt=0)
+    paid_amount: Decimal | None = None
+    due_date: date | None = None
     currency: str | None = None
     payment_method: str | None = None
     payment_status: PaymentStatus | None = None
@@ -278,6 +318,7 @@ class ExpenseUpdate(BaseModel):
 class ExpensePaymentUpdate(BaseModel):
     payment_status: PaymentStatus
     payment_method: str | None = None
+    paid_amount: Decimal | None = None
 
 
 class ExpenseRead(ExpenseBase):

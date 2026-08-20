@@ -23,6 +23,8 @@ interface PaymentReminderDialogProps {
     reference: string;
     client_name?: string | null;
     total_amount: number | string;
+    paid_amount?: number | string | null;
+    due_date?: string | null;
     currency: string;
     sale_date: string;
   } | null;
@@ -42,16 +44,25 @@ export function PaymentReminderDialog({
 }: PaymentReminderDialogProps) {
   const [tone, setTone] = useState<"courteous" | "firm" | "legal">("courteous");
   const [channel, setChannel] = useState<"whatsapp" | "email" | "sms">("whatsapp");
+  const [timing, setTiming] = useState<"upcoming" | "due_today" | "overdue">(() => {
+    if (!sale?.due_date) return "overdue";
+    const today = new Date().toISOString().slice(0, 10);
+    if (sale.due_date > today) return "upcoming";
+    if (sale.due_date === today) return "due_today";
+    return "overdue";
+  });
   const [paymentInfo, setPaymentInfo] = useState("Wave / Orange Money / MTN MoMo ou Virement bancaire");
   const [loading, setLoading] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<ReminderResponse | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
-  const calculateOverdueDays = (saleDateStr: string) => {
-    const saleDate = new Date(saleDateStr);
+  const calculateOverdueDays = (dueDateStr?: string | null, saleDateStr?: string) => {
+    const targetDateStr = dueDateStr || saleDateStr;
+    if (!targetDateStr) return 0;
+    const targetDate = new Date(targetDateStr);
     const today = new Date();
-    const diffTime = Math.max(0, today.getTime() - saleDate.getTime());
+    const diffTime = Math.max(0, today.getTime() - targetDate.getTime());
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   };
 
@@ -61,13 +72,21 @@ export function PaymentReminderDialog({
     setError("");
     setCopied(false);
     try {
-      const overdueDays = calculateOverdueDays(sale.sale_date);
+      const overdueDays = calculateOverdueDays(sale.due_date, sale.sale_date);
+      const total = Number(sale.total_amount || 0);
+      const paid = Number(sale.paid_amount || 0);
+      const balance = Math.max(0, total - paid);
+
       const res = await serviceIaFetch<ReminderResponse>("/ai/generate-payment-reminder", {
         method: "POST",
         body: JSON.stringify({
           sale_id: sale.id,
           client_name: sale.client_name || "Client",
-          amount: Number(sale.total_amount || 0),
+          amount: total,
+          paid_amount: paid,
+          balance_due: balance,
+          due_date: sale.due_date || null,
+          due_status: timing,
           currency: sale.currency || "XOF",
           reference: sale.reference,
           overdue_days: overdueDays,
@@ -88,7 +107,7 @@ export function PaymentReminderDialog({
     if (open && sale) {
       void handleGenerate();
     }
-  }, [open, sale, tone, channel]);
+  }, [open, sale, tone, channel, timing]);
 
   const copyToClipboard = () => {
     if (!generatedResult) return;
@@ -110,6 +129,32 @@ export function PaymentReminderDialog({
       onClose={onClose}
     >
       <div className="kx-reminder-generator-body">
+        {/* Timing Selector: Avant échéance / Jour J / En retard */}
+        <div className="kx-option-block mb-3">
+          <span className="kx-option-label">Moment de la relance (Cycle d&apos;échéance) :</span>
+          <div className="grid grid-cols-3 gap-2 mt-1">
+            {[
+              { id: "upcoming", label: "⏳ Avant échéance", desc: "Rappel préventif" },
+              { id: "due_today", label: "⚡ Jour J", desc: "Échéance ce jour" },
+              { id: "overdue", label: "🚨 En retard", desc: "Échéance dépassée" },
+            ].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`p-2 rounded-xl border text-xs text-left transition cursor-pointer ${
+                  timing === t.id
+                    ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 font-black"
+                    : "border-border text-muted-foreground hover:border-slate-400"
+                }`}
+                onClick={() => setTiming(t.id as "upcoming" | "due_today" | "overdue")}
+              >
+                <div className="font-bold">{t.label}</div>
+                <div className="text-[10px] opacity-75">{t.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Controls Bar: Tone & Channel */}
         <div className="kx-reminder-options-grid">
           <div className="kx-option-block">

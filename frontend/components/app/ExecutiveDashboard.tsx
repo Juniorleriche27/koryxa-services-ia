@@ -51,7 +51,7 @@ interface SummaryData {
     sale_date: string;
     client_name?: string | null;
     item_label: string;
-    total_amount: string;
+    total_amount: string | number;
     currency: string;
     payment_status: string;
   }>;

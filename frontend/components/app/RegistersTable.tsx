@@ -18,22 +18,39 @@ import {
   AlertCircle,
   FileSpreadsheet,
   Package,
+  CreditCard,
+  Printer,
+  FileText,
+  Tag,
+  Share2,
 } from "lucide-react";
 import { StatusPill } from "./Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { PaymentReminderDialog } from "./PaymentReminderDialog";
+import { CommercialDocumentViewer } from "./CommercialDocumentViewer";
+import { RecordPaymentModal } from "./RecordPaymentModal";
 
 export interface SaleItem {
   id: string;
   reference: string;
+  document_type?: "quote" | "proforma" | "invoice" | "receipt" | string;
   sale_date: string;
+  due_date?: string | null;
   client_name?: string | null;
   offer_id?: string | null;
   item_label: string;
-  quantity: string;
-  unit_price: string;
-  discount: string;
-  total_amount: string;
+  quantity: string | number;
+  unit_price: string | number;
+  discount: string | number;
+  total_amount: string | number;
+  paid_amount?: string | number | null;
+  deposit_percentage?: string | number | null;
+  payment_history?: Array<{
+    date: string;
+    amount: string | number;
+    method: string;
+    comment?: string;
+  }>;
   currency: string;
   payment_method?: string | null;
   payment_status: "paid" | "unpaid" | "partial" | "cancelled" | "refunded" | string;
@@ -153,6 +170,40 @@ export function formatLabel(value: unknown) {
   return translations[key] ?? String(value).replaceAll("_", " ");
 }
 
+export function getDocumentTypeMeta(docType?: string) {
+  switch (docType) {
+    case "quote":
+      return { label: "Devis", icon: "🏷️", color: "bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300" };
+    case "proforma":
+      return { label: "Pro Forma", icon: "📄", color: "bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300" };
+    case "receipt":
+      return { label: "Reçu", icon: "✅", color: "bg-teal-50 text-teal-800 border-teal-200 dark:bg-teal-950 dark:text-teal-300" };
+    case "invoice":
+    default:
+      return { label: "Facture", icon: "🧾", color: "bg-slate-100 text-slate-900 border-slate-300 dark:bg-slate-800 dark:text-slate-200" };
+  }
+}
+
+export function getDueDateBadge(sale: SaleItem) {
+  if (sale.payment_status === "paid") {
+    return { text: "✓ Soldé", color: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300" };
+  }
+  if (!sale.due_date) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(sale.due_date);
+  due.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return { text: `🚨 Retard ${Math.abs(diffDays)}j`, color: "bg-red-50 text-red-700 border-red-200 font-black dark:bg-red-950 dark:text-red-300" };
+  }
+  if (diffDays === 0) {
+    return { text: "⚡ Échéance ce jour", color: "bg-amber-50 text-amber-700 border-amber-200 font-bold dark:bg-amber-950 dark:text-amber-300" };
+  }
+  return { text: `📅 Dans ${diffDays}j`, color: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300" };
+}
+
 /* =========================================================================
    SALES TABLE INTERACTIVE
    ========================================================================= */
@@ -172,11 +223,15 @@ export function SalesTableInteractive({
   onRefresh,
 }: SalesTableInteractiveProps) {
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [filterTab, setFilterTab] = useState<string>("all");
   const [sortField, setSortField] = useState<keyof SaleItem>("sale_date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Modals state
   const [reminderSale, setReminderSale] = useState<SaleItem | null>(null);
+  const [viewerDoc, setViewerDoc] = useState<SaleItem | null>(null);
+  const [paymentSale, setPaymentSale] = useState<SaleItem | null>(null);
 
   const handleSort = (field: keyof SaleItem) => {
     if (sortField === field) {
@@ -187,29 +242,34 @@ export function SalesTableInteractive({
     }
   };
 
-  const handleQuickPaymentStatus = async (
-    sale: SaleItem,
-    newStatus: "paid" | "unpaid" | "partial"
-  ) => {
-    setUpdatingId(sale.id);
+  const handleConvert = async (doc: SaleItem, targetType: "invoice" | "receipt") => {
     try {
-      await serviceIaFetch(`/registers/sales/${sale.id}/payment-status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payment_status: newStatus }),
+      await serviceIaFetch(`/registers/sales/${doc.id}/convert`, {
+        method: "POST",
+        body: JSON.stringify({ target_type: targetType }),
       });
       onRefresh();
+      if (viewerDoc?.id === doc.id) {
+        setViewerDoc(null);
+      }
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erreur de mise à jour");
-    } finally {
-      setUpdatingId(null);
+      alert(e instanceof Error ? e.message : "Erreur de conversion");
     }
   };
 
   const filteredSales = useMemo(() => {
+    const todayStr = new Date().toISOString().slice(0, 10);
     return sales
       .filter((s) => {
-        if (statusFilter !== "all" && s.payment_status !== statusFilter) return false;
+        if (filterTab === "invoices" && (s.document_type === "quote" || s.document_type === "proforma")) return false;
+        if (filterTab === "quotes" && s.document_type !== "quote" && s.document_type !== "proforma") return false;
+        if (filterTab === "partials" && s.payment_status !== "partial") return false;
+        if (filterTab === "overdue") {
+          if (s.payment_status === "paid") return false;
+          if (!s.due_date || s.due_date >= todayStr) return false;
+        }
+        if (filterTab === "paid" && s.payment_status !== "paid") return false;
+
         if (!query.trim()) return true;
         const q = query.toLowerCase();
         return (
@@ -234,35 +294,48 @@ export function SalesTableInteractive({
           ? String(valA).localeCompare(String(valB))
           : String(valB).localeCompare(String(valA));
       });
-  }, [sales, query, statusFilter, sortField, sortOrder]);
+  }, [sales, query, filterTab, sortField, sortOrder]);
 
   const exportFilteredCsv = () => {
     const headers = [
       "Référence",
+      "Type",
       "Date",
+      "Échéance",
       "Client",
       "Article / Service",
       "Quantité",
       "Prix unitaire",
       "Montant total",
+      "Encaissé",
+      "Solde dû",
       "Devise",
       "État du paiement",
-      "Mode de paiement",
+      "Mode",
       "Canal",
     ];
-    const rows = filteredSales.map((s) => [
-      `"${s.reference}"`,
-      `"${s.sale_date}"`,
-      `"${s.client_name || ""}"`,
-      `"${s.item_label}"`,
-      s.quantity,
-      s.unit_price,
-      s.total_amount,
-      s.currency,
-      s.payment_status,
-      `"${s.payment_method || ""}"`,
-      `"${s.sales_channel || ""}"`,
-    ]);
+    const rows = filteredSales.map((s) => {
+      const tot = Number(s.total_amount) || 0;
+      const paid = Number(s.paid_amount || (s.payment_status === "paid" ? tot : 0));
+      const bal = Math.max(0, tot - paid);
+      return [
+        `"${s.reference}"`,
+        `"${s.document_type || "invoice"}"`,
+        `"${s.sale_date}"`,
+        `"${s.due_date || ""}"`,
+        `"${s.client_name || ""}"`,
+        `"${s.item_label}"`,
+        s.quantity,
+        s.unit_price,
+        tot,
+        paid,
+        bal,
+        s.currency,
+        s.payment_status,
+        `"${s.payment_method || ""}"`,
+        `"${s.sales_channel || ""}"`,
+      ];
+    });
     const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -280,246 +353,373 @@ export function SalesTableInteractive({
   }, [filteredSales]);
 
   const paidAmount = useMemo(() => {
-    return filteredSales
-      .filter((s) => s.payment_status === "paid")
-      .reduce((acc, s) => acc + (Number(s.total_amount) || 0), 0);
+    return filteredSales.reduce((acc, s) => {
+      const tot = Number(s.total_amount) || 0;
+      const p = s.paid_amount != null ? Number(s.paid_amount) : s.payment_status === "paid" ? tot : 0;
+      return acc + p;
+    }, 0);
   }, [filteredSales]);
 
-  const unpaidAmount = useMemo(() => {
-    return filteredSales
-      .filter((s) => s.payment_status === "unpaid" || s.payment_status === "partial")
-      .reduce((acc, s) => acc + (Number(s.total_amount) || 0), 0);
-  }, [filteredSales]);
-
+  const unpaidAmount = Math.max(0, totalAmount - paidAmount);
   const recoveryRate = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 100;
   const currency = sales[0]?.currency || "XOF";
 
+  // Tab counts
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const quotesCount = sales.filter((s) => s.document_type === "quote" || s.document_type === "proforma").length;
+  const partialsCount = sales.filter((s) => s.payment_status === "partial").length;
+  const overdueCount = sales.filter((s) => s.payment_status !== "paid" && s.due_date && s.due_date < todayStr).length;
+  const paidCount = sales.filter((s) => s.payment_status === "paid").length;
+
   return (
-    <div className="kx-table-wrapper" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="kx-table-wrapper flex flex-col gap-4">
       {/* Live KPIs Header */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-        <div style={{ background: "var(--kx-surface-raised, #f8fafc)", padding: "12px 16px", borderRadius: 10, border: "1px solid var(--kx-border-subtle, #e2e8f0)" }}>
-          <span style={{ fontSize: "0.75rem", color: "var(--kx-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Ventes</span>
-          <div style={{ fontSize: "1.25rem", fontWeight: 700, marginTop: 4 }}>{formatMoney(totalAmount, currency)}</div>
-          <small style={{ color: "var(--kx-text-muted)" }}>{filteredSales.length} opérations</small>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-2xl border border-border">
+          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+            Total Facturé / Émis
+          </span>
+          <div className="text-lg sm:text-xl font-black text-foreground mt-1">
+            {formatMoney(totalAmount, currency)}
+          </div>
+          <small className="text-xs text-muted-foreground">{filteredSales.length} documents</small>
         </div>
 
-        <div style={{ background: "#f0fdf4", padding: "12px 16px", borderRadius: 10, border: "1px solid #bbf7d0" }}>
-          <span style={{ fontSize: "0.75rem", color: "#166534", textTransform: "uppercase", letterSpacing: "0.05em" }}>Encaissé Réel</span>
-          <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#15803d", marginTop: 4 }}>{formatMoney(paidAmount, currency)}</div>
-          <small style={{ color: "#166534" }}>{recoveryRate}% du total facturé</small>
+        <div className="bg-emerald-50/60 dark:bg-emerald-950/30 p-3.5 rounded-2xl border border-emerald-200 dark:border-emerald-900/50">
+          <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+            Encaissé Réel
+          </span>
+          <div className="text-lg sm:text-xl font-black text-emerald-700 dark:text-emerald-400 mt-1">
+            {formatMoney(paidAmount, currency)}
+          </div>
+          <small className="text-xs font-bold text-emerald-600">{recoveryRate}% taux de recouvrement</small>
         </div>
 
-        <div style={{ background: unpaidAmount > 0 ? "#fef2f2" : "var(--kx-surface-raised, #f8fafc)", padding: "12px 16px", borderRadius: 10, border: `1px solid ${unpaidAmount > 0 ? "#fecaca" : "var(--kx-border-subtle, #e2e8f0)"}` }}>
-          <span style={{ fontSize: "0.75rem", color: unpaidAmount > 0 ? "#991b1b" : "var(--kx-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Reste à Recouvrer</span>
-          <div style={{ fontSize: "1.25rem", fontWeight: 700, color: unpaidAmount > 0 ? "#dc2626" : "inherit", marginTop: 4 }}>{formatMoney(unpaidAmount, currency)}</div>
-          <small style={{ color: unpaidAmount > 0 ? "#991b1b" : "var(--kx-text-muted)" }}>{filteredSales.filter((s) => s.payment_status !== "paid").length} créance(s)</small>
+        <div
+          className={`p-3.5 rounded-2xl border ${
+            unpaidAmount > 0
+              ? "bg-amber-50/60 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50"
+              : "bg-slate-50 dark:bg-slate-900/60 border-border"
+          }`}
+        >
+          <span
+            className={`text-[11px] font-bold uppercase tracking-wider ${
+              unpaidAmount > 0 ? "text-amber-800 dark:text-amber-300" : "text-muted-foreground"
+            }`}
+          >
+            Créances & Acomptes Restants
+          </span>
+          <div
+            className={`text-lg sm:text-xl font-black mt-1 ${
+              unpaidAmount > 0 ? "text-amber-700 dark:text-amber-400" : "text-foreground"
+            }`}
+          >
+            {formatMoney(unpaidAmount, currency)}
+          </div>
+          <small className="text-xs text-muted-foreground">
+            {filteredSales.filter((s) => s.payment_status !== "paid").length} document(s) à solder
+          </small>
         </div>
       </div>
 
-      {/* Controls Bar */}
-      <div className="kx-table-header-controls">
-        <div className="kx-table-search-row">
-          <label className="app-search kx-search-box">
+      {/* Controls Bar & Filter Tabs */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <label className="app-search kx-search-box flex-1 min-w-[240px]">
             <Search size={16} />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher par référence, client, article, mode..."
+              placeholder="Rechercher réf, client, article, mode..."
             />
           </label>
 
-          <div className="kx-filter-pills">
-            {[
-              { id: "all", label: "Toutes", count: sales.length },
-              { id: "paid", label: "Payées", count: sales.filter((s) => s.payment_status === "paid").length },
-              { id: "unpaid", label: "Non payées", count: sales.filter((s) => s.payment_status === "unpaid").length },
-              { id: "partial", label: "Partielles", count: sales.filter((s) => s.payment_status === "partial").length },
-            ].map((filter) => (
-              <button
-                key={filter.id}
-                type="button"
-                className={`kx-pill-filter ${statusFilter === filter.id ? "is-active" : ""}`}
-                onClick={() => setStatusFilter(filter.id)}
-              >
-                <span>{filter.label}</span>
-                <small>{filter.count}</small>
-              </button>
-            ))}
-          </div>
-
           <button
             type="button"
-            className="app-button app-button-secondary kx-export-btn"
+            className="app-button app-button-secondary text-xs"
             onClick={exportFilteredCsv}
             title="Exporter en CSV"
           >
-            <Download size={15} />
-            <span>Exporter ({filteredSales.length})</span>
+            <Download size={14} />
+            <span>Exporter CSV ({filteredSales.length})</span>
           </button>
+        </div>
+
+        {/* Quick Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1">
+          {[
+            { id: "all", label: "Tous", count: sales.length },
+            { id: "invoices", label: "🧾 Factures", count: sales.length - quotesCount },
+            { id: "quotes", label: "🏷️ Devis & Pro Forma", count: quotesCount },
+            { id: "partials", label: "⏳ Acomptes & Partiels", count: partialsCount },
+            { id: "overdue", label: "🚨 En retard", count: overdueCount },
+            { id: "paid", label: "✅ Soldées", count: paidCount },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
+                filterTab === tab.id
+                  ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-950 dark:border-white shadow-xs"
+                  : "bg-card text-muted-foreground border-border hover:border-slate-400 hover:text-foreground"
+              }`}
+              onClick={() => setFilterTab(tab.id)}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  filterTab === tab.id
+                    ? "bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-950"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Table */}
-      <div className="app-table-scroll kx-rich-table-scroll">
+      <div className="app-table-scroll kx-rich-table-scroll rounded-2xl border border-border overflow-hidden">
         <table className="app-data-table kx-rich-table">
           <thead>
             <tr>
               <th onClick={() => handleSort("reference")} className="kx-th-sortable">
                 <div className="kx-th-inner">
-                  <span>Référence</span>
+                  <span>Document & Réf</span>
                   <ArrowUpDown size={12} />
                 </div>
               </th>
               <th onClick={() => handleSort("sale_date")} className="kx-th-sortable">
                 <div className="kx-th-inner">
-                  <span>Date</span>
+                  <span>Date & Échéance</span>
                   <ArrowUpDown size={12} />
                 </div>
               </th>
               <th onClick={() => handleSort("client_name")} className="kx-th-sortable">
                 <div className="kx-th-inner">
-                  <span>Client</span>
+                  <span>Client & Canal</span>
                   <ArrowUpDown size={12} />
                 </div>
               </th>
-              <th>Offre / Article</th>
-              <th onClick={() => handleSort("quantity")} className="kx-th-sortable app-number">
-                <div className="kx-th-inner app-number">
-                  <span>Qté</span>
-                  <ArrowUpDown size={12} />
-                </div>
-              </th>
-              <th onClick={() => handleSort("unit_price")} className="kx-th-sortable app-number">
-                <div className="kx-th-inner app-number">
-                  <span>Prix unitaire</span>
-                  <ArrowUpDown size={12} />
-                </div>
-              </th>
+              <th>Article / Prestation</th>
               <th onClick={() => handleSort("total_amount")} className="kx-th-sortable app-number">
                 <div className="kx-th-inner app-number">
-                  <span>Total</span>
+                  <span>Règlement & Solde</span>
                   <ArrowUpDown size={12} />
                 </div>
               </th>
-              <th>État Paiement</th>
-              <th>Mode</th>
-              <th style={{ textAlign: "center" }}>Actions</th>
+              <th style={{ textAlign: "center" }}>Actions & Documents</th>
             </tr>
           </thead>
           <tbody>
-            {filteredSales.map((sale) => (
-              <tr key={sale.id}>
-                <td>
-                  <button
-                    className="app-table-link kx-code-badge"
-                    onClick={() => onSelect(sale)}
-                    title="Voir la fiche complète"
-                  >
-                    {sale.reference}
-                  </button>
-                </td>
-                <td>
-                  <span className="kx-date-cell">{formatDate(sale.created_at || sale.sale_date, true)}</span>
-                </td>
-                <td>
-                  {sale.client_name ? (
-                    <strong className="kx-client-name">{sale.client_name}</strong>
-                  ) : (
-                    <span className="kx-missing-pill">Non renseigné</span>
-                  )}
-                </td>
-                <td>
-                  <div className="kx-item-cell">
-                    <span>{sale.item_label}</span>
-                    {sale.comment && <small title={sale.comment}>{sale.comment}</small>}
-                  </div>
-                </td>
-                <td className="app-number">
-                  {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(
-                    Number(sale.quantity)
-                  )}
-                </td>
-                <td className="app-number">{formatMoney(sale.unit_price, sale.currency)}</td>
-                <td className="app-number app-table-total">
-                  {formatMoney(sale.total_amount, sale.currency)}
-                </td>
-                <td>
-                  <div className="kx-inline-status-toggle">
-                    <select
-                      className={`kx-status-select kx-status-${sale.payment_status}`}
-                      value={sale.payment_status}
-                      disabled={updatingId === sale.id}
-                      onChange={(e) =>
-                        handleQuickPaymentStatus(
-                          sale,
-                          e.target.value as "paid" | "unpaid" | "partial"
-                        )
-                      }
-                      title="Changer rapidement le statut"
-                    >
-                      <option value="unpaid">Non payé</option>
-                      <option value="partial">Partiel</option>
-                      <option value="paid">Payé</option>
-                      <option value="cancelled">Annulé</option>
-                    </select>
-                  </div>
-                </td>
-                <td>
-                  <span className="kx-method-tag">{formatLabel(sale.payment_method || "—")}</span>
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <div className="kx-row-actions-group" style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                    <button
-                      type="button"
-                      className="app-button app-button-secondary"
-                      style={{ padding: "4px 8px", fontSize: "0.8rem" }}
-                      onClick={() => onEdit(sale)}
-                      title="Modifier les informations de cette vente"
-                    >
-                      <Pencil size={13} />
-                      <span>Modifier</span>
-                    </button>
-
-                    {sale.payment_status !== "paid" && (
-                      <button
-                        type="button"
-                        className="kx-row-ai-reminder-btn"
-                        style={{ padding: "4px 8px" }}
-                        onClick={() => setReminderSale(sale)}
-                        title="Relance IA WhatsApp / Email"
-                      >
-                        <Sparkles size={13} />
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      className="app-button app-button-secondary"
-                      style={{ padding: "4px 8px", fontSize: "0.8rem" }}
-                      onClick={() => onSelect(sale)}
-                      title="Voir la fiche détaillée et l'historique"
-                    >
-                      <Eye size={13} />
-                    </button>
-
-                    <button
-                      type="button"
-                      className="app-button app-button-secondary"
-                      style={{ padding: "4px 8px", color: "#ef4444" }}
-                      onClick={() => onArchive(sale.id)}
-                      title="Archiver cette vente"
-                    >
-                      <Archive size={13} />
-                    </button>
-                  </div>
+            {filteredSales.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
+                  Aucun document commercial trouvé avec ces filtres.
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredSales.map((sale) => {
+                const total = Number(sale.total_amount) || 0;
+                const paid = Number(sale.paid_amount || (sale.payment_status === "paid" ? total : 0));
+                const balance = Math.max(0, total - paid);
+                const percentPaid = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 100;
+                const docMeta = getDocumentTypeMeta(sale.document_type);
+                const dueBadge = getDueDateBadge(sale);
+
+                return (
+                  <tr key={sale.id} className="hover:bg-muted/30 transition">
+                    {/* Document Type & Reference */}
+                    <td>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${docMeta.color}`}>
+                          {docMeta.icon} {docMeta.label}
+                        </span>
+                        <button
+                          type="button"
+                          className="font-mono text-xs font-black text-primary hover:underline flex items-center gap-1 text-left"
+                          onClick={() => setViewerDoc(sale)}
+                          title="Visualiser et imprimer ce document"
+                        >
+                          <span>{sale.reference}</span>
+                          <Eye size={12} className="opacity-60" />
+                        </button>
+                      </div>
+                    </td>
+
+                    {/* Date & Smart Due Date */}
+                    <td>
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-foreground block">
+                          {formatDate(sale.sale_date, false)}
+                        </span>
+                        {dueBadge && (
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-full text-[10.5px] border ${dueBadge.color}`}
+                          >
+                            {dueBadge.text}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Client & Sales Channel */}
+                    <td>
+                      <div>
+                        <strong className="text-xs font-black text-foreground block">
+                          {sale.client_name || "Client comptant"}
+                        </strong>
+                        {sale.sales_channel && (
+                          <span className="text-[10px] font-semibold text-muted-foreground">
+                            Canal : {sale.sales_channel}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Item label */}
+                    <td>
+                      <div className="space-y-0.5 max-w-[200px]">
+                        <span className="text-xs font-bold text-foreground line-clamp-1">
+                          {sale.item_label}
+                        </span>
+                        <small className="text-[10.5px] text-muted-foreground block">
+                          Qté : {sale.quantity} × {formatMoney(sale.unit_price, sale.currency)}
+                        </small>
+                      </div>
+                    </td>
+
+                    {/* Settlement progress & Balance due */}
+                    <td className="app-number">
+                      <div className="flex flex-col items-end gap-1">
+                        <strong className="text-xs font-black text-foreground">
+                          {formatMoney(total, sale.currency)}
+                        </strong>
+
+                        {/* Visual Progress Bar */}
+                        <div className="w-24 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${
+                              percentPaid === 100
+                                ? "bg-emerald-500"
+                                : percentPaid > 0
+                                ? "bg-amber-500"
+                                : "bg-transparent"
+                            }`}
+                            style={{ width: `${percentPaid}%` }}
+                          />
+                        </div>
+
+                        <div className="text-[10.5px] text-muted-foreground">
+                          {percentPaid === 100 ? (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓ 100% Soldé</span>
+                          ) : (
+                            <span>
+                              Encaissé : <strong>{formatMoney(paid, sale.currency)}</strong>
+                              {balance > 0 && (
+                                <span className="text-amber-600 dark:text-amber-400 block font-bold">
+                                  Solde : {formatMoney(balance, sale.currency)}
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Action Buttons */}
+                    <td style={{ textAlign: "center" }}>
+                      <div className="flex items-center justify-center gap-1.5">
+                        {/* Open PDF / Printable Document */}
+                        <button
+                          type="button"
+                          className="p-1.5 rounded-xl border border-border bg-card hover:bg-muted text-foreground text-xs font-bold flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                          onClick={() => setViewerDoc(sale)}
+                          title="Imprimer / Télécharger en PDF / Partager"
+                        >
+                          <Printer size={13} className="text-muted-foreground" />
+                          <span className="hidden sm:inline">Doc</span>
+                        </button>
+
+                        {/* Record Partial Payment (if not 100% paid) */}
+                        {balance > 0 && (
+                          <button
+                            type="button"
+                            className="px-2 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 text-xs font-black flex items-center gap-1 transition cursor-pointer border border-emerald-300 dark:border-emerald-800"
+                            onClick={() => setPaymentSale(sale)}
+                            title="Encaisser un acompte ou le solde restant"
+                          >
+                            <CreditCard size={13} />
+                            <span>Acompte</span>
+                          </button>
+                        )}
+
+                        {/* AI Payment Reminder */}
+                        {sale.payment_status !== "paid" && (
+                          <button
+                            type="button"
+                            className="p-1.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 text-xs font-bold transition cursor-pointer"
+                            onClick={() => setReminderSale(sale)}
+                            title="Relance IA WhatsApp / Email"
+                          >
+                            <Sparkles size={13} />
+                          </button>
+                        )}
+
+                        {/* Edit */}
+                        <button
+                          type="button"
+                          className="p-1.5 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground text-xs transition cursor-pointer"
+                          onClick={() => onEdit(sale)}
+                          title="Modifier"
+                        >
+                          <Pencil size={13} />
+                        </button>
+
+                        {/* Archive */}
+                        <button
+                          type="button"
+                          className="p-1.5 rounded-xl border border-border bg-card hover:bg-red-50 hover:border-red-300 text-muted-foreground hover:text-red-600 text-xs transition cursor-pointer"
+                          onClick={() => onArchive(sale.id)}
+                          title="Archiver"
+                        >
+                          <Archive size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
 
+      {/* Printable Document Modal */}
+      <CommercialDocumentViewer
+        open={Boolean(viewerDoc)}
+        onClose={() => setViewerDoc(null)}
+        document={viewerDoc}
+        onRecordPayment={(doc) => {
+          setViewerDoc(null);
+          setPaymentSale(doc);
+        }}
+        onConvert={handleConvert}
+      />
+
+      {/* Partial Payment Modal */}
+      <RecordPaymentModal
+        open={Boolean(paymentSale)}
+        onClose={() => setPaymentSale(null)}
+        sale={paymentSale}
+        onPaymentRecorded={async () => {
+          onRefresh();
+        }}
+      />
+
+      {/* AI Payment Reminder Modal */}
       <PaymentReminderDialog
         open={Boolean(reminderSale)}
         onClose={() => setReminderSale(null)}
@@ -581,148 +781,145 @@ export function OffersTableInteractive({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher un produit, article, offre, tarif..."
+              placeholder="Rechercher une offre, un article, une condition..."
             />
           </label>
 
-          <div className="kx-filter-pills">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                className={`kx-pill-filter ${categoryFilter === cat ? "is-active" : ""}`}
-                onClick={() => setCategoryFilter(cat)}
-              >
-                <span>{cat === "all" ? "Toutes les catégories" : cat}</span>
-                <small>{cat === "all" ? offers.length : offers.filter((o) => o.category === cat).length}</small>
-              </button>
-            ))}
-          </div>
+          <select
+            className="app-select kx-filter-select"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="all">Toutes les catégories</option>
+            {categories
+              .filter((c) => c !== "all")
+              .map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+          </select>
         </div>
       </div>
 
-      <div className="app-table-scroll kx-rich-table-scroll">
+      <div className="app-table-scroll kx-rich-table-scroll rounded-2xl border border-border overflow-hidden">
         <table className="app-data-table kx-rich-table">
           <thead>
             <tr>
-              <th>Article / Produit / Offre</th>
+              <th>Offre / Article</th>
               <th>Catégorie</th>
-              <th className="app-number">Prix de Vente</th>
-              <th>Stock Physique</th>
-              <th>Unité</th>
+              <th className="app-number">Prix de vente</th>
+              <th className="app-number">Coût unitaire</th>
+              <th className="app-number">Marge brute</th>
+              <th>Stock Actuel</th>
               <th>Statut</th>
               <th style={{ textAlign: "center" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((offer) => {
-              const stock = Number(offer.stock_quantity ?? 0);
-              const minStock = Number(offer.min_stock_alert ?? 5);
-              const isOutOfStock = offer.track_stock && stock <= 0;
-              const isLowStock = offer.track_stock && stock > 0 && stock <= minStock;
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
+                  Aucun article trouvé.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((offer) => {
+                const price = Number(offer.price || 0);
+                const cost = offer.cost_price != null ? Number(offer.cost_price) : null;
+                const margin = cost != null && price > 0 ? Math.round(((price - cost) / price) * 100) : null;
+                const stock = Number(offer.stock_quantity || 0);
+                const minStock = Number(offer.min_stock_alert || 5);
+                const isLowStock = offer.track_stock && stock <= minStock;
 
-              return (
-                <tr key={offer.id}>
-                  <td>
-                    <strong
-                      style={{ cursor: "pointer", color: "var(--kx-primary-color, #0f766e)" }}
-                      onClick={() => onSelect(offer)}
-                    >
-                      {offer.name}
-                    </strong>
-                    {offer.description && (
-                      <div style={{ fontSize: "0.8rem", color: "var(--kx-text-muted)" }}>
-                        {offer.description}
+                return (
+                  <tr key={offer.id} className="hover:bg-muted/30 transition">
+                    <td>
+                      <div>
+                        <strong className="text-xs font-black text-foreground block">{offer.name}</strong>
+                        {offer.billing_unit && (
+                          <span className="text-[10.5px] text-muted-foreground">Par {offer.billing_unit}</span>
+                        )}
                       </div>
-                    )}
-                  </td>
-                  <td>
-                    <span className="kx-method-tag">{offer.category || "Général"}</span>
-                  </td>
-                  <td className="app-number app-table-total">
-                    {formatMoney(offer.price, offer.currency)}
-                    {offer.cost_price && (
-                      <div style={{ fontSize: "0.75rem", color: "var(--kx-text-muted)", fontWeight: "normal" }}>
-                        Coût : {formatMoney(offer.cost_price, offer.currency)}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    {offer.track_stock ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    </td>
+                    <td>
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-muted text-muted-foreground">
+                        {offer.category || "Général"}
+                      </span>
+                    </td>
+                    <td className="app-number font-black text-foreground">
+                      {formatMoney(offer.price, offer.currency)}
+                    </td>
+                    <td className="app-number text-muted-foreground font-medium">
+                      {cost != null ? formatMoney(cost, offer.currency) : "—"}
+                    </td>
+                    <td className="app-number">
+                      {margin != null ? (
                         <span
-                          className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            isOutOfStock
-                              ? "bg-rose-500/10 text-rose-600 border border-rose-500/20"
-                              : isLowStock
-                              ? "bg-amber-500/10 text-amber-600 border border-amber-500/20"
-                              : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                          className={`text-xs font-black ${
+                            margin >= 30 ? "text-emerald-600" : margin >= 15 ? "text-amber-600" : "text-red-600"
                           }`}
                         >
-                          {isOutOfStock
-                            ? "⛔ Rupture"
-                            : isLowStock
-                            ? `⚠️ Faible (${stock})`
-                            : `✓ ${stock} en stock`}
+                          {margin}%
                         </span>
-                      </div>
-                    ) : (
-                      <span style={{ color: "var(--kx-text-muted)", fontSize: "0.8rem" }}>
-                        Non suivi
-                      </span>
-                    )}
-                  </td>
-                  <td>{offer.billing_unit || "Unité"}</td>
-                  <td>
-                    <StatusPill>{formatLabel(offer.status)}</StatusPill>
-                  </td>
-                  <td style={{ textAlign: "center" }}>
-                    <div className="kx-row-actions-group" style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                      {offer.track_stock && onAdjustStock && (
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>
+                      {offer.track_stock ? (
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-black ${
+                              isLowStock
+                                ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
+                                : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                            }`}
+                          >
+                            {stock} {offer.billing_unit || "unités"}
+                          </span>
+                          {onAdjustStock && (
+                            <button
+                              type="button"
+                              onClick={() => onAdjustStock(offer)}
+                              className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                              title="Ajuster le stock"
+                            >
+                              <RefreshCw size={12} />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Non suivi</span>
+                      )}
+                    </td>
+                    <td>
+                      <StatusPill>{formatLabel(offer.status)}</StatusPill>
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <div className="flex items-center justify-center gap-1">
                         <button
                           type="button"
-                          className="app-button app-button-secondary"
-                          style={{ padding: "4px 8px", fontSize: "0.8rem" }}
-                          onClick={() => onAdjustStock(offer)}
-                          title="Ajuster le stock (Réapprovisionnement / Inventaire)"
+                          className="p-1.5 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground text-xs transition cursor-pointer"
+                          onClick={() => onEdit(offer)}
+                          title="Modifier"
                         >
-                          <Package size={13} />
-                          <span>Stock</span>
+                          <Pencil size={13} />
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        className="app-button app-button-secondary"
-                        style={{ padding: "4px 8px", fontSize: "0.8rem" }}
-                        onClick={() => onEdit(offer)}
-                        title="Modifier cet article"
-                      >
-                        <Pencil size={13} />
-                        <span>Modifier</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="app-button app-button-secondary"
-                        style={{ padding: "4px 8px", fontSize: "0.8rem" }}
-                        onClick={() => onSelect(offer)}
-                        title="Voir le détail"
-                      >
-                        <Eye size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        className="app-button app-button-secondary"
-                        style={{ padding: "4px 8px", color: "#ef4444" }}
-                        onClick={() => onArchive(offer.id)}
-                        title="Archiver"
-                      >
-                        <Archive size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                        <button
+                          type="button"
+                          className="p-1.5 rounded-xl border border-border bg-card hover:bg-red-50 hover:border-red-300 text-muted-foreground hover:text-red-600 text-xs transition cursor-pointer"
+                          onClick={() => onArchive(offer.id)}
+                          title="Archiver"
+                        >
+                          <Archive size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

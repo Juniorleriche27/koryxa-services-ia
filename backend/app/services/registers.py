@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import ApplicationError
 from app.models.attendance import AttendanceRecord
 from app.models.registers import (
+    DocumentType,
     Expense,
+    ExpenseDocumentType,
     Offer,
     PaymentStatus,
     Procedure,
@@ -17,17 +19,23 @@ from app.models.registers import (
     Supplier,
 )
 from app.schemas.registers import (
+    ConvertDocumentRequest,
     ExpenseCreate,
     ExpenseUpdate,
     OfferCreate,
     OfferUpdate,
     ProcedureCreate,
     ProcedureUpdate,
+    RecordPaymentRequest,
     SaleCreate,
     SaleUpdate,
     StockAdjustmentRequest,
     SupplierCreate,
     SupplierUpdate,
+)
+from app.services.reference_generator import (
+    generate_next_expense_reference,
+    generate_next_sale_reference,
 )
 
 
@@ -141,11 +149,50 @@ class RegisterService:
         if target_offer and not values.get("offer_id"):
             values["offer_id"] = target_offer.id
 
-        values["total_amount"] = (
+        total_amount = (
             data.total_amount
             if data.total_amount is not None
             else max(Decimal("0"), data.quantity * data.unit_price - data.discount)
         )
+        values["total_amount"] = total_amount
+
+        # Automatic Reference Generation if empty or default
+        doc_type = data.document_type or DocumentType.INVOICE
+        values["document_type"] = doc_type
+        ref = (values.get("reference") or "").strip()
+        if not ref or ref.lower() in ("auto", "nouveau", "new", "ref", "string", "null"):
+            ref = await generate_next_sale_reference(s, org, doc_type)
+        values["reference"] = ref
+
+        # Calculate paid_amount and deposit
+        paid_amount = values.get("paid_amount") or Decimal("0.00")
+        if values.get("deposit_percentage") is not None and paid_amount == Decimal("0.00"):
+            deposit_pct = Decimal(str(values["deposit_percentage"]))
+            paid_amount = max(Decimal("0.00"), (total_amount * deposit_pct) / Decimal("100"))
+
+        if values.get("payment_status") == PaymentStatus.PAID and paid_amount == Decimal("0.00") and total_amount > 0:
+            paid_amount = total_amount
+
+        if paid_amount >= total_amount and total_amount > 0:
+            values["payment_status"] = PaymentStatus.PAID
+        elif paid_amount > Decimal("0.00"):
+            values["payment_status"] = PaymentStatus.PARTIAL
+
+        values["paid_amount"] = paid_amount
+
+        # Initial payment history if paid
+        history = list(values.get("payment_history") or [])
+        if paid_amount > Decimal("0.00") and not history:
+            history.append({
+                "date": str(data.sale_date),
+                "amount": str(paid_amount),
+                "method": data.payment_method or "Espèces",
+                "comment": "Paiement / Acompte initial",
+                "recorded_by": user,
+                "resulting_balance": str(max(Decimal("0.00"), total_amount - paid_amount)),
+            })
+        values["payment_history"] = history
+
         obj = Sale(organization_id=org, created_by_user_id=user, updated_by_user_id=user, **values)
         s.add(obj)
         await s.flush()
@@ -159,6 +206,74 @@ class RegisterService:
 
         await self._history(
             s, org, "sale", obj.id, "created", user, {k: str(v) for k, v in values.items()}
+        )
+        await s.commit()
+        await s.refresh(obj)
+        return obj
+
+    async def record_sale_payment(
+        self, s: AsyncSession, org: str, user: str, rid: str, data: RecordPaymentRequest
+    ) -> Sale:
+        obj = await self.get_sale(s, org, rid)
+        before_paid = obj.paid_amount if obj.paid_amount is not None else Decimal("0.00")
+        total = obj.total_amount if obj.total_amount is not None else Decimal("0.00")
+        new_paid = before_paid + data.amount
+        obj.paid_amount = new_paid
+
+        if new_paid >= total and total > 0:
+            obj.payment_status = PaymentStatus.PAID
+            if obj.document_type == DocumentType.INVOICE:
+                obj.document_type = DocumentType.RECEIPT
+        elif new_paid > 0:
+            obj.payment_status = PaymentStatus.PARTIAL
+
+        if data.payment_method:
+            obj.payment_method = data.payment_method
+
+        history_entry = {
+            "date": str(data.payment_date or date.today()),
+            "amount": str(data.amount),
+            "method": data.payment_method,
+            "comment": data.comment or "Règlement acompte / solde",
+            "recorded_by": user,
+            "resulting_balance": str(max(Decimal("0.00"), total - new_paid)),
+        }
+        current_history = list(obj.payment_history or [])
+        current_history.append(history_entry)
+        obj.payment_history = current_history
+        obj.updated_by_user_id = user
+
+        await self._history(s, org, "sale", rid, "payment_recorded", user, history_entry)
+        await s.commit()
+        await s.refresh(obj)
+        return obj
+
+    async def convert_sale_document(
+        self, s: AsyncSession, org: str, user: str, rid: str, data: ConvertDocumentRequest
+    ) -> Sale:
+        obj = await self.get_sale(s, org, rid)
+        before_type = obj.document_type
+        obj.document_type = data.target_type
+        if data.due_date:
+            obj.due_date = data.due_date
+
+        if before_type in (DocumentType.QUOTE, DocumentType.PROFORMA) and data.target_type == DocumentType.INVOICE:
+            if obj.reference.startswith("DEV-") or obj.reference.startswith("PRO-"):
+                obj.reference = await generate_next_sale_reference(s, org, DocumentType.INVOICE)
+        elif before_type != DocumentType.RECEIPT and data.target_type == DocumentType.RECEIPT:
+            if obj.payment_status != PaymentStatus.PAID:
+                obj.payment_status = PaymentStatus.PAID
+                obj.paid_amount = obj.total_amount
+
+        obj.updated_by_user_id = user
+        await self._history(
+            s,
+            org,
+            "sale",
+            rid,
+            "document_converted",
+            user,
+            {"from": str(before_type), "to": str(data.target_type), "new_ref": obj.reference},
         )
         await s.commit()
         await s.refresh(obj)
@@ -499,22 +614,25 @@ class RegisterService:
 
     # ------------------ EXPENSES ------------------
     async def create_expense(self, s: AsyncSession, org: str, user: str, data: ExpenseCreate):
+        values = data.model_dump()
+        doc_type = data.document_type or ExpenseDocumentType.EXPENSE_RECEIPT
+        values["document_type"] = doc_type
+
+        ref = (values.get("reference") or "").strip()
+        if not ref or ref.lower() in ("auto", "nouveau", "new", "ref", "string", "null"):
+            ref = await generate_next_expense_reference(s, org, doc_type)
+        values["reference"] = ref
+
+        paid_amount = values.get("paid_amount")
+        if paid_amount is None and values.get("payment_status") == PaymentStatus.PAID:
+            paid_amount = values["amount"]
+        values["paid_amount"] = paid_amount
+
         obj = Expense(
             organization_id=org,
-            reference=data.reference,
-            expense_date=data.expense_date,
-            category=data.category,
-            beneficiary=data.beneficiary,
-            amount=data.amount,
-            currency=data.currency,
-            payment_method=data.payment_method,
-            payment_status=data.payment_status,
-            invoice_number=data.invoice_number,
-            comment=data.comment,
-            status=data.status,
-            source=data.source,
             created_by_user_id=user,
             updated_by_user_id=user,
+            **values,
         )
         s.add(obj)
         await s.flush()

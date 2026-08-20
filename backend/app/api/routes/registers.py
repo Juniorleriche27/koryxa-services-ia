@@ -10,9 +10,15 @@ from app.core.permissions import get_current_organization, require_permission
 from app.db.session import get_session
 from app.models.member import OrganizationMember
 from app.models.organization import Organization
-from app.models.registers import PaymentStatus, RecordStatus
+from app.models.registers import (
+    DocumentType,
+    ExpenseDocumentType,
+    PaymentStatus,
+    RecordStatus,
+)
 from app.schemas.registers import (
     CashflowSummary,
+    ConvertDocumentRequest,
     ExpenseCreate,
     ExpensePaymentUpdate,
     ExpenseRead,
@@ -25,6 +31,8 @@ from app.schemas.registers import (
     ProcedureCreate,
     ProcedureRead,
     ProcedureUpdate,
+    RecordPaymentRequest,
+    ReferenceGenerationResponse,
     RegistersSummary,
     SaleCreate,
     SalePaymentUpdate,
@@ -35,7 +43,10 @@ from app.schemas.registers import (
     SupplierRead,
     SupplierUpdate,
 )
-
+from app.services.reference_generator import (
+    generate_next_expense_reference,
+    generate_next_sale_reference,
+)
 from app.services.registers import RegisterService
 
 router = APIRouter()
@@ -45,6 +56,21 @@ OrgDep = Annotated[Organization, Depends(get_current_organization)]
 ReadDep = Annotated[OrganizationMember, Depends(require_permission("registers:read"))]
 ManageDep = Annotated[OrganizationMember, Depends(require_permission("registers:manage"))]
 svc = RegisterService()
+
+
+@router.get("/generate-reference", response_model=ReferenceGenerationResponse)
+async def generate_reference(
+    s: SessionDep,
+    o: OrgDep,
+    _: ReadDep,
+    type: str = Query("invoice", description="quote, proforma, invoice, receipt, expense"),
+):
+    if type == "expense":
+        ref = await generate_next_expense_reference(s, o.id)
+    else:
+        doc_type = DocumentType(type) if type in [e.value for e in DocumentType] else DocumentType.INVOICE
+        ref = await generate_next_sale_reference(s, o.id, doc_type)
+    return ReferenceGenerationResponse(reference=ref, document_type=type)
 
 
 @router.post("/offers", response_model=OfferRead, status_code=201)
@@ -130,6 +156,30 @@ async def update_sale(
     rid: str, data: SaleUpdate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep
 ):
     return await svc.update_sale(s, o.id, i.user_id, rid, data)
+
+
+@router.post("/sales/{rid}/record-payment", response_model=SaleRead)
+async def record_payment(
+    rid: str,
+    data: RecordPaymentRequest,
+    s: SessionDep,
+    i: IdentityDep,
+    o: OrgDep,
+    _: ManageDep,
+):
+    return await svc.record_sale_payment(s, o.id, i.user_id, rid, data)
+
+
+@router.post("/sales/{rid}/convert", response_model=SaleRead)
+async def convert_document(
+    rid: str,
+    data: ConvertDocumentRequest,
+    s: SessionDep,
+    i: IdentityDep,
+    o: OrgDep,
+    _: ManageDep,
+):
+    return await svc.convert_sale_document(s, o.id, i.user_id, rid, data)
 
 
 @router.post("/procedures", response_model=ProcedureRead, status_code=201)

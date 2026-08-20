@@ -149,9 +149,21 @@ class AIEngineService:
                     }
                     return json.dumps(mock_proc, ensure_ascii=False), "knowlia-mock-engine"
                 elif "rédige une relance" in prompt.lower() or "overdue_days" in prompt.lower():
+                    # Parse data from prompt if present
+                    try:
+                        raw_data = prompt.split("Données: ", 1)[1] if "Données: " in prompt else "{}"
+                        parsed = json.loads(raw_data)
+                        client = parsed.get("client_name", "Société BTP Ivoire")
+                        amt = parsed.get("balance_due") or parsed.get("amount", 750000)
+                        ref = parsed.get("reference", "FAC-2026-99")
+                        cur = parsed.get("currency", "XOF")
+                        amt_str = f"{float(amt):,.0f} {cur}".replace(",", " ")
+                    except Exception:
+                        client, amt_str, ref = "Société BTP Ivoire", "750 000 XOF", "FAC-2026-99"
+
                     mock_reminder = {
-                        "subject": "Rappel de règlement : Facture impayée",
-                        "body": "Bonjour Société BTP Ivoire,\n\nNous vous rappelons le règlement de votre facture FAC-2026-99 d'un montant de 750 000 XOF.\n\nMerci de procéder à la régularisation.\nCordialement,\nService Comptabilité",
+                        "subject": f"Rappel de règlement : Facture {ref}",
+                        "body": f"Bonjour {client},\n\nNous vous rappelons le règlement de votre facture {ref} d'un montant de {amt_str}.\n\nMerci de procéder à la régularisation.\nCordialement,\nService Comptabilité",
                     }
                     return json.dumps(mock_reminder, ensure_ascii=False), "knowlia-mock-engine"
                 return (
@@ -215,30 +227,59 @@ class AIEngineService:
 
         # Native generator with specialized French & African business recovery phrasing
         currency = req.currency or "XOF"
-        amount_fmt = f"{req.amount:,.0f} {currency}".replace(",", " ")
-        days_str = (
-            f"depuis {req.overdue_days} jours" if req.overdue_days > 0 else "arrivée à échéance"
-        )
+        balance = req.balance_due if req.balance_due is not None else max(0.0, req.amount - req.paid_amount)
+        balance_fmt = f"{balance:,.0f} {currency}".replace(",", " ")
+        total_fmt = f"{req.amount:,.0f} {currency}".replace(",", " ")
+        paid_fmt = f"{req.paid_amount:,.0f} {currency}".replace(",", " ")
+
+        # Determine timing context: upcoming, due_today, overdue
+        timing = req.due_status or ("overdue" if req.overdue_days > 0 else "due_today")
+        due_date_str = f"du {req.due_date}" if req.due_date else ""
+
+        has_partial = req.paid_amount > 0 and balance > 0
         payment_info = (
             req.payment_methods_info or "Wave / Orange Money / MTN MoMo ou Virement bancaire"
         )
 
-        if req.tone == PaymentReminderTone.COURTEOUS:
-            subject = f"Rappel amical : Règlement de la facture {req.reference}"
+        if timing == "upcoming":
+            subject = f"Rappel préventif : Échéance à venir pour la facture {req.reference}"
             if req.channel == PaymentReminderChannel.WHATSAPP:
                 body = (
                     f"Bonjour {req.client_name}, nous espérons que vous allez bien.\n\n"
-                    f"Sauf erreur ou omission de notre part, nous constatons que la facture *{req.reference}* "
-                    f"d'un montant de *{amount_fmt}* ({days_str}) est actuellement en attente de règlement.\n\n"
+                    f"Nous vous informons que le règlement du solde de la facture *{req.reference}* "
+                    f"d'un montant de *{balance_fmt}* (sur un total de {total_fmt}"
+                    + (f", avec acompte de {paid_fmt} déjà réglé" if has_partial else "")
+                    + f") arrive à échéance {due_date_str}.\n\n"
+                    f"💳 Modalités de règlement : {payment_info}.\n\n"
+                    f"Nous restons à votre disposition pour toute question !"
+                )
+            else:
+                body = (
+                    f"Madame, Monsieur {req.client_name},\n\n"
+                    f"Nous vous remercions pour votre confiance continue. Nous vous rappelons par la présente "
+                    f"que le règlement de votre facture {req.reference} d'un montant restant dû de {balance_fmt} "
+                    f"arrive à échéance {due_date_str}.\n\n"
+                    f"Vous pouvez effectuer le règlement par : {payment_info}.\n\n"
+                    f"Cordialement,\nService Comptabilité"
+                )
+        elif timing == "due_today" or req.tone == PaymentReminderTone.COURTEOUS:
+            subject = f"Échéance ce jour : Règlement de la facture {req.reference}"
+            if req.channel == PaymentReminderChannel.WHATSAPP:
+                body = (
+                    f"Bonjour {req.client_name}, nous espérons que vous allez bien.\n\n"
+                    f"Sauf omission de notre part, nous vous rappelons que la facture *{req.reference}* "
+                    f"arrive à échéance aujourd'hui pour un solde de *{balance_fmt}*"
+                    + (f" (acompte déjà versé : {paid_fmt})" if has_partial else "")
+                    + f".\n\n"
                     f"💳 Règlement possible via : {payment_info}.\n\n"
-                    f"Merci de nous transmettre votre preuve de paiement dès que possible. Nous restons à votre entière disposition !"
+                    f"Merci de nous transmettre votre confirmation de paiement dès que possible. Excellente journée !"
                 )
             else:
                 body = (
                     f"Madame, Monsieur {req.client_name},\n\n"
                     f"Nous vous remercions pour votre confiance continue. Sauf erreur de notre part, "
-                    f"le règlement de la facture réf. {req.reference} d'un montant de {amount_fmt} "
-                    f"est arrivé à échéance ({days_str}).\n\n"
+                    f"le règlement de la facture réf. {req.reference} pour un montant restant dû de {balance_fmt} "
+                    f"est arrivé à échéance ce jour.\n\n"
                     f"Nous vous saurions gré de bien vouloir procéder à sa régularisation par {payment_info}.\n\n"
                     f"Si votre virement a déjà été émis, nous vous prions de ne pas tenir compte de ce message.\n\n"
                     f"Cordialement,\nLa Direction Financière"
@@ -248,16 +289,16 @@ class AIEngineService:
             if req.channel == PaymentReminderChannel.WHATSAPP:
                 body = (
                     f"Bonjour {req.client_name},\n\n"
-                    f"Nous revenons vers vous concernant la facture *{req.reference}* d'un montant de *{amount_fmt}*, "
-                    f"en retard de *{req.overdue_days} jours*.\n\n"
-                    f"Afin d'éviter toute suspension de service ou pénalité, nous vous demandons de régulariser cette somme aujourd'hui même via : {payment_info}.\n\n"
+                    f"Nous revenons vers vous concernant la facture *{req.reference}* d'un solde restant de *{balance_fmt}*, "
+                    f"dont l'échéance est dépassée de *{req.overdue_days} jours*.\n\n"
+                    f"Afin d'éviter toute suspension de prestation ou pénalité, nous vous demandons de bien vouloir régulariser ce montant dès aujourd'hui via : {payment_info}.\n\n"
                     f"Merci de nous confirmer le règlement dès validation."
                 )
             else:
                 body = (
                     f"Madame, Monsieur {req.client_name},\n\n"
-                    f"Malgré notre précédente correspondance, nous n'avons pas constaté le règlement de la facture {req.reference} "
-                    f"s'élevant à {amount_fmt}, dont l'échéance est dépassée de {req.overdue_days} jours.\n\n"
+                    f"Malgré nos précédentes notifications, nous n'avons pas constaté le règlement du solde de la facture {req.reference} "
+                    f"s'élevant à {balance_fmt}, dont l'échéance est dépassée de {req.overdue_days} jours.\n\n"
                     f"Nous vous prions de procéder à son règlement sous 48 heures par {payment_info}.\n\n"
                     f"Comptant sur votre diligence pour clore ce dossier dans les meilleurs délais.\n\n"
                     f"Service Recouvrement"
@@ -267,10 +308,10 @@ class AIEngineService:
             body = (
                 f"LETTRE DE MISE EN DEMEURE DE PAYER\n\n"
                 f"À l'attention de : {req.client_name}\n"
-                f"Objet : Facture impayée {req.reference} — Montant : {amount_fmt}\n"
+                f"Objet : Facture impayée {req.reference} — Solde restant dû : {balance_fmt}\n"
                 f"Délai de retard : {req.overdue_days} jours\n\n"
                 f"Madame, Monsieur,\n\n"
-                f"Par la présente, nous vous mettons formellement en demeure de régler la somme principale de {amount_fmt} "
+                f"Par la présente, nous vous mettons formellement en demeure de régler la somme principale restante de {balance_fmt} "
                 f"au titre de la prestation/vente {req.reference}.\n\n"
                 f"À défaut de réception des fonds sous un délai impératif de 8 (huit) jours ouvrés par {payment_info}, "
                 f"nous transmettrons ce dossier sans autre préavis à notre service juridique pour recouvrement forcé et application des intérêts légaux de retard.\n\n"

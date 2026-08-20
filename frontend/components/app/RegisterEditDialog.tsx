@@ -29,9 +29,9 @@ export function RegisterEditDialog({
   const [saleDate, setSaleDate] = useState(sale?.sale_date || "");
   const [saleClient, setSaleClient] = useState(sale?.client_name || "");
   const [saleItemLabel, setSaleItemLabel] = useState(sale?.item_label || "");
-  const [saleQuantity, setSaleQuantity] = useState(sale?.quantity || "1");
-  const [saleUnitPrice, setSaleUnitPrice] = useState(sale?.unit_price || "0");
-  const [saleTotalAmount, setSaleTotalAmount] = useState(sale?.total_amount || "0");
+  const [saleQuantity, setSaleQuantity] = useState(sale?.quantity != null ? String(sale.quantity) : "1");
+  const [saleUnitPrice, setSaleUnitPrice] = useState(sale?.unit_price != null ? String(sale.unit_price) : "0");
+  const [saleTotalAmount, setSaleTotalAmount] = useState(sale?.total_amount != null ? String(sale.total_amount) : "0");
   const [saleCurrency, setSaleCurrency] = useState(sale?.currency || "XOF");
   const [salePaymentStatus, setSalePaymentStatus] = useState(sale?.payment_status || "paid");
   const [salePaymentMethod, setSalePaymentMethod] = useState(sale?.payment_method || "virement");

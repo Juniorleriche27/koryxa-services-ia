@@ -104,6 +104,10 @@ class PaymentReminderRequest(BaseModel):
     sale_id: str | None = None
     client_name: str
     amount: float
+    paid_amount: float = 0.0
+    balance_due: float | None = None
+    due_date: str | None = None
+    due_status: str | None = None  # "upcoming" (avant échéance), "due_today" (jour J), "overdue" (en retard)
     currency: str = "XOF"
     reference: str
     overdue_days: int = 0

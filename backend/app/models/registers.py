@@ -50,6 +50,19 @@ class PaymentStatus(StrEnum):
     REFUNDED = "refunded"
 
 
+class DocumentType(StrEnum):
+    QUOTE = "quote"           # Devis
+    PROFORMA = "proforma"     # Facture Pro Forma
+    INVOICE = "invoice"       # Facture
+    RECEIPT = "receipt"       # Reçu / Facture Acquittée
+
+
+class ExpenseDocumentType(StrEnum):
+    EXPENSE_RECEIPT = "expense_receipt"   # Reçu d'achat / Justificatif
+    SUPPLIER_INVOICE = "supplier_invoice" # Facture fournisseur
+    VOUCHER = "voucher"                   # Bon de caisse / Décaissement
+
+
 class Offer(Base):
     __tablename__ = "offers"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -100,15 +113,22 @@ class Sale(Base):
         ForeignKey("offers.id", ondelete="SET NULL"), index=True
     )
     item_label: Mapped[str] = mapped_column(String(180), index=True)
+    document_type: Mapped[DocumentType] = mapped_column(
+        Enum(DocumentType, native_enum=False), default=DocumentType.INVOICE, index=True
+    )
     quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3), default=1)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=0)
     discount: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=0)
     total_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=0)
+    paid_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=Decimal("0.00"))
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    deposit_percentage: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(3), default="XOF")
     payment_method: Mapped[str | None] = mapped_column(String(80), index=True)
     payment_status: Mapped[PaymentStatus] = mapped_column(
         Enum(PaymentStatus, native_enum=False), default=PaymentStatus.UNPAID, index=True
     )
+    payment_history: Mapped[list[dict]] = mapped_column(JSON, default=list)
     seller_user_id: Mapped[str | None] = mapped_column(String(128), index=True)
     sales_channel: Mapped[str | None] = mapped_column(String(80), index=True)
     comment: Mapped[str | None] = mapped_column(Text)
@@ -195,9 +215,16 @@ class Expense(Base):
     )
     reference: Mapped[str] = mapped_column(String(100), index=True)
     expense_date: Mapped[date] = mapped_column(Date, index=True)
+    document_type: Mapped[ExpenseDocumentType] = mapped_column(
+        Enum(ExpenseDocumentType, native_enum=False),
+        default=ExpenseDocumentType.EXPENSE_RECEIPT,
+        index=True,
+    )
     category: Mapped[str] = mapped_column(String(80), index=True, default="Divers")
     beneficiary: Mapped[str] = mapped_column(String(180), index=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    paid_amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     currency: Mapped[str] = mapped_column(String(3), default="XOF")
     payment_method: Mapped[str | None] = mapped_column(String(80))
     payment_status: Mapped[PaymentStatus] = mapped_column(
