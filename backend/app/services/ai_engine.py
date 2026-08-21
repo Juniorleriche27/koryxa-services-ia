@@ -31,6 +31,7 @@ from app.schemas.ai import (
     ProcedureStepDraft,
     SuggestedAction,
 )
+from app.services.agents.cora_orchestrator import CoraOrchestrator
 from app.services.integration_config import IntegrationConfigService
 
 
@@ -39,6 +40,7 @@ class AIEngineService:
     def __init__(self, knowlia: KnowliaClient | None = None) -> None:
         self.knowlia = knowlia or KnowliaClient()
         self.configs = IntegrationConfigService()
+        self.orchestrator = CoraOrchestrator()
 
     async def get_config(self, s: AsyncSession, org: str) -> AIConfigRead:
         cfg = await self.configs.get(s, org)
@@ -176,25 +178,7 @@ class AIEngineService:
     async def chat(
         self, s: AsyncSession, org: str, user: str, request: AIChatRequest
     ) -> AIChatResponse:
-        context_data = await self._build_context(s, org, request)
-        cfg = await self.configs.get(s, org)
-        prompt = f"{cfg.ai_custom_system_prompt or 'Tu es Cora, directrice des opérations et assistante IA pour KORYXA. Réponds en français de façon précise, chaleureuse et directement exploitable.'}\nContexte réel de l’entreprise: {json.dumps(context_data, ensure_ascii=False)}\nHistorique: {json.dumps([m.model_dump() for m in request.messages], ensure_ascii=False)}"
-        try:
-            reply, model = await self._ask_knowlia(s, org, user, prompt)
-            return AIChatResponse(
-                reply=reply,
-                provider_used="Knowlia Intelligence",
-                model_used=model,
-                suggested_actions=self._extract_actions(context_data),
-            )
-        except Exception:
-            native_reply = self._native_chat_reasoning(request.messages, context_data)
-            return AIChatResponse(
-                reply=native_reply,
-                provider_used="Cora Intelligence (KORYXA Core)",
-                model_used="koryxa-cora-operational",
-                suggested_actions=self._extract_actions(context_data),
-            )
+        return await self.orchestrator.route_and_execute(s, org, user, request)
 
     # ------------------ PAYMENT REMINDER GENERATION ------------------
     async def generate_payment_reminder(

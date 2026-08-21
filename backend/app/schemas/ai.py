@@ -85,6 +85,10 @@ class AIChatResponse(BaseModel):
     reply: str
     provider_used: str
     model_used: str
+    agent_name: str | None = Field(default="Cora · Directrice des Opérations")
+    agent_badge: str | None = Field(default="🧑‍💼 Coach Exécutif")
+    thinking_summary: str | None = None
+    action_executed: dict[str, Any] | None = None
     suggested_actions: list[SuggestedAction] = Field(default_factory=list)
 
 
