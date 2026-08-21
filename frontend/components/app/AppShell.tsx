@@ -436,6 +436,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <kbd className="kx-cmd-kbd">⌘K</kbd>
             </button>
 
+            {/* Quick Voice Trigger on PC (Hidden on Mobile) */}
+            <button
+              type="button"
+              onClick={() => setVoiceOpen(true)}
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition text-xs font-bold shadow-2xs cursor-pointer"
+              title="Dictée Vocale IA (Enregistrer une vente, dépense ou opération)"
+            >
+              <Mic size={15} className="text-emerald-600 dark:text-emerald-400" />
+              <span>Vocal</span>
+            </button>
+
             {/* Quick Help & Guidance trigger */}
             <button
               type="button"

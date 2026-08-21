@@ -76,6 +76,12 @@ interface VoiceCaptureModalProps {
   onSuccess: () => void;
 }
 
+function cleanSpeechDuplicates(text: string): string {
+  if (!text) return "";
+  // Remove consecutive duplicate words caused by mobile speech stutter: "vente vente" -> "vente"
+  return text.replace(/\b(\w+)\s+\1\b/gi, "$1").replace(/\s+/g, " ").trim();
+}
+
 export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModalProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -91,6 +97,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const transcriptBufferRef = useRef<string>("");
+  const finalSegmentsRef = useRef<string[]>([]);
 
   // Recording Timer
   useEffect(() => {
@@ -114,6 +121,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
     setSalesList([]);
     setTranscript("");
     transcriptBufferRef.current = "";
+    finalSegmentsRef.current = [];
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -136,11 +144,23 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
       };
 
       recognition.onresult = (event: any) => {
-        let currentTranscript = "";
-        for (let i = 0; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript + " ";
+        let interimText = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const item = event.results[i];
+          if (item.isFinal) {
+            const finalChunk = item[0]?.transcript?.trim();
+            if (finalChunk && !finalSegmentsRef.current.includes(finalChunk)) {
+              finalSegmentsRef.current.push(finalChunk);
+            }
+          } else {
+            interimText += (item[0]?.transcript || "") + " ";
+          }
         }
-        const cleaned = currentTranscript.trim();
+
+        const combined = [...finalSegmentsRef.current, interimText.trim()]
+          .filter(Boolean)
+          .join(" ");
+        const cleaned = cleanSpeechDuplicates(combined);
         transcriptBufferRef.current = cleaned;
         setTranscript(cleaned);
       };
@@ -148,15 +168,18 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
       recognition.onerror = (event: any) => {
         console.warn("Speech error:", event.error);
         if (event.error === "not-allowed") {
-          setError("Accès au microphone refusé. Veuillez autoriser l'accès au micro.");
+          setError("Accès au microphone refusé. Veuillez autoriser l'accès au micro dans les paramètres de votre navigateur.");
+        } else if (event.error === "network") {
+          setError("Problème réseau lors de la reconnaissance vocale. Vous pouvez corriger ou saisir le texte.");
         }
         setIsRecording(false);
       };
 
       recognition.onend = () => {
         setIsRecording(false);
-        const finalText = transcriptBufferRef.current.trim();
+        const finalText = cleanSpeechDuplicates(transcriptBufferRef.current.trim());
         if (finalText) {
+          setTranscript(finalText);
           void parseTranscriptText(finalText);
         }
       };

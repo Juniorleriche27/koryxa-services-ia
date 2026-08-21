@@ -15,6 +15,11 @@ export type DashboardSummary = {
   total_partial_amount: number | string;
   offers_count: number;
   procedures_count: number;
+  expenses_count?: number;
+  suppliers_count?: number;
+  total_expenses_paid?: number | string;
+  total_expenses_unpaid?: number | string;
+  net_cash_position?: number | string;
   primary_currency: string;
   recent_sales: SaleItem[];
 };

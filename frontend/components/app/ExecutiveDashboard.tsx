@@ -124,7 +124,16 @@ export function ExecutiveDashboard({
   const currency = summary?.primary_currency || "XOF";
   const totalSales = Number(summary?.total_sales_amount) || 0;
   const totalPaid = Number(summary?.total_paid_amount) || 0;
-  const totalUnpaid = Number(summary?.total_unpaid_amount) || 0;
+  const totalUnpaid =
+    summary?.total_unpaid_amount !== undefined && Number(summary.total_unpaid_amount) > 0
+      ? Number(summary.total_unpaid_amount)
+      : Math.max(0, totalSales - totalPaid);
+  const totalExpensesPaid = Number(summary?.total_expenses_paid) || 0;
+  const totalExpensesUnpaid = Number(summary?.total_expenses_unpaid) || 0;
+  const netCash =
+    summary?.net_cash_position !== undefined
+      ? Number(summary.net_cash_position)
+      : totalPaid - totalExpensesPaid;
 
   // Radar score calculation based on alerts and data volume
   const completenessDeduction = Math.min(
@@ -230,16 +239,18 @@ export function ExecutiveDashboard({
       </div>
 
       {/* Financial & Operational KPI Cards */}
-      <section data-tour="cockpit-score" className="kx-kpi-grid">
+      <section data-tour="cockpit-score" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5 mb-6">
+        {/* 1. Chiffre d'Affaires Global */}
         <article className="kx-kpi-card is-primary-kpi">
           <div className="kx-kpi-head">
             <span>Chiffre d&apos;Affaires</span>
             <TrendingUp size={18} className="kx-icon-emerald" />
           </div>
           <strong>{formatMoney(totalSales, currency)}</strong>
-          <small>{summary?.total_sales_count || 0} ventes suivies</small>
+          <small>{summary?.total_sales_count || 0} vente(s) suivie(s)</small>
         </article>
 
+        {/* 2. Total Encaissé (Entrées d'argent) */}
         <article className="kx-kpi-card is-success-kpi">
           <div className="kx-kpi-head">
             <span>Total Encaissé</span>
@@ -253,12 +264,39 @@ export function ExecutiveDashboard({
           </small>
         </article>
 
+        {/* 3. Dépenses & Décaissements (Sorties d'argent) */}
+        <article className="kx-kpi-card is-warning-kpi">
+          <div className="kx-kpi-head">
+            <span>Dépenses Payées</span>
+            <TrendingDown size={18} className="text-rose-500" />
+          </div>
+          <strong className="text-rose-600 dark:text-rose-400">-{formatMoney(totalExpensesPaid, currency)}</strong>
+          <small>
+            <Link href="/espace/depenses" className="kx-inline-link">
+              {summary?.expenses_count || 0} dépense(s) réglée(s) →
+            </Link>
+          </small>
+        </article>
+
+        {/* 4. Solde Réel en Caisse (Trésorerie Restante) */}
+        <article className="kx-kpi-card bg-emerald-500/10 border border-emerald-500/30">
+          <div className="kx-kpi-head">
+            <span className="font-bold text-emerald-800 dark:text-emerald-300">Solde Réel Caisse</span>
+            <Wallet size={18} className="text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <strong className="text-emerald-900 dark:text-emerald-100 font-black">{formatMoney(netCash, currency)}</strong>
+          <small className="text-emerald-700 dark:text-emerald-300 font-semibold">
+            {netCash >= 0 ? "Trésorerie disponible" : "Déficit temporaire"}
+          </small>
+        </article>
+
+        {/* 5. Créances Clients (Reste à encaisser) */}
         <article className="kx-kpi-card is-warning-kpi">
           <div className="kx-kpi-head">
             <span>Créances en attente</span>
             <Clock size={18} className="kx-icon-orange" />
           </div>
-          <strong>{formatMoney(totalUnpaid, currency)}</strong>
+          <strong className={totalUnpaid > 0 ? "text-amber-600 dark:text-amber-400" : ""}>{formatMoney(totalUnpaid, currency)}</strong>
           <small>
             <Link href="/espace/ventes" className="kx-inline-link">
               Factures impayées →
@@ -266,9 +304,10 @@ export function ExecutiveDashboard({
           </small>
         </article>
 
+        {/* 6. Score Radar KORYXA */}
         <article className="kx-kpi-card is-score-kpi">
           <div className="kx-kpi-head">
-            <span>Score Radar KORYXA</span>
+            <span>Score Radar</span>
             <ShieldCheck size={18} className="kx-icon-blue" />
           </div>
           <div className="kx-kpi-score-val">

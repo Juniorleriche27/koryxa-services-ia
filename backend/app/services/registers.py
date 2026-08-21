@@ -490,12 +490,23 @@ class RegisterService:
             amt = row.total_amount if row.total_amount is not None else Decimal("0.00")
             total_sales_amount += amt
             primary_currency = row.currency or primary_currency
-            if row.payment_status == "paid":
-                total_paid_amount += amt
-            elif row.payment_status == "unpaid":
-                total_unpaid_amount += amt
-            elif row.payment_status == "partial":
-                total_partial_amount += amt
+            p_amt = row.paid_amount if row.paid_amount is not None else Decimal("0.00")
+            status_str = (
+                row.payment_status.value
+                if hasattr(row.payment_status, "value")
+                else str(row.payment_status).lower()
+            )
+            if status_str == "paid":
+                actual_paid = amt if p_amt == Decimal("0.00") else p_amt
+                total_paid_amount += actual_paid
+            elif status_str == "partial":
+                total_paid_amount += p_amt
+                total_partial_amount += max(Decimal("0.00"), amt - p_amt)
+            elif status_str == "unpaid":
+                pass
+
+        # Strict Mathematical Consistency: Total CA = Total Encaissé + Créances en attente
+        total_unpaid_amount = max(Decimal("0.00"), total_sales_amount - total_paid_amount)
 
 
         offers_rows = list(

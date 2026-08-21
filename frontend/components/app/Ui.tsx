@@ -71,44 +71,90 @@ export function EmptyState({
 
 export function TableSkeleton() {
   return (
-    <div className="space-y-4 animate-pulse">
-      {/* 3 Metric Cards Skeleton */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="space-y-4 animate-in fade-in duration-300">
+      {/* Top Subtle Loading Indicator */}
+      <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <span className="font-semibold text-emerald-800 dark:text-emerald-300">
+            Chargement de la mémoire opérationnelle…
+          </span>
+        </div>
+        <span className="text-[11px] font-mono opacity-60">Synchronisation active</span>
+      </div>
+
+      {/* 3 Premium Frosted Glass Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-card p-4 rounded-2xl border border-border/80 space-y-3">
+          <div
+            key={i}
+            className="kx-skeleton-glass kx-skeleton-wave p-5 rounded-2xl border border-emerald-500/20 space-y-3.5 shadow-[0_8px_24px_rgba(0,168,107,0.06)]"
+          >
             <div className="flex items-center justify-between">
-              <div className="w-24 h-3 rounded-md bg-muted" />
-              <div className="w-2 h-2 rounded-full bg-muted" />
+              <div className="w-28 h-3.5 rounded-full bg-emerald-500/15" />
+              <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-emerald-500/30" />
+              </div>
             </div>
-            <div className="w-36 h-6 rounded-lg bg-muted/80" />
-            <div className="w-20 h-2.5 rounded-md bg-muted/60" />
+            <div className="space-y-1.5">
+              <div className="w-40 h-7 rounded-xl bg-emerald-500/20" />
+              <div className="w-24 h-2.5 rounded-full bg-emerald-500/10" />
+            </div>
+            {/* Ambient Progress bar */}
+            <div className="w-full h-1.5 rounded-full bg-emerald-500/10 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
+                style={{ width: `${30 + i * 25}%` }}
+              />
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Table search & tabs skeleton */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="h-10 rounded-xl bg-muted/60 flex-1 max-w-md" />
-          <div className="h-9 w-28 rounded-xl bg-muted/60" />
-        </div>
-        <div className="flex items-center gap-2 overflow-hidden">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-8 w-24 rounded-full bg-muted/60 shrink-0" />
+      {/* Toolbar & Filter Tabs Frosted Glass Skeleton */}
+      <div className="kx-skeleton-glass kx-skeleton-wave p-3 rounded-2xl border border-emerald-500/15 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+        <div className="w-full sm:w-80 h-9 rounded-xl bg-emerald-500/10" />
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-hidden">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-8 w-20 rounded-xl bg-emerald-500/10 shrink-0" />
           ))}
         </div>
       </div>
 
-      {/* Table rows skeleton */}
-      <div className="rounded-2xl border border-border/80 bg-card overflow-hidden divide-y divide-border/60">
+      {/* Main Frosted Glass Table Container with Shimmer Rows */}
+      <div className="kx-skeleton-glass kx-skeleton-wave rounded-2xl border border-emerald-500/20 overflow-hidden shadow-xs divide-y divide-emerald-500/10">
+        {/* Table Header Placeholder */}
+        <div className="p-4 bg-emerald-500/5 flex items-center justify-between gap-4">
+          <div className="w-28 h-3 rounded-md bg-emerald-500/20" />
+          <div className="w-32 h-3 rounded-md bg-emerald-500/15 hidden md:block" />
+          <div className="w-24 h-3 rounded-md bg-emerald-500/15" />
+          <div className="w-20 h-3 rounded-md bg-emerald-500/20 text-right" />
+        </div>
+
+        {/* Table Rows Placeholder with Glass Blur */}
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="p-4 flex items-center justify-between gap-4">
-            <div className="space-y-2 flex-1">
-              <div className="w-32 h-4 rounded bg-muted/80" />
-              <div className="w-48 h-3 rounded bg-muted/50" />
+          <div
+            key={i}
+            className="p-4.5 flex items-center justify-between gap-4 hover:bg-emerald-500/5 transition duration-200"
+          >
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 shrink-0 flex items-center justify-center">
+                <div className="w-3.5 h-3.5 rounded-full bg-emerald-500/25" />
+              </div>
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <div className="w-36 sm:w-48 h-4 rounded-lg bg-emerald-500/20" />
+                <div className="w-24 sm:w-32 h-2.5 rounded-md bg-emerald-500/10" />
+              </div>
             </div>
-            <div className="w-20 h-5 rounded-full bg-muted/60" />
-            <div className="w-24 h-4 rounded bg-muted/80 text-right" />
+
+            <div className="w-20 h-6 rounded-full bg-emerald-500/15 shrink-0 hidden sm:block" />
+            <div className="space-y-1 text-right shrink-0">
+              <div className="w-24 h-4 rounded-lg bg-emerald-500/25 ml-auto" />
+              <div className="w-14 h-2.5 rounded-md bg-emerald-500/10 ml-auto" />
+            </div>
           </div>
         ))}
       </div>
@@ -118,32 +164,50 @@ export function TableSkeleton() {
 
 export function DashboardSkeleton() {
   return (
-    <div className="space-y-5 animate-pulse">
+    <div className="space-y-5 animate-in fade-in duration-300">
+      {/* Top Live Badge */}
+      <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <span className="font-semibold text-emerald-800 dark:text-emerald-300">
+            Initialisation du Cockpit Dirigeant…
+          </span>
+        </div>
+      </div>
+
       {/* Metrics Row Skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-card p-4 rounded-2xl border border-border/80 space-y-3">
+          <div
+            key={i}
+            className="kx-skeleton-glass kx-skeleton-wave p-5 rounded-2xl border border-emerald-500/20 space-y-3 shadow-[0_8px_24px_rgba(0,168,107,0.06)]"
+          >
             <div className="flex items-center justify-between">
-              <div className="w-24 h-3 rounded-md bg-muted" />
-              <div className="w-2 h-2 rounded-full bg-muted" />
+              <div className="w-28 h-3.5 rounded-full bg-emerald-500/15" />
+              <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-emerald-500/30" />
+              </div>
             </div>
-            <div className="w-32 h-7 rounded-lg bg-muted/80" />
-            <div className="w-20 h-2.5 rounded-md bg-muted/60" />
+            <div className="w-36 h-7 rounded-xl bg-emerald-500/20" />
+            <div className="w-24 h-2.5 rounded-full bg-emerald-500/10" />
           </div>
         ))}
       </div>
 
       {/* Main Grid Skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-card p-5 rounded-2xl border border-border/80 space-y-4">
-          <div className="w-40 h-5 rounded-md bg-muted" />
-          <div className="w-full h-48 rounded-xl bg-muted/40" />
+        <div className="lg:col-span-2 kx-skeleton-glass kx-skeleton-wave p-6 rounded-2xl border border-emerald-500/20 space-y-4 shadow-sm">
+          <div className="w-48 h-5 rounded-xl bg-emerald-500/20" />
+          <div className="w-full h-56 rounded-2xl bg-emerald-500/10" />
         </div>
-        <div className="bg-card p-5 rounded-2xl border border-border/80 space-y-3">
-          <div className="w-32 h-5 rounded-md bg-muted" />
-          <div className="w-full h-12 rounded-xl bg-muted/40" />
-          <div className="w-full h-12 rounded-xl bg-muted/40" />
-          <div className="w-full h-12 rounded-xl bg-muted/40" />
+        <div className="kx-skeleton-glass kx-skeleton-wave p-6 rounded-2xl border border-emerald-500/20 space-y-3.5 shadow-sm">
+          <div className="w-36 h-5 rounded-xl bg-emerald-500/20" />
+          <div className="w-full h-14 rounded-xl bg-emerald-500/10" />
+          <div className="w-full h-14 rounded-xl bg-emerald-500/10" />
+          <div className="w-full h-14 rounded-xl bg-emerald-500/10" />
         </div>
       </div>
     </div>
