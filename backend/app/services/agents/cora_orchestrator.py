@@ -74,12 +74,8 @@ class CoraOrchestrator:
         if msg_lower in ["bonjour", "salut", "bonsoir", "coucou", "hello", "hi", "bonjour cora", "salut cora"]:
             return AIChatResponse(
                 reply=(
-                    f"Bonjour {responsible} ! C'est un plaisir de vous retrouver aux commandes de **{org_name}**.
-
-"
-                    f"Je suis à vos côtés avec notre équipe d'experts (Analyste Financier, Responsable Commercial et Sentinelle Radar).
-
-"
+                    f"Bonjour {responsible} ! C'est un plaisir de vous retrouver aux commandes de {org_name}.\n\n"
+                    f"Je suis à vos côtés avec notre équipe d'experts spécialisés (Analyste Financier, Responsable Commercial et Auditeur Sentinelle).\n\n"
                     f"De quoi souhaitez-vous parler aujourd'hui ? Je peux analyser votre trésorerie, enregistrer une vente en direct ou faire le point sur vos créances."
                 ),
                 provider_used="Cora Intelligence (KORYXA Core)",

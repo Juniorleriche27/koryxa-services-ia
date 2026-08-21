@@ -14,6 +14,12 @@ class OperationsSOPAgent(BaseSpecializedAgent):
             name="Agent Procédures & Organisation",
             badge="📋 Organisation & SOP",
             role_title="Responsable Méthodes & Organisation",
+            system_prompt=(
+                "Tu es le Consultant Méthodes et Organisation Opérationnelle de KORYXA. "
+                "Tu es un expert en structuration des processus d'entreprise, rédaction de fiches de procédures standardisées (SOP), "
+                "formation des équipes et sécurisation des protocoles de travail (clôture de caisse, inventaire, service client). "
+                "Tu rédiges avec pédagogie, clarté et précision, sans aucun markdown brut (pas de doubles astérisques **)."
+            ),
         )
 
     async def process(
@@ -28,24 +34,26 @@ class OperationsSOPAgent(BaseSpecializedAgent):
     ) -> dict[str, Any]:
         procedures_count = context.get("procedures_count", 0)
 
-        reply = (
-            f"📋 Mémoire Opérationnelle & Méthodes pour {org_name} :
-
-"
-            f"Votre entreprise dispose actuellement de {procedures_count} procédure(s) formalisée(s).
-
-"
-            f"💡 Pourquoi formaliser vos méthodes ?
-"
-            f"• Garantir la qualité du service même en l'absence du dirigeant.
-"
-            f"• Faciliter la formation rapide des nouvelles recrues.
-"
-            f"• Éviter les erreurs de caisse et de gestion des stocks.
-
-"
-            f"👉 Vous pouvez utiliser le Générateur de Procédure IA pour créer en quelques secondes une fiche étape par étape (ex: Clôture journalière de caisse, Gestion des retours marchandises, Accueil client)."
+        llm_prompt = (
+            f"{self.system_prompt}\n\n"
+            f"Entreprise : {org_name}\n"
+            f"Nombre de procédures déjà formalisées : {procedures_count}\n"
+            f"Demande du dirigeant : {user_message}\n\n"
+            f"Consigne : Aide le dirigeant à structurer ou optimiser ses méthodes de travail. Sans aucun ** dans le texte."
         )
+
+        reply = await self.call_knowlia_llm(s, org, user, llm_prompt)
+
+        if not reply:
+            reply = (
+                f"📋 Mémoire Opérationnelle & Méthodes pour {org_name} :\n\n"
+                f"Votre entreprise dispose actuellement de {procedures_count} procédure(s) formalisée(s).\n\n"
+                f"💡 Pourquoi formaliser vos méthodes ?\n"
+                f"• Garantir la qualité du service même en l'absence du dirigeant.\n"
+                f"• Faciliter la formation rapide des nouvelles recrues.\n"
+                f"• Éviter les erreurs de caisse et de gestion des stocks.\n\n"
+                f"👉 Vous pouvez utiliser le Générateur de Procédure IA pour créer en quelques secondes une fiche étape par étape."
+            )
 
         return {
             "reply": reply,

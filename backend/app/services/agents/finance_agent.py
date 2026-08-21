@@ -18,6 +18,12 @@ class FinanceAgent(BaseSpecializedAgent):
             name="Agent Analyste Financier & Trésorerie",
             badge="📊 Analyste Financier",
             role_title="Directeur Financier & Trésorerie",
+            system_prompt=(
+                "Tu es l'Analyste Financier et Trésorier expert de KORYXA. "
+                "Tu analyses la trésorerie nette, le taux de recouvrement, le Besoin en Fonds de Roulement (BFR), "
+                "la rentabilité des ventes et l'optimisation des dépenses. "
+                "Tu rédiges des réponses ultra-claires, professionnelles et directes, sans aucun markdown brut (pas de doubles astérisques **)."
+            ),
         )
         self.registers_svc = RegisterService()
 
@@ -40,47 +46,57 @@ class FinanceAgent(BaseSpecializedAgent):
                 return action_res
 
         # Financial Diagnostic & Cashflow Analysis
+        total_sales_amount = float(context.get("total_sales_amount", 0))
         total_sales_paid = float(context.get("total_sales_paid", 0))
         total_expenses_paid = float(context.get("total_expenses_paid", 0))
         total_sales_unpaid = float(context.get("total_sales_unpaid", 0))
         net_cash = total_sales_paid - total_expenses_paid
         total_stock_value = float(context.get("total_stock_value", 0))
 
-        # Financial Health Status
-        if net_cash > 0:
-            cash_health = f"Solde Net Positif (+{net_cash:,.0f} {currency})".replace(",", " ")
-            health_tip = "Votre trésorerie est saine et vous permet de couvrir vos charges opérationnelles sereinement."
-        elif net_cash == 0:
-            cash_health = f"Solde à l'Équilibre (0 {currency})"
-            health_tip = "Vos entrées couvrent tout juste vos sorties. Il est prioritaire d'accélérer les encaissements clients."
-        else:
-            cash_health = f"Déficit Temporaire ({net_cash:,.0f} {currency})".replace(",", " ")
-            health_tip = "Attention : vos sorties de fonds dépassent vos encaissements actuels. Récupérez en priorité les créances clients."
-
         recouvrement_rate = (
-            round((total_sales_paid / (total_sales_paid + total_sales_unpaid)) * 100)
-            if (total_sales_paid + total_sales_unpaid) > 0
+            round((total_sales_paid / total_sales_amount) * 100)
+            if total_sales_amount > 0
             else 100
         )
 
-        reply = (
-            f"📊 Diagnostic Financier & Trésorerie pour {org_name} :
+        llm_prompt = (
+            f"{self.system_prompt}\n\n"
+            f"Entreprise : {org_name}\n"
+            f"Devise : {currency}\n"
+            f"Données comptables vérifiées :\n"
+            f"- Chiffre d'affaires facturé : {total_sales_amount:,.0f} {currency}\n"
+            f"- Total Encaissé en caisse : {total_sales_paid:,.0f} {currency} ({recouvrement_rate}%)\n"
+            f"- Créances clients en attente : {total_sales_unpaid:,.0f} {currency}\n"
+            f"- Dépenses décaissées : {total_expenses_paid:,.0f} {currency}\n"
+            f"- Solde Net réel de caisse (Encaissé - Dépensé) : {net_cash:,.0f} {currency}\n"
+            f"- Valeur du stock : {total_stock_value:,.0f} {currency}\n\n"
+            f"Demande du dirigeant : {user_message}\n\n"
+            f"Consigne : Réponds en expert financier bienveillant et direct. Sans aucun ** dans le texte."
+        )
 
-"
-            f"• 🏦 Solde Réel Disponible en Caisse : {net_cash:,.0f} {currency} ({cash_health})
-"
-            f"• 📥 Total Encaissé Réel : {total_sales_paid:,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)
-"
-            f"• 📤 Total Dépenses Payées : {total_expenses_paid:,.0f} {currency}
-"
-            f"• ⏳ Créances Clients en Attente : {total_sales_unpaid:,.0f} {currency}
-"
-            f"• 📦 Valeur Estimée du Stock : {total_stock_value:,.0f} {currency}
+        reply = await self.call_knowlia_llm(s, org, user, llm_prompt)
 
-"
-            f"💡 Recommandation Stratégique :
-{health_tip}"
-        ).replace(",", " ")
+        if not reply:
+            # Financial Health Status
+            if net_cash > 0:
+                cash_health = f"Solde Net Positif (+{net_cash:,.0f} {currency})".replace(",", " ")
+                health_tip = "Votre trésorerie est saine et vous permet de couvrir vos charges opérationnelles sereinement."
+            elif net_cash == 0:
+                cash_health = f"Solde à l'Équilibre (0 {currency})"
+                health_tip = "Vos entrées couvrent tout juste vos sorties. Il est prioritaire d'accélérer les encaissements clients."
+            else:
+                cash_health = f"Déficit Temporaire ({net_cash:,.0f} {currency})".replace(",", " ")
+                health_tip = "Attention : vos sorties de fonds dépassent vos encaissements actuels. Récupérez en priorité les créances clients."
+
+            reply = (
+                f"📊 Diagnostic Financier & Trésorerie pour {org_name} :\n\n"
+                f"• 🏦 Solde Réel Disponible en Caisse : {net_cash:,.0f} {currency} ({cash_health})\n"
+                f"• 📥 Total Encaissé Réel : {total_sales_paid:,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)\n"
+                f"• 📤 Total Dépenses Payées : {total_expenses_paid:,.0f} {currency}\n"
+                f"• ⏳ Créances Clients en Attente : {total_sales_unpaid:,.0f} {currency}\n"
+                f"• 📦 Valeur Estimée du Stock : {total_stock_value:,.0f} {currency}\n\n"
+                f"💡 Recommandation Stratégique :\n{health_tip}"
+            ).replace(",", " ")
 
         return {
             "reply": reply,
@@ -149,21 +165,13 @@ class FinanceAgent(BaseSpecializedAgent):
 
         return {
             "reply": (
-                f"✅ Dépense enregistrée avec succès :
-
-"
-                f"• 📤 Montant décaissé : {amt:,.0f} {currency}
-"
-                f"• 🏷️ Catégorie : {category}
-"
-                f"• 🏢 Bénéficiaire : {beneficiary}
-"
-                f"• 💳 Mode de règlement : {method}
-"
-                f"• 🔖 Réf. Pièce : {expense.reference}
-
-"
-                f"Votre solde de caisse et vos registres ont été actualisés immédiatement."
+                f"✅ Dépense enregistrée et décaissée avec succès :\n\n"
+                f"• 📤 Montant décaissé : {amt:,.0f} {currency}\n"
+                f"• 🏷️ Catégorie : {category}\n"
+                f"• 🏢 Bénéficiaire : {beneficiary}\n"
+                f"• 💳 Mode de règlement : {method}\n"
+                f"• 🔖 Réf. Pièce de Caisse : {expense.reference}\n\n"
+                f"Votre solde réel de caisse et votre registre des achats ont été immédiatement mis à jour."
             ).replace(",", " "),
             "agent_name": self.name,
             "agent_badge": self.badge,

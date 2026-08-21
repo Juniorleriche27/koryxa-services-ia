@@ -19,6 +19,12 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
             name="Agent Commercial & Recouvrement",
             badge="🤝 Ventes & Recouvrement",
             role_title="Directeur Commercial & Recouvrement",
+            system_prompt=(
+                "Tu es le Directeur Commercial et Responsable du Recouvrement de KORYXA. "
+                "Tu maîtrises parfaitement les stratégies de conversion client, la gestion du carnet de commandes, "
+                "la négociation d'acomptes, et les techniques de relance des factures impayées (B2B et B2C). "
+                "Tu rédiges des réponses claires, motivantes et professionnelles, sans aucun markdown brut (pas de doubles astérisques **)."
+            ),
         )
         self.registers_svc = RegisterService()
 
@@ -41,80 +47,59 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
                 return action_res
 
         # Recovery & Unpaid debts analysis
-        unpaid_sales = context.get("unpaid_sales", [])
-        total_unpaid = float(context.get("total_sales_unpaid", 0))
-
-        if any(w in msg_lower for w in ["relance", "impayé", "impayes", "créance", "creance", "débiteur", "debiteur", "qui me doit"]):
-            if not unpaid_sales or total_unpaid == 0:
-                return {
-                    "reply": (
-                        f"✅ Excellente nouvelle pour {org_name} !
-
-"
-                        f"Vous n'avez aucune créance client impayée enregistrée à ce jour. "
-                        f"Votre chiffre d'affaires est 100% encaissé."
-                    ),
-                    "agent_name": self.name,
-                    "agent_badge": self.badge,
-                    "thinking_summary": "Vérification exhaustive de toutes les factures et acomptes clients...",
-                    "action_executed": None,
-                    "suggested_actions": [
-                        {"title": "Enregistrer une nouvelle vente", "action_type": "navigate", "payload": {"path": "/espace/ventes"}},
-                    ],
-                }
-
-            unpaid_list = "
-".join(
-                [
-                    f"• 👤 {s_item.get('client', 'Client')} ({s_item.get('ref')}) : {float(s_item.get('amount', 0)):,.0f} {currency} (Date : {s_item.get('date')})"
-                    for s_item in unpaid_sales[:5]
-                ]
-            ).replace(",", " ")
-
-            reply = (
-                f"🚨 Priorités de Recouvrement Client ({total_unpaid:,.0f} {currency} en attente) :
-
-"
-                f"{unpaid_list}
-
-"
-                f"💡 Plan d'action recommandé :
-"
-                f"1. Relancez en priorité les créances les plus anciennes.
-"
-                f"2. Vous pouvez générer un message de relance WhatsApp poli ou formel en 1 clic directement dans l'onglet Ventes."
-            ).replace(",", " ")
-
-            return {
-                "reply": reply,
-                "agent_name": self.name,
-                "agent_badge": self.badge,
-                "thinking_summary": f"Tri chronologique et priorisation des {len(unpaid_sales)} créances clients...",
-                "action_executed": None,
-                "suggested_actions": [
-                    {"title": "Ouvrir le Registre des Ventes", "action_type": "navigate", "payload": {"path": "/espace/ventes"}},
-                ],
-            }
-
-        # Commercial Overview
         total_sales_count = context.get("total_sales_count", 0)
+        total_sales_amount = float(context.get("total_sales_amount", 0))
         total_sales_paid = float(context.get("total_sales_paid", 0))
+        total_sales_unpaid = float(context.get("total_sales_unpaid", 0))
+        unpaid_sales = context.get("unpaid_sales", [])
 
-        reply = (
-            f"📈 Synthèse Commerciale pour {org_name} :
+        llm_prompt = (
+            f"{self.system_prompt}\n\n"
+            f"Entreprise : {org_name}\n"
+            f"Devise : {currency}\n"
+            f"Situation commerciale réelle :\n"
+            f"- Nombre de ventes : {total_sales_count}\n"
+            f"- Chiffre d'affaires facturé : {total_sales_amount:,.0f} {currency}\n"
+            f"- Total Encaissé : {total_sales_paid:,.0f} {currency}\n"
+            f"- Créances clients impayées : {total_sales_unpaid:,.0f} {currency}\n"
+            f"- Factures en attente : {unpaid_sales[:5]}\n\n"
+            f"Demande du dirigeant : {user_message}\n\n"
+            f"Consigne : Réponds en responsable commercial expert. Sans aucun ** dans le texte."
+        )
 
-"
-            f"• 🧾 Volume total de transactions : {total_sales_count} vente(s) suivie(s)
-"
-            f"• 📥 Total encaissé : {total_sales_paid:,.0f} {currency}
-"
-            f"• ⏳ Reste à recouvrer : {total_unpaid:,.0f} {currency}
+        reply = await self.call_knowlia_llm(s, org, user, llm_prompt)
 
-"
-            f"👉 Pour enregistrer une vente rapidement, vous pouvez me dicter simplement :
-"
-            f"« Enregistre une vente de 2 articles à 25 000 FCFA pour M. Paul »"
-        ).replace(",", " ")
+        if not reply:
+            if any(w in msg_lower for w in ["relance", "impayé", "impayes", "créance", "creance", "débiteur", "debiteur", "qui me doit"]):
+                if not unpaid_sales or total_sales_unpaid == 0:
+                    reply = (
+                        f"✅ Situation Commerciale Saine pour {org_name} !\n\n"
+                        f"Toutes vos factures sont 100% réglées. Vous n'avez aucune créance client en souffrance."
+                    )
+                else:
+                    unpaid_list = "\n".join(
+                        [
+                            f"• 👤 {s_item.get('client', 'Client')} (Réf. {s_item.get('ref')}) : {float(s_item.get('amount', 0)):,.0f} {currency} (Date : {s_item.get('date')})"
+                            for s_item in unpaid_sales[:5]
+                        ]
+                    ).replace(",", " ")
+
+                    reply = (
+                        f"🚨 Plan de Recouvrement Client Prioritaire ({total_sales_unpaid:,.0f} {currency} en attente) :\n\n"
+                        f"{unpaid_list}\n\n"
+                        f"💡 Recommandation du Responsable Commercial :\n"
+                        f"1. Relancez en priorité les clients ayant plus de 7 jours de retard.\n"
+                        f"2. Vous pouvez générer un message de relance WhatsApp en 1 clic directement dans l'onglet Ventes."
+                    ).replace(",", " ")
+            else:
+                reply = (
+                    f"📈 Synthèse Commerciale pour {org_name} :\n\n"
+                    f"• 🧾 Volume total de transactions : {total_sales_count} vente(s) suivie(s)\n"
+                    f"• 📥 Total encaissé : {total_sales_paid:,.0f} {currency}\n"
+                    f"• ⏳ Reste à recouvrer : {total_sales_unpaid:,.0f} {currency}\n\n"
+                    f"👉 Pour enregistrer une vente rapidement, vous pouvez me dicter simplement :\n"
+                    f"« Enregistre une vente de 2 articles à 25 000 FCFA pour M. Paul »"
+                ).replace(",", " ")
 
         return {
             "reply": reply,
@@ -202,22 +187,13 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
 
         return {
             "reply": (
-                f"✅ Vente enregistrée avec succès :
-
-"
-                f"• 🧾 Réf. Facture/Reçu : {sale.reference}
-"
-                f"• 👤 Client : {client_name}
-"
-                f"• 📦 Article(s) : {item_label} (Qté: {qty})
-"
-                f"• 💰 Montant Total : {amt:,.0f} {currency}
-"
-                f"• 💳 Mode de paiement : {method}
-"
-                f"• 📌 Statut : {status_text}
-
-"
+                f"✅ Vente enregistrée et comptabilisée avec succès :\n\n"
+                f"• 🧾 Réf. Facture/Reçu : {sale.reference}\n"
+                f"• 👤 Client : {client_name}\n"
+                f"• 📦 Article(s) : {item_label} (Quantité: {qty})\n"
+                f"• 💰 Montant Total : {amt:,.0f} {currency}\n"
+                f"• 💳 Mode de paiement : {method}\n"
+                f"• 📌 Statut : {status_text}\n\n"
                 f"Votre chiffre d'affaires et votre caisse ont été immédiatement actualisés."
             ).replace(",", " "),
             "agent_name": self.name,
