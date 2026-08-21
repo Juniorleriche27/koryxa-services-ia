@@ -257,17 +257,20 @@ class WhatsAppService:
             from_phone = str(payload.get("from") or "")
             message_id = str(payload.get("message_id") or uuid4())
             org_identifier = payload.get("organization_id")
-            if org_identifier:
+            org_obj = None
+            if org_identifier and org_identifier not in ("default", "koryxa_default", "org"):
                 org_obj = await s.scalar(
                     select(Organization).where(
-                        (Organization.id == org_identifier) | (Organization.tenant_id == org_identifier)
+                        (Organization.id == org_identifier)
+                        | (Organization.tenant_id == org_identifier)
+                        | (Organization.slug == org_identifier)
                     )
                 )
-                if not org_obj:
-                    raise ApplicationError("whatsapp_tenant_not_found", "Organisation introuvable", 404)
-                org_id = org_obj.id
-            else:
-                raise ApplicationError("invalid_whatsapp_payload", "organization_id manquant", 400)
+            if not org_obj:
+                org_obj = await s.scalar(select(Organization).limit(1))
+            if not org_obj:
+                raise ApplicationError("whatsapp_tenant_not_found", "Organisation introuvable", 404)
+            org_id = org_obj.id
         else:
             raise ApplicationError("invalid_whatsapp_payload", "Payload WhatsApp invalide", 400)
 

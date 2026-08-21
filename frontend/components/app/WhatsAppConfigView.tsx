@@ -256,26 +256,10 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
       }>("/integrations/whatsapp/webhook", {
         method: "POST",
         body: JSON.stringify({
-          entry: [
-            {
-              changes: [
-                {
-                  value: {
-                    metadata: {
-                      phone_number_id: config.phone_number_id || "100000000000000",
-                    },
-                    messages: [
-                      {
-                        id: `sim_msg_${Date.now()}`,
-                        from: config.authorized_sender_numbers[0] || "+2250700000000",
-                        text: { body: simText },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-          ],
+          text: simText,
+          from: connectedPhone || "+22899159953",
+          message_id: `sim_${Date.now()}`,
+          organization_id: orgSlug || "default",
         }),
       });
       setSimResult(res);
