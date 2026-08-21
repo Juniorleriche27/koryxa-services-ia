@@ -216,72 +216,147 @@ class CoraOrchestrator(BaseSpecializedAgent):
                 suggested_actions=current_suggested,
             )
 
-        # 5. Localized Fallbacks (5 Languages)
-        if lang == "en":
-            reply = (
-                f"📊 Financial & Operational Summary for {org_name} ({sector_label}) :\n\n"
-                f"• 🏦 Actual Cash in Hand : {net_cash:,.0f} {currency}\n"
-                f"• 💰 Total Turnover : {total_sales_amount:,.0f} {currency} ({total_sales_paid:,.0f} {currency} collected, {recouvrement_rate}%)\n"
-                f"• ⏳ Outstanding Receivables : {total_sales_unpaid:,.0f} {currency}\n"
-                f"• 📤 Total Paid Expenses : {total_expenses_paid:,.0f} {currency}\n"
-                f"• 📦 Radar Alerts / Stocks : {low_stock_count} point(s) of attention\n\n"
-                f"💡 Recommendation :\n"
-                f"Your operations generated {total_sales_amount:,.0f} {currency}. " + (
-                    "Your treasury is healthy." if net_cash >= 0 else "Warning: your cash expenses currently exceed collected revenues."
-                )
-            ).replace(",", " ")
-        elif lang == "es":
-            reply = (
-                f"📊 Resumen Financiero y Operativo para {org_name} ({sector_label}) :\n\n"
-                f"• 🏦 Saldo Real en Caja : {net_cash:,.0f} {currency}\n"
-                f"• 💰 Facturación Total : {total_sales_amount:,.0f} {currency} ({total_sales_paid:,.0f} {currency} cobrados, {recouvrement_rate}%)\n"
-                f"• ⏳ Cobros Pendientes : {total_sales_unpaid:,.0f} {currency}\n"
-                f"• 📤 Gastos Pagados : {total_expenses_paid:,.0f} {currency}\n"
-                f"• 📦 Alertas Radar / Stock : {low_stock_count} punto(s) de atención\n\n"
-                f"💡 Recomendación del Director :\n"
-                f"Su actividad generó {total_sales_amount:,.0f} {currency}. " + (
-                    "Su tesorería es estable." if net_cash >= 0 else "Atención: sus gastos actuales superan los cobros realizados."
-                )
-            ).replace(",", " ")
-        elif lang == "pt":
-            reply = (
-                f"📊 Resumo Financeiro e Operacional para {org_name} ({sector_label}) :\n\n"
-                f"• 🏦 Saldo Real em Caixa : {net_cash:,.0f} {currency}\n"
-                f"• 💰 Faturação Total : {total_sales_amount:,.0f} {currency} ({total_sales_paid:,.0f} {currency} recebidos, {recouvrement_rate}%)\n"
-                f"• ⏳ Valores a Receber : {total_sales_unpaid:,.0f} {currency}\n"
-                f"• 📤 Despesas Pagas : {total_expenses_paid:,.0f} {currency}\n"
-                f"• 📦 Alertas Radar / Stock : {low_stock_count} ponto(s) de atenção\n\n"
-                f"💡 Recomendação do Gestor :\n"
-                f"A sua empresa gerou {total_sales_amount:,.0f} {currency}. " + (
-                    "A sua tesouraria está saudável." if net_cash >= 0 else "Atenção: as suas despesas ultrapassam as entradas atuais."
-                )
-            ).replace(",", " ")
-        elif lang == "ar":
-            reply = (
-                f"📊 التقرير المالي والتشغيلي لمؤسسة {org_name} ({sector_label}) :\n\n"
-                f"• 🏦 السيولة النقدية الفعلية في الصندوق : {net_cash:,.0f} {currency}\n"
-                f"• 💰 إجمالي الإيرادات والمبيعات : {total_sales_amount:,.0f} {currency} (تم تحصيل {total_sales_paid:,.0f} {currency} بنسبة {recouvrement_rate}%)\n"
-                f"• ⏳ الديون والذمم المستحقة للتحصيل : {total_sales_unpaid:,.0f} {currency}\n"
-                f"• 📤 إجمالي المصروفات المسددة : {total_expenses_paid:,.0f} {currency}\n"
-                f"• 📦 تنبيهات الرادار والمخزون : {low_stock_count} نقطة متابعة\n\n"
-                f"💡 نصيحة الإدارة :\n"
-                f"حققت مؤسستك إيرادات إجمالية قدرها {total_sales_amount:,.0f} {currency}. " + (
-                    "الوضع المالي سليم ومستقر." if net_cash >= 0 else "تنبيه: المصروفات الحالية تتجاوز الإيرادات المحصلة."
-                )
-            ).replace(",", " ")
+        # 5. Intelligent Intent-Based Localized Fallback (5 Languages)
+        is_greeting = any(w in msg_lower for w in ["bonjour", "salut", "bonsoir", "coucou", "hello", "hi", "hey", "hola", "buenos dias", "buenas tardes", "ola", "olá", "bom dia", "boa tarde", "مرحبا", "سلام", "اهلا", "أهلا"])
+        is_sales_query = any(w in msg_lower for w in ["chiffre", "vente", "recette", "revenu", "combien on a vendu", "turnover", "revenue", "sales", "facturacion", "ventas", "faturação", "vendas", "مبيعات", "إيرادات", "ارباح"])
+        is_cash_query = any(w in msg_lower for w in ["argent", "trésorerie", "tresorerie", "caisse", "solde", "dépense", "depense", "cash", "treasury", "balance", "expense", "tesoreria", "caja", "gasto", "saldo", "despesa", "صندوق", "سيولة", "مصروف"])
+        is_debt_query = any(w in msg_lower for w in ["créance", "creance", "impayé", "impaye", "relance", "doit", "debt", "unpaid", "receivable", "cobro", "deuda", "divida", "cobrança", "ديون", "مستحقات", "ذمم"])
+
+        if is_greeting:
+            if lang == "en":
+                reply = f"Hello {responsible}! Great to assist you at the helm of {org_name} ({sector_label}).\n\nHow can I help you today? I can analyze your figures, record live transactions, check your cash position, or guide your daily executive decisions."
+            elif lang == "es":
+                reply = f"¡Hola {responsible}! Un placer acompañarle en la gestión de {org_name} ({sector_label}).\n\n¿En qué puedo orientarle hoy? Puedo analizar sus cifras, registrar ventas o gastos en directo, o asesorarle en sus decisiones del día."
+            elif lang == "pt":
+                reply = f"Olá {responsible}! É um prazer estar ao seu lado na liderança de {org_name} ({sector_label}).\n\nComo posso ajudar hoje? Posso analisar os seus números, registar operações em tempo real ou aconselhar as suas decisões diárias."
+            elif lang == "ar":
+                reply = f"مرحباً بك {responsible}! يسعدني مرافقتك في قيادة وإدارة مؤسسة {org_name} ({sector_label}).\n\nكيف يمكنني مساعدتك اليوم؟ يمكنني تحليل الأرقام والسيولة، تسجيل العمليات فورياً أو تقديم استشارات داعمة لقراراتك اليومية."
+            else:
+                reply = f"Bonjour {responsible} ! C'est un plaisir de vous retrouver au pilotage de {org_name} ({sector_label}).\n\nComment puis-je vous aider aujourd'hui ? Je peux analyser vos chiffres, enregistrer une opération en direct ou vous conseiller sur vos décisions du jour."
+        elif is_sales_query:
+            if lang == "en":
+                reply = (
+                    f"📈 Revenue & Sales Overview for {org_name} :\n\n"
+                    f"• 💰 Total Turnover : {total_sales_amount:,.0f} {currency}\n"
+                    f"• 📥 Total Cash Collected : {total_sales_paid:,.0f} {currency} ({recouvrement_rate}%)\n"
+                    f"• ⏳ Outstanding Receivables : {total_sales_unpaid:,.0f} {currency}\n"
+                    f"• 🧾 Volume : {total_sales_count} tracked transaction(s)"
+                ).replace(",", " ")
+            elif lang == "es":
+                reply = (
+                    f"📈 Resumen de Facturación para {org_name} :\n\n"
+                    f"• 💰 Facturación Total : {total_sales_amount:,.0f} {currency}\n"
+                    f"• 📥 Total Cobrado en Caja : {total_sales_paid:,.0f} {currency} ({recouvrement_rate}%)\n"
+                    f"• ⏳ Cobros Pendientes : {total_sales_unpaid:,.0f} {currency}\n"
+                    f"• 🧾 Volumen : {total_sales_count} transacción(es) registrada(s)"
+                ).replace(",", " ")
+            elif lang == "pt":
+                reply = (
+                    f"📈 Resumo de Vendas e Faturação para {org_name} :\n\n"
+                    f"• 💰 Faturação Total : {total_sales_amount:,.0f} {currency}\n"
+                    f"• 📥 Total Recebido em Caixa : {total_sales_paid:,.0f} {currency} ({recouvrement_rate}%)\n"
+                    f"• ⏳ Valores a Receber : {total_sales_unpaid:,.0f} {currency}\n"
+                    f"• 🧾 Volume : {total_sales_count} transação(ões) registada(s)"
+                ).replace(",", " ")
+            elif lang == "ar":
+                reply = (
+                    f"📈 موجز المبيعات والإيرادات لمؤسسة {org_name} :\n\n"
+                    f"• 💰 إجمالي الإيرادات المسجلة : {total_sales_amount:,.0f} {currency}\n"
+                    f"• 📥 المحصل الفعلي في الصندوق : {total_sales_paid:,.0f} {currency} (بنسبة {recouvrement_rate}%)\n"
+                    f"• ⏳ الديون والذمم المتبقية : {total_sales_unpaid:,.0f} {currency}\n"
+                    f"• 🧾 عدد العمليات : {total_sales_count} معاملة مسجلة"
+                ).replace(",", " ")
+            else:
+                reply = (
+                    f"📈 Point sur le Chiffre d'Affaires de {org_name} :\n\n"
+                    f"• 💰 Chiffre d'Affaires Total Facturé : {total_sales_amount:,.0f} {currency}\n"
+                    f"• 📥 CA Réellement Encaissé : {total_sales_paid:,.0f} {currency} ({recouvrement_rate}% du total)\n"
+                    f"• ⏳ CA en Attente (Créances) : {total_sales_unpaid:,.0f} {currency}\n"
+                    f"• 🧾 Volume d'Opérations : {total_sales_count} transaction(s) suivie(s)"
+                ).replace(",", " ")
+        elif is_debt_query:
+            if lang == "en":
+                reply = (
+                    f"⏳ Pending Receivables for {org_name} :\n\n"
+                    f"• Total Unpaid : {total_sales_unpaid:,.0f} {currency}\n"
+                    f"• Priority Details : {unpaid_summary}\n\n"
+                    f"💡 Advice: Recovering these funds will directly improve your available cash."
+                ).replace(",", " ")
+            elif lang == "es":
+                reply = (
+                    f"⏳ Cobros Pendientes para {org_name} :\n\n"
+                    f"• Total por Cobrar : {total_sales_unpaid:,.0f} {currency}\n"
+                    f"• Detalle Prioritario : {unpaid_summary}\n\n"
+                    f"💡 Consejo: La recuperación de estos cobros aumentará de inmediato su liquidez disponible."
+                ).replace(",", " ")
+            elif lang == "pt":
+                reply = (
+                    f"⏳ Valores Pendentes de Cobrança para {org_name} :\n\n"
+                    f"• Total a Receber : {total_sales_unpaid:,.0f} {currency}\n"
+                    f"• Detalhe Prioritário : {unpaid_summary}\n\n"
+                    f"💡 Recomendação: A cobrança destes valores reforçará de imediato a sua tesouraria."
+                ).replace(",", " ")
+            elif lang == "ar":
+                reply = (
+                    f"⏳ الديون والذمم المستحقة للتحصيل لمؤسسة {org_name} :\n\n"
+                    f"• إجمالي الديون المعلقة : {total_sales_unpaid:,.0f} {currency}\n"
+                    f"• أهم العملاء ذوي المبالغ المستحقة : {unpaid_summary}\n\n"
+                    f"💡 توصية: تحصيل هذه المستحقات يعزز فوراً السيولة النقدية المتاحة في الصندوق."
+                ).replace(",", " ")
+            else:
+                reply = (
+                    f"⏳ Créances et Impayés en Attente pour {org_name} :\n\n"
+                    f"• Total des Impayés : {total_sales_unpaid:,.0f} {currency}\n"
+                    f"• Clients Prioritaires : {unpaid_summary}\n\n"
+                    f"💡 Conseil : La relance de ces créances consolidera directement votre trésorerie disponible."
+                ).replace(",", " ")
+        elif is_cash_query:
+            if lang == "en":
+                reply = (
+                    f"📊 Cash Position for {org_name} :\n\n"
+                    f"• 🏦 Actual Cash in Hand : {net_cash:,.0f} {currency}\n"
+                    f"• 📥 Total Inflows : {total_sales_paid:,.0f} {currency}\n"
+                    f"• 📤 Total Expenses Paid : {total_expenses_paid:,.0f} {currency}"
+                ).replace(",", " ")
+            elif lang == "es":
+                reply = (
+                    f"📊 Estado de Tesorería para {org_name} :\n\n"
+                    f"• 🏦 Saldo Real en Caja : {net_cash:,.0f} {currency}\n"
+                    f"• 📥 Total Entradas : {total_sales_paid:,.0f} {currency}\n"
+                    f"• 📤 Total Gastos Pagados : {total_expenses_paid:,.0f} {currency}"
+                ).replace(",", " ")
+            elif lang == "pt":
+                reply = (
+                    f"📊 Posição de Caixa para {org_name} :\n\n"
+                    f"• 🏦 Saldo Real em Caixa : {net_cash:,.0f} {currency}\n"
+                    f"• 📥 Total Entradas : {total_sales_paid:,.0f} {currency}\n"
+                    f"• 📤 Total Despesas Pagas : {total_expenses_paid:,.0f} {currency}"
+                ).replace(",", " ")
+            elif lang == "ar":
+                reply = (
+                    f"📊 تقرير الصندوق والسيولة لمؤسسة {org_name} :\n\n"
+                    f"• 🏦 السيولة النقدية الفعلية : {net_cash:,.0f} {currency}\n"
+                    f"• 📥 إجمالي المبالغ المحصلة : {total_sales_paid:,.0f} {currency}\n"
+                    f"• 📤 إجمالي المصروفات المدفوعة : {total_expenses_paid:,.0f} {currency}"
+                ).replace(",", " ")
+            else:
+                reply = (
+                    f"📊 Situation de Caisse pour {org_name} :\n\n"
+                    f"• 🏦 Solde Réel en Caisse : {net_cash:,.0f} {currency}\n"
+                    f"• 📥 Total Encaissé : {total_sales_paid:,.0f} {currency}\n"
+                    f"• 📤 Total Dépenses Payées : {total_expenses_paid:,.0f} {currency}"
+                ).replace(",", " ")
         else:
-            reply = (
-                f"📊 Diagnostic Financier & Trésorerie pour {org_name} ({sector_label}) :\n\n"
-                f"• 🏦 Solde Réel Disponible en Caisse : {net_cash:,.0f} {currency}\n"
-                f"• 💰 Chiffre d'Affaires Total Facturé : {total_sales_amount:,.0f} {currency} ({total_sales_paid:,.0f} {currency} encaissés, {recouvrement_rate}%)\n"
-                f"• ⏳ Créances / Impayés en Attente : {total_sales_unpaid:,.0f} {currency}\n"
-                f"• 📤 Total Charges Payées : {total_expenses_paid:,.0f} {currency}\n"
-                f"• 📦 Alertes Stocks / Radar : {low_stock_count} point(s) d'attention\n\n"
-                f"💡 Recommandation du Dirigeant :\n"
-                f"Votre activité a généré {total_sales_amount:,.0f} {currency}. " + (
-                    "Votre trésorerie est saine." if net_cash >= 0 else "Attention : vos dépenses dépassent vos encaissements actuels."
-                )
-            ).replace(",", " ")
+            if lang == "en":
+                reply = f"I am connected to your registers for {org_name}. How can I assist you specifically with your sales, cash, expenses, or team procedures?"
+            elif lang == "es":
+                reply = f"Estoy conectada a todos los registros de {org_name}. ¿En qué puedo ayudarle específicamente respecto a sus ventas, caja, gastos o procedimientos?"
+            elif lang == "pt":
+                reply = f"Estou ligada aos registos de {org_name}. Como posso ajudar especificamente em relação a vendas, caixa, despesas ou procedimentos?"
+            elif lang == "ar":
+                reply = f"أنا متصلة بجميع سجلات مؤسسة {org_name}. كيف يمكنني مساعدتك بدقة فيما يتعلق بالمبيعات، الصندوق، المصروفات أو خطة العمل؟"
+            else:
+                reply = f"Je suis connectée à l'ensemble de vos registres pour {org_name}. Que souhaitez-vous analyser ou enregistrer aujourd'hui ?"
 
         return AIChatResponse(
             reply=reply,

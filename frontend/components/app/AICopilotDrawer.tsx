@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Building,
   HelpCircle,
+  Clock,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { useI18n } from "@/lib/i18n";
@@ -31,6 +32,7 @@ interface ChatMessage {
   thinking_summary?: string;
   action_executed?: Record<string, any> | null;
   suggested_actions?: SuggestedAction[];
+  duration?: string;
 }
 
 interface SuggestedAction {
@@ -78,7 +80,20 @@ function FormattedMessage({ text }: { text: string }) {
         }
 
         // Header line (e.g. 📊 Diagnostic, 📈 Synthèse)
-        if (trimmed.startsWith("📊") || trimmed.startsWith("📈") || trimmed.startsWith("🚨") || trimmed.startsWith("🛡️") || trimmed.startsWith("📋") || trimmed.startsWith("✅") || trimmed.startsWith("💡")) {
+        if (
+          trimmed.startsWith("📊") ||
+          trimmed.startsWith("📈") ||
+          trimmed.startsWith("🚨") ||
+          trimmed.startsWith("🛡️") ||
+          trimmed.startsWith("📋") ||
+          trimmed.startsWith("✅") ||
+          trimmed.startsWith("💡") ||
+          trimmed.startsWith("💰") ||
+          trimmed.startsWith("🏦") ||
+          trimmed.startsWith("⏳") ||
+          trimmed.startsWith("📤") ||
+          trimmed.startsWith("📥")
+        ) {
           return (
             <div key={lIdx} className="font-bold text-foreground text-[14px] pt-1 pb-0.5 flex items-center gap-1.5">
               {renderInlineMarkdown(trimmed)}
@@ -101,7 +116,6 @@ function FormattedMessage({ text }: { text: string }) {
  * Parses bold **text** and `code` cleanly without leaving raw asterisks
  */
 function renderInlineMarkdown(content: string) {
-  // Regex to split by **bold** or `code`
   const parts = content.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
 
   return parts.map((part, i) => {
@@ -142,12 +156,6 @@ export function AICopilotDrawer({
     t("copilot_prompt_4"),
   ];
 
-  const THINKING_STEPS = [
-    t("copilot_thinking_1"),
-    t("copilot_thinking_2"),
-    t("copilot_thinking_3"),
-  ];
-
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   // Update initial message when language changes or starts
@@ -165,9 +173,13 @@ export function AICopilotDrawer({
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [thinkingIndex, setThinkingIndex] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [actions, setActions] = useState<SuggestedAction[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Live timer ref
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
 
   // Typewriter streaming state for latest message
   const [streamingText, setStreamingText] = useState<string | null>(null);
@@ -184,14 +196,13 @@ export function AICopilotDrawer({
     }
   }, [open, messages, loading, streamingText, scrollToBottom]);
 
-  // Rotate thinking steps when loading
+  // Clean timer on unmount
   useEffect(() => {
-    if (!loading) return;
-    const timer = setInterval(() => {
-      setThinkingIndex((prev) => (prev + 1) % THINKING_STEPS.length);
-    }, 1800);
-    return () => clearInterval(timer);
-  }, [loading, THINKING_STEPS.length]);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (streamTimerRef.current) clearInterval(streamTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -202,6 +213,22 @@ export function AICopilotDrawer({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
+
+  // Dynamic Multi-step Soothing Waiting Scenario
+  const getThinkingStep = (secs: number) => {
+    if (secs < 1.4) {
+      return { text: t("copilot_phase_1"), step: 1, total: 3 };
+    }
+    if (secs < 2.8) {
+      return { text: t("copilot_phase_2"), step: 2, total: 3 };
+    }
+    if (secs < 4.5) {
+      return { text: t("copilot_phase_3"), step: 3, total: 3 };
+    }
+    return { text: t("copilot_phase_4"), step: 3, total: 3 };
+  };
+
+  const currentPhase = getThinkingStep(elapsedSeconds);
 
   // Smooth typewriter effect for assistant replies
   const startTypewriter = (fullText: string, onFinish: () => void) => {
@@ -221,7 +248,7 @@ export function AICopilotDrawer({
       } else {
         setStreamingText(fullText.slice(0, currentLength));
       }
-    }, 18);
+    }, 16);
   };
 
   const handleSend = async (textToSend?: string) => {
@@ -240,6 +267,14 @@ export function AICopilotDrawer({
     setLoading(true);
     setActions([]);
 
+    // Start Live High-Precision Elapsed Timer
+    startTimeRef.current = Date.now();
+    setElapsedSeconds(0);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds(Number(((Date.now() - startTimeRef.current) / 1000).toFixed(1)));
+    }, 80);
+
     try {
       const res = await serviceIaFetch<AIChatResponse>("/ai/chat", {
         method: "POST",
@@ -248,6 +283,9 @@ export function AICopilotDrawer({
           language: lang,
         }),
       });
+
+      if (timerRef.current) clearInterval(timerRef.current);
+      const totalDurationSec = ((Date.now() - startTimeRef.current) / 1000).toFixed(1);
 
       const assistantMsg: ChatMessage = {
         id: `assistant-${Date.now()}`,
@@ -258,6 +296,7 @@ export function AICopilotDrawer({
         thinking_summary: res.thinking_summary,
         action_executed: res.action_executed,
         suggested_actions: res.suggested_actions || [],
+        duration: `${totalDurationSec}s`,
       };
 
       setLoading(false);
@@ -274,6 +313,7 @@ export function AICopilotDrawer({
         }
       });
     } catch (err) {
+      if (timerRef.current) clearInterval(timerRef.current);
       setLoading(false);
       setMessages([
         ...newMessages,
@@ -315,59 +355,52 @@ export function AICopilotDrawer({
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold">Cora</h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
-                  Coach d'Affaires IA
+                  {t("copilot_badge")}
                 </span>
               </div>
-              <span className="kx-copilot-provider-tag text-xs text-muted-foreground">
-                Alimenté par le Hub Multi-Agents Knowlia
-              </span>
+              <p className="text-xs text-muted-foreground">
+                Copilote IA & Direction des Opérations
+              </p>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition cursor-pointer"
+            aria-label="Fermer le panneau"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-          <div className="kx-copilot-header-actions">
-            <button
-              type="button"
-              className="kx-copilot-settings-btn"
-              onClick={() => {
-                setMessages([
-                  {
-                    id: "reset-init",
-                    role: "assistant",
-                    agent_name: "Cora · Directrice des Opérations",
-                    agent_badge: "🧑‍💼 Coach Exécutif",
-                    content:
-                      "Bonjour ! Comment puis-je vous assister pour piloter votre entreprise aujourd'hui ?",
-                  },
-                ]);
-                setActions([]);
-              }}
-              title="Nouvelle discussion"
-            >
-              <RotateCcw size={16} />
-            </button>
-            <button type="button" className="kx-copilot-close-btn" onClick={onClose}>
-              <X size={18} />
-            </button>
+        {/* Quick Suggestion Chips on Start */}
+        {messages.length <= 1 && (
+          <div className="kx-copilot-quick-prompts">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+              <Sparkles size={12} className="text-emerald-600" />
+              <span>Questions suggérées pour démarrer :</span>
+            </div>
+            <div className="grid grid-cols-1 gap-1.5">
+              {QUICK_PROMPTS.map((prompt, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSend(prompt)}
+                  className="text-left text-xs font-medium px-3 py-2 rounded-xl bg-card border border-border/80 hover:bg-emerald-500/5 hover:border-emerald-500/30 hover:text-emerald-800 dark:hover:text-emerald-300 transition flex items-center justify-between group cursor-pointer shadow-2xs"
+                >
+                  <span className="truncate">{prompt}</span>
+                  <ArrowRight
+                    size={13}
+                    className="text-muted-foreground group-hover:text-emerald-600 group-hover:translate-x-0.5 transition shrink-0 ml-2"
+                  />
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Quick Prompts Carousel */}
-        <div className="kx-quick-prompts-bar">
-          {QUICK_PROMPTS.map((prompt, idx) => (
-            <button
-              key={idx}
-              type="button"
-              className="kx-quick-prompt-btn text-xs font-semibold"
-              disabled={loading}
-              onClick={() => handleSend(prompt)}
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-
-        {/* Messages List */}
-        <div className="kx-copilot-messages space-y-4">
+        {/* Chat Messages Log */}
+        <div className="kx-copilot-body">
           {messages.map((m) => (
             <div
               key={m.id}
@@ -377,15 +410,20 @@ export function AICopilotDrawer({
                 {m.role === "user" ? <User size={16} /> : <Bot size={16} />}
               </div>
               <div className="kx-chat-bubble-content max-w-[88%]">
-                {/* Agent Badge & Name Header */}
+                {/* Assistant Header Info & Duration Timer Badge */}
                 {m.role === "assistant" && (
-                  <div className="flex items-center gap-1.5 mb-1.5">
+                  <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                      {m.agent_badge || "🧑‍💼 Coach IA"}
+                      {m.agent_badge || t("copilot_badge")}
                     </span>
-                    <span className="text-[11px] text-muted-foreground font-medium">
-                      {m.agent_name || "Cora"}
+                    <span className="text-[11px] font-bold text-foreground/80">
+                      {m.agent_name || t("copilot_title")}
                     </span>
+                    {m.duration && (
+                      <span className="text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-300 px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 ml-auto">
+                        ⚡ {m.duration}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -444,10 +482,10 @@ export function AICopilotDrawer({
               <div className="kx-chat-bubble-content max-w-[88%]">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                    🧑‍💼 Coach Exécutif
+                    {t("copilot_badge")}
                   </span>
                   <span className="text-[11px] text-muted-foreground font-medium">
-                    Cora en rédaction…
+                    {t("copilot_writing")}
                   </span>
                 </div>
                 <div className="kx-chat-text bg-card border border-border p-3.5 rounded-2xl shadow-xs">
@@ -458,18 +496,43 @@ export function AICopilotDrawer({
             </div>
           )}
 
-          {/* Gentle Thinking Mode Animation */}
+          {/* Smooth Multi-Step Waiting Scenario with High-Precision Live Timer */}
           {loading && (
             <div className="kx-chat-msg is-assistant">
               <div className="kx-chat-avatar shrink-0">
                 <Bot size={16} className="text-emerald-600 animate-spin" />
               </div>
-              <div className="kx-chat-bubble-content">
-                <div className="p-3 rounded-2xl bg-emerald-500/8 border border-emerald-500/20 flex items-center gap-3 animate-pulse">
-                  <Sparkles size={16} className="text-emerald-600 shrink-0" />
-                  <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                    {THINKING_STEPS[thinkingIndex]}
-                  </span>
+              <div className="kx-chat-bubble-content max-w-[90%]">
+                <div className="p-3.5 rounded-2xl bg-card border border-emerald-500/30 shadow-sm space-y-2.5">
+                  {/* Header with live timer */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={15} className="text-emerald-600 animate-pulse" />
+                      <span className="text-xs font-bold text-foreground">
+                        {currentPhase.text}
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 shadow-2xs">
+                      <Clock size={11} className="animate-spin" />
+                      {elapsedSeconds.toFixed(1)}s
+                    </span>
+                  </div>
+
+                  {/* Soothing animated progress glow bar */}
+                  <div className="w-full bg-muted/80 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                      style={{
+                        width: `${Math.min(95, Math.max(15, Math.round((elapsedSeconds / 3.5) * 100)))}%`,
+                      }}
+                    />
+                  </div>
+
+                  {/* Multi-step reassuring indicator */}
+                  <div className="flex items-center justify-between text-[10.5px] text-muted-foreground font-medium pt-0.5">
+                    <span>Étape {currentPhase.step}/{currentPhase.total}</span>
+                    <span className="italic">Traitement contextuel sécurisé</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -536,4 +599,3 @@ export function AICopilotDrawer({
     </div>
   );
 }
-

@@ -124,6 +124,12 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     copilot_thinking_1: "Consultation des registres de caisse et de ventes…",
     copilot_thinking_2: "Analyse des créances et des marges bénéficiaires…",
     copilot_thinking_3: "Formulation du conseil stratégique du dirigeant…",
+    copilot_phase_1: "Consultation des registres & transactions…",
+    copilot_phase_2: "Analyse contextuelle & indicateurs…",
+    copilot_phase_3: "Formulation du conseil stratégique…",
+    copilot_phase_4: "Finalisation de la synthèse…",
+    copilot_answered_in: "Généré en",
+    copilot_writing: "Cora en rédaction…",
   },
 
   en: {
@@ -223,6 +229,12 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     copilot_thinking_1: "Reading cash registers and sales ledger…",
     copilot_thinking_2: "Analyzing receivables and profit margins…",
     copilot_thinking_3: "Formulating executive strategic recommendations…",
+    copilot_phase_1: "Reading financial registers & ledger…",
+    copilot_phase_2: "Contextual analysis & indicators…",
+    copilot_phase_3: "Formulating strategic advice…",
+    copilot_phase_4: "Finalizing executive reply…",
+    copilot_answered_in: "Generated in",
+    copilot_writing: "Cora is writing…",
   },
 
   es: {
@@ -322,6 +334,12 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     copilot_thinking_1: "Consultando libros de caja y ventas…",
     copilot_thinking_2: "Analizando deudas y márgenes de beneficio…",
     copilot_thinking_3: "Formulando recomendaciones estratégicas…",
+    copilot_phase_1: "Consultando registros y caja…",
+    copilot_phase_2: "Análisis contextual e indicadores…",
+    copilot_phase_3: "Formulando consejo estratégico…",
+    copilot_phase_4: "Finalizando respuesta…",
+    copilot_answered_in: "Generado en",
+    copilot_writing: "Cora redactando…",
   },
 
   pt: {
@@ -421,6 +439,12 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     copilot_thinking_1: "Consultando registos de caixa e vendas…",
     copilot_thinking_2: "Analisando créditos pendentes e margens…",
     copilot_thinking_3: "Formulando recomendações estratégicas…",
+    copilot_phase_1: "Consultando registos e caixa…",
+    copilot_phase_2: "Análise contextual e indicadores…",
+    copilot_phase_3: "Formulando conselho estratégico…",
+    copilot_phase_4: "Finalizando resposta…",
+    copilot_answered_in: "Gerado em",
+    copilot_writing: "Cora a redigir…",
   },
 
   ar: {
@@ -433,7 +457,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     nav_cockpit: "لوحة التحكم الرئيسية",
     nav_sales: "المبيعات والصندوق",
     nav_offers: "المنتجات والعروض",
-    nav_expenses: "المشتريats والمصروفات",
+    nav_expenses: "المشتريات والمصروفات",
     nav_suppliers: "الموردون",
     nav_attendance: "الحضور وتسجيل الدوام",
     nav_procedures: "إجراءات العمل (SOP)",
@@ -520,6 +544,12 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     copilot_thinking_1: "جاري فحص سجلات الصندوق والمبيعات…",
     copilot_thinking_2: "تحليل الديون وهوامش الربحية…",
     copilot_thinking_3: "صياغة التوصيات الإدارية الاستراتيجية…",
+    copilot_phase_1: "فحص سجلات الصندوق والمعاملات…",
+    copilot_phase_2: "التحليل الذكي ومؤشرات الأداء…",
+    copilot_phase_3: "صياغة التوصيات الإدارية…",
+    copilot_phase_4: "إنهاء وإعداد التقرير…",
+    copilot_answered_in: "تم التوليد في",
+    copilot_writing: "كورا تقوم بالتحرير…",
   },
 };
 
