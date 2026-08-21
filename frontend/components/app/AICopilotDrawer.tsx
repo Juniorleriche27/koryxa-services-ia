@@ -19,6 +19,7 @@ import {
   Building,
   HelpCircle,
   Clock,
+  ChevronDown,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { useI18n } from "@/lib/i18n";
@@ -176,6 +177,9 @@ export function AICopilotDrawer({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [actions, setActions] = useState<SuggestedAction[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   // Live timer ref
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -186,8 +190,22 @@ export function AICopilotDrawer({
   const fullTextRef = useRef<string>("");
   const streamTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    const isUp = scrollHeight - scrollTop - clientHeight > 100;
+    setShowScrollBottom(isUp);
+  };
+
+  const scrollToBottom = useCallback((smooth = true) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
+    }
   }, []);
 
   useEffect(() => {
@@ -195,6 +213,14 @@ export function AICopilotDrawer({
       scrollToBottom();
     }
   }, [open, messages, loading, streamingText, scrollToBottom]);
+
+  // Auto-resize flexible input textarea without overflowing
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [input]);
 
   // Clean timer on unmount
   useEffect(() => {
@@ -399,8 +425,8 @@ export function AICopilotDrawer({
           </div>
         )}
 
-        {/* Chat Messages Log */}
-        <div className="kx-copilot-body">
+        {/* Chat Messages Log with Native Touch & Mouse Wheel Scroll */}
+        <div ref={scrollContainerRef} onScroll={handleScroll} className="kx-copilot-messages">
           {messages.map((m) => (
             <div
               key={m.id}
@@ -563,7 +589,20 @@ export function AICopilotDrawer({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Bar */}
+        {/* Floating Quick Scroll to Bottom Button */}
+        {showScrollBottom && (
+          <button
+            type="button"
+            onClick={() => scrollToBottom(true)}
+            className="kx-scroll-bottom-btn"
+            title="Défiler vers le bas"
+            aria-label="Défiler vers le bas"
+          >
+            <ChevronDown size={20} />
+          </button>
+        )}
+
+        {/* Sticky Fixed Bottom Input Bar */}
         <div className="kx-copilot-footer">
           <form
             onSubmit={(e) => {
@@ -572,26 +611,34 @@ export function AICopilotDrawer({
             }}
             className="kx-copilot-input-form"
           >
-            <input
-              type="text"
+            <textarea
+              ref={textareaRef}
+              rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
               placeholder={t("copilot_placeholder")}
               disabled={loading || streamingText !== null}
               autoFocus
-              className="text-sm font-medium"
+              className="kx-copilot-textarea"
             />
             <button
               type="submit"
               disabled={loading || streamingText !== null || !input.trim()}
               className="kx-copilot-send-btn"
+              aria-label="Envoyer le message"
             >
               <Send size={16} />
             </button>
           </form>
           <div className="kx-copilot-input-hint">
             <span>
-              Appuyez sur <strong>Entrée</strong> pour envoyer · <strong>Échap</strong> pour fermer
+              Appuyez sur <strong>Entrée</strong> pour envoyer · <strong>Shift + Entrée</strong> pour saut de ligne
             </span>
           </div>
         </div>

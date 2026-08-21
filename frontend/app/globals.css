@@ -444,13 +444,14 @@
 .kx-cora-label small{color:#d8ffeb;font-size:9px;font-weight:900;letter-spacing:.12em}
 
 /* Copilot Drawer */
-.kx-copilot-backdrop{position:fixed;inset:0;background:rgba(10,35,22,.4);backdrop-filter:blur(4px);z-index:9000;display:flex;justify-content:flex-end;animation:kxFadeIn .2s ease}
-.kx-copilot-drawer{width:100%;max-width:520px;height:100%;background:#fff;box-shadow:-12px 0 40px rgba(0,0,0,.15);display:flex;flex-direction:column;animation:kxSlideLeft .25s cubic-bezier(.16,1,.3,1)}
+.kx-copilot-backdrop{position:fixed;inset:0;background:rgba(10,35,22,.45);backdrop-filter:blur(5px);z-index:9000;display:flex;justify-content:flex-end;animation:kxFadeIn .2s ease}
+.kx-copilot-drawer{width:100%;max-width:540px;height:100vh;max-height:100vh;background:var(--card,#fff);color:var(--foreground,#183629);box-shadow:-12px 0 40px rgba(0,0,0,.2);display:flex;flex-direction:column;overflow:hidden;position:relative;animation:kxSlideLeft .25s cubic-bezier(.16,1,.3,1)}
 
 @keyframes kxSlideLeft{from{transform:translateX(100%)}to{transform:translateX(0)}}
 @keyframes kxFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes kxScaleIn{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
 
-.kx-copilot-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,#0d3826,#072216);color:#fff;border-bottom:1px solid #1c523a}
+.kx-copilot-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,#0d3826,#072216);color:#fff;border-bottom:1px solid #1c523a;z-index:10}
 .kx-copilot-title-group{display:flex;align-items:center;gap:12px}
 .kx-copilot-badge-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#00c882,#008b59);display:grid;place-items:center;color:#fff;box-shadow:0 4px 12px rgba(0,200,130,.35)}
 .kx-copilot-title-group h3{margin:0;font-size:16px;font-family:var(--font-display);letter-spacing:-.01em}
@@ -460,22 +461,32 @@
 .kx-copilot-settings-btn:hover,.kx-copilot-close-btn:hover{background:rgba(255,255,255,.22)}
 
 /* Quick Prompts Bar */
+.kx-copilot-quick-prompts{flex-shrink:0;padding:12px 18px;background:var(--muted,#f6fbf8);border-bottom:1px solid var(--border,#e1efe7)}
 .kx-quick-prompts-bar{display:flex;align-items:center;gap:6px;padding:10px 16px;background:#f6fbf8;border-bottom:1px solid #e1efe7;overflow-x:auto;scrollbar-width:none}
 .kx-quick-prompts-bar::-webkit-scrollbar{display:none}
 .kx-quick-prompt-btn{padding:5px 11px;border-radius:99px;background:#fff;border:1px solid #cee4d8;font-size:11px;font-weight:700;color:#285240;white-space:nowrap;cursor:pointer;transition:.15s ease}
 .kx-quick-prompt-btn:hover{background:#e7f6ee;border-color:#00a86b;color:#00794b}
 
-/* Messages Area */
-.kx-copilot-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;background:#fafdfb}
+/* Messages Area with Native Smooth Scroll & Touch Support */
+.kx-copilot-messages{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:20px 18px;display:flex;flex-direction:column;gap:16px;background:var(--background,#fafdfb);scroll-behavior:smooth;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.kx-copilot-messages::-webkit-scrollbar{width:6px}
+.kx-copilot-messages::-webkit-scrollbar-track{background:transparent}
+.kx-copilot-messages::-webkit-scrollbar-thumb{background:rgba(16,185,129,.25);border-radius:99px;transition:background .2s ease}
+.kx-copilot-messages::-webkit-scrollbar-thumb:hover{background:rgba(16,185,129,.6)}
+
+/* Floating Scroll to Bottom Indicator */
+.kx-scroll-bottom-btn{position:absolute;bottom:88px;right:22px;z-index:30;width:38px;height:38px;border-radius:50%;background:#00a86b;color:#fff;box-shadow:0 4px 18px rgba(0,168,107,.45);display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #fff;transition:all .2s cubic-bezier(.16,1,.3,1);animation:kxScaleIn .2s ease}
+.kx-scroll-bottom-btn:hover{transform:scale(1.1);background:#008b59}
+
 .kx-chat-msg{display:flex;gap:12px;max-width:92%}
 .kx-chat-msg.is-user{align-self:flex-end;flex-direction:row-reverse}
 .kx-chat-msg.is-assistant{align-self:flex-start}
-.kx-chat-avatar{width:30px;height:30px;border-radius:99px;display:grid;place-items:center;flex-shrink:0}
+.kx-chat-avatar{width:32px;height:32px;border-radius:99px;display:grid;place-items:center;flex-shrink:0}
 .kx-chat-msg.is-user .kx-chat-avatar{background:#173e2e;color:#fff}
 .kx-chat-msg.is-assistant .kx-chat-avatar{background:#e2f7ec;color:#008b59}
 .kx-chat-bubble-content{display:flex;flex-direction:column;gap:6px}
-.kx-chat-msg.is-user .kx-chat-text{background:#00945e;color:#fff;border-radius:16px 16px 2px 16px;padding:10px 15px;font-size:13px;line-height:1.45}
-.kx-chat-msg.is-assistant .kx-chat-text{background:#fff;color:#183629;border:1px solid #dbeee3;box-shadow:0 3px 12px rgba(20,60,40,.04);border-radius:16px 16px 16px 2px;padding:14px 16px;font-size:13px;line-height:1.55}
+.kx-chat-msg.is-user .kx-chat-text{background:#00945e;color:#fff;border-radius:18px 18px 4px 18px;padding:11px 16px;font-size:13.5px;line-height:1.45;box-shadow:0 2px 10px rgba(0,148,94,.2)}
+.kx-chat-msg.is-assistant .kx-chat-text{background:var(--card,#fff);color:var(--foreground,#183629);border:1px solid var(--border,#dbeee3);box-shadow:0 3px 14px rgba(20,60,40,.04);border-radius:18px 18px 18px 4px;padding:14px 16px;font-size:13.5px;line-height:1.55}
 
 /* Suggested Action Chips */
 .kx-suggested-actions-block{margin-top:6px;display:flex;flex-direction:column;gap:6px}
@@ -484,13 +495,15 @@
 .kx-action-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:8px;background:#e9f6ef;border:1px solid #bce6d1;color:#00794b;font-size:11px;font-weight:700;cursor:pointer;transition:.15s ease}
 .kx-action-chip:hover{background:#00a86b;color:#fff;border-color:#00a86b}
 
-/* Footer Form */
-.kx-copilot-footer{padding:14px 18px;background:#fff;border-top:1px solid #e1efe7;display:flex;flex-direction:column;gap:6px}
-.kx-copilot-input-form{display:flex;align-items:center;gap:8px;background:#f3faf6;border:1.5px solid #cee4d8;border-radius:14px;padding:4px 6px 4px 14px}
-.kx-copilot-input-form:focus-within{border-color:#00a86b;background:#fff;box-shadow:0 0 0 3px rgba(0,168,107,.12)}
-.kx-copilot-input-form input{flex:1;border:0;outline:0;background:transparent;font-size:13px;color:#143426;font-family:inherit}
-.kx-copilot-send-btn{width:36px;height:36px;border-radius:10px;border:0;background:#00a86b;color:#fff;display:grid;place-items:center;cursor:pointer;transition:.15s ease}
-.kx-copilot-send-btn:hover:not(:disabled){background:#008b59}
+/* Sticky Bottom Footer Form */
+.kx-copilot-footer{flex-shrink:0;position:sticky;bottom:0;padding:12px 18px 16px;background:var(--card,#fff);border-top:1px solid var(--border,#e1efe7);display:flex;flex-direction:column;gap:6px;z-index:20;box-shadow:0 -4px 16px rgba(0,0,0,.04)}
+.kx-copilot-input-form{display:flex;align-items:flex-end;gap:8px;background:var(--muted,#f3faf6);border:1.5px solid var(--border,#cee4d8);border-radius:16px;padding:6px 8px 6px 14px;transition:all .2s ease}
+.kx-copilot-input-form:focus-within{border-color:#00a86b;background:var(--card,#fff);box-shadow:0 0 0 3px rgba(0,168,107,.12)}
+.kx-copilot-textarea{flex:1;border:0;outline:0;background:transparent;font-size:13.5px;color:var(--foreground,#143426);font-family:inherit;resize:none;max-height:120px;min-height:24px;line-height:1.45;padding:4px 0;overflow-y:auto}
+.kx-copilot-textarea::-webkit-scrollbar{width:4px}
+.kx-copilot-textarea::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px}
+.kx-copilot-send-btn{width:36px;height:36px;border-radius:12px;border:0;background:#00a86b;color:#fff;display:grid;place-items:center;cursor:pointer;flex-shrink:0;margin-bottom:2px;transition:.15s ease}
+.kx-copilot-send-btn:hover:not(:disabled){background:#008b59;transform:scale(1.04)}
 .kx-copilot-send-btn:disabled{opacity:.4;cursor:not-allowed}
 .kx-copilot-input-hint{font-size:10px;color:#859e92;text-align:center}
 
