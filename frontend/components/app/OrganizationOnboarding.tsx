@@ -395,6 +395,7 @@ export function OrganizationOnboarding({
                   className="w-full mt-1.5 p-3 rounded-xl border border-border bg-background text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none"
                 >
                   <option value="retail">🛍️ Commerce, Vente & Distribution (Boutique, Épicerie, Dépôt, Quincaillerie)</option>
+                  <option value="education">🎓 Écoles, Collèges, Lycées, Universités & Formation (Établissement scolaire, Institut)</option>
                   <option value="services">💼 Prestation de Services, Agence & Conseil (Cabinet, Prestataire, Freelance)</option>
                   <option value="hospitality">🍽️ Restauration, Bar, Café & Hôtellerie (Restaurant, Fast-food, Hôtel)</option>
                   <option value="crafts">✂️ Artisanat, BTP & Production (Atelier, Couture, Menuiserie, Imprimerie)</option>

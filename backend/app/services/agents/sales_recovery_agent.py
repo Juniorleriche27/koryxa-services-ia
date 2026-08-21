@@ -40,8 +40,14 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
     ) -> dict[str, Any]:
         msg_lower = user_message.lower()
 
-        # Action: Detect "Enregistre une vente..."
-        if any(w in msg_lower for w in ["enregistre une vente", "ajoute une vente", "enregistrer vente", "nouvelle vente", "vends", "vendu", "vente de"]):
+        # Action: Detect "Enregistre une vente / écolage / scolarité..."
+        sale_triggers = [
+            "enregistre une vente", "ajoute une vente", "enregistrer vente", "nouvelle vente", "vends", "vendu", "vente de",
+            "enregistre l'écolage", "enregistre l'ecolage", "encaisse l'écolage", "encaisse l'ecolage",
+            "paiement scolarité", "paiement écolage", "scolarité de", "écolage de", "tranche de", "inscription de",
+            "encaissement de", "enregistre l'inscription",
+        ]
+        if any(w in msg_lower for w in sale_triggers):
             action_res = await self._try_record_sale(s, org, user, user_message, currency)
             if action_res:
                 return action_res

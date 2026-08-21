@@ -39,8 +39,13 @@ class FinanceAgent(BaseSpecializedAgent):
     ) -> dict[str, Any]:
         msg_lower = user_message.lower()
 
-        # Action: Detect "Enregistre une dépense..."
-        if any(w in msg_lower for w in ["enregistre une dépense", "ajoute une dépense", "enregistrer dépense", "nouvelle dépense", "payé une dépense", "dépense de"]):
+        # Action: Detect "Enregistre une dépense / vacation / charge..."
+        expense_triggers = [
+            "enregistre une dépense", "enregistre la dépense", "ajoute une dépense", "enregistrer dépense",
+            "nouvelle dépense", "payé une dépense", "dépense de", "règlement vacation", "reglement vacation",
+            "vacation de", "salaire de", "achat fourniture", "décaissement de", "decaissement de",
+        ]
+        if any(w in msg_lower for w in expense_triggers):
             action_res = await self._try_record_expense(s, org, user, user_message, currency)
             if action_res:
                 return action_res
