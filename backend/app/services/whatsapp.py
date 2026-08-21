@@ -295,6 +295,8 @@ class WhatsAppService:
                     )
                 )
             if not org_obj:
+                org_obj = await s.scalar(select(Organization).where(Organization.name == "KORYXA"))
+            if not org_obj:
                 org_obj = await s.scalar(select(Organization).limit(1))
             if not org_obj:
                 raise ApplicationError("whatsapp_tenant_not_found", "Organisation introuvable", 404)
