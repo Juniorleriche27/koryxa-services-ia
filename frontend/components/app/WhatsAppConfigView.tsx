@@ -327,19 +327,34 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                 )}
               </div>
 
-              <div className="space-y-2.5 max-w-md text-left">
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-xs">
-                  <strong className="font-bold block mb-1">ℹ️ Pourquoi le scan de code QR nécessite le pont actif :</strong>
-                  WhatsApp sur smartphone (*Appareils connectés*) n&apos;accepte que les flux de session WebSocket WhatsApp Web en direct. Pour une intégration d&apos;entreprise permanente et stable 24h/24 sans dépendre de la batterie d&apos;un smartphone, nous recommandons l&apos;onglet <strong>Meta Cloud API</strong>.
+              <div className="space-y-3 max-w-md text-left">
+                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 size={16} />
+                    <span>Passerelle OpenClaw opérationnelle sur le serveur</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Le moteur Baileys est prêt. Vous pouvez synchroniser votre session WhatsApp Web directement via la console OpenClaw sécurisée de votre serveur.
+                  </p>
+                  <a
+                    href="https://openclaw.koryxa.fr"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition"
+                  >
+                    <span>Ouvrir la passerelle OpenClaw</span>
+                    <ExternalLink size={13} />
+                  </a>
                 </div>
 
                 <strong className="text-sm text-foreground block pt-1">
-                  Procédure de liaison :
+                  Instructions pour connecter votre WhatsApp :
                 </strong>
                 <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal pl-4">
-                  <li>Pour un numéro officiel d&apos;entreprise : Utilisez l&apos;onglet <strong>Meta Cloud API</strong> ci-dessus.</li>
-                  <li>Pour tester immédiatement les commandes et l&apos;IA de vente : Utilisez le <strong>Simulateur en direct</strong> à droite.</li>
-                  <li>Pour lier un téléphone personnel : Assurez-vous que le démon de pont OpenClaw local est démarré.</li>
+                  <li>Ouvrez la console <strong>OpenClaw</strong> ou votre workflow <strong>n8n</strong>.</li>
+                  <li>Allez dans WhatsApp sur votre smartphone &gt; <strong>Appareils connectés &gt; Connecter un appareil</strong>.</li>
+                  <li>Scannez le QR Code en direct pour lier votre numéro.</li>
+                  <li>Les messages et vocaux reçus seront automatiquement enregistrés dans KORYXA !</li>
                 </ol>
               </div>
 
