@@ -27,9 +27,13 @@ class OrganizationOnboarding(BaseModel):
     country: str | None = Field(default=None, max_length=120)
     responsible_name: str = Field(min_length=2, max_length=180)
     responsible_role: str | None = Field(default=None, max_length=120)
-    primary_goal: str = Field(
-        pattern=r"^(sales|offers|procedures|imports|documents|discover)$"
-    )
+    primary_goal: str = Field(default="sales", max_length=50)
+    initial_cash_balance: float | None = Field(default=None, description="Solde initial de caisse")
+    historical_turnover: float | None = Field(default=None, description="Chiffre d'affaires historique cumulé")
+    historical_receivables: float | None = Field(default=None, description="Créances clients antérieures en attente")
+    currency: str = Field(default="XOF", max_length=10)
+    whatsapp_number: str | None = Field(default=None, max_length=30)
+    city_address: str | None = Field(default=None, max_length=200)
     latitude: float | None = None
     longitude: float | None = None
     geofence_radius_meters: int = Field(default=50, ge=10, le=5000)

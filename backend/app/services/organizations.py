@@ -87,13 +87,14 @@ class OrganizationService:
         organization: Organization,
         data: OrganizationOnboarding,
     ) -> Organization:
+        from app.models.registers import DocumentType, PaymentStatus, RecordSource, RecordStatus, Sale
+
         organization.name = data.name.strip()
         if data.business_category:
             organization.business_category = data.business_category.strip()
         organization.sector = data.sector.strip() if data.sector else None
         organization.country = data.country.strip() if data.country else None
         organization.responsible_name = data.responsible_name.strip()
-        organization.responsible_role = data.responsible_role.strip() if data.responsible_role else None
         organization.primary_goal = data.primary_goal
         if data.latitude is not None:
             organization.latitude = data.latitude
@@ -102,6 +103,55 @@ class OrganizationService:
         if data.geofence_radius_meters is not None:
             organization.geofence_radius_meters = data.geofence_radius_meters
         organization.onboarding_completed_at = datetime.now(UTC)
+
+        # Enregistrement du Solde Initial de Caisse (si renseigné)
+        if data.initial_cash_balance and data.initial_cash_balance > 0:
+            initial_sale = Sale(
+                organization_id=organization.id,
+                reference=f"INIT-CAISSE-{uuid4().hex[:6].upper()}",
+                sale_date=date.today(),
+                document_type=DocumentType.RECEIPT,
+                client_name="Solde Initial / Fond de Caisse",
+                item_label="Report à Nouveau · Solde Initial de Caisse",
+                quantity=Decimal("1.00"),
+                unit_price=Decimal(str(data.initial_cash_balance)),
+                total_amount=Decimal(str(data.initial_cash_balance)),
+                paid_amount=Decimal(str(data.initial_cash_balance)),
+                currency=data.currency or "XOF",
+                payment_method="Espèces",
+                payment_status=PaymentStatus.PAID,
+                status=RecordStatus.VALIDATED,
+                source=RecordSource.MANUAL,
+                comment="Configuration initiale du solde de caisse lors de l'onboarding",
+                created_by_user_id=organization.created_by_user_id,
+                updated_by_user_id=organization.created_by_user_id,
+            )
+            session.add(initial_sale)
+
+        # Enregistrement des Créances Antérieures (si renseigné)
+        if data.historical_receivables and data.historical_receivables > 0:
+            rec_sale = Sale(
+                organization_id=organization.id,
+                reference=f"INIT-CREANCE-{uuid4().hex[:6].upper()}",
+                sale_date=date.today(),
+                document_type=DocumentType.INVOICE,
+                client_name="Créances Clients Antérieures",
+                item_label="Report des Factures & Créances en Attente",
+                quantity=Decimal("1.00"),
+                unit_price=Decimal(str(data.historical_receivables)),
+                total_amount=Decimal(str(data.historical_receivables)),
+                paid_amount=Decimal("0.00"),
+                currency=data.currency or "XOF",
+                payment_method="À terme",
+                payment_status=PaymentStatus.UNPAID,
+                status=RecordStatus.VALIDATED,
+                source=RecordSource.MANUAL,
+                comment="Créances antérieures reportées lors de l'onboarding",
+                created_by_user_id=organization.created_by_user_id,
+                updated_by_user_id=organization.created_by_user_id,
+            )
+            session.add(rec_sale)
+
         await session.commit()
         await session.refresh(organization)
         return organization

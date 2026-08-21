@@ -12,6 +12,10 @@ import {
   ShieldCheck,
   Layers,
   Wallet,
+  CheckCircle2,
+  Coins,
+  History,
+  Sparkles,
 } from "lucide-react";
 import { compressOrganizationLogo } from "@/lib/images/compressOrganizationLogo";
 import { serviceIaFetch } from "@/lib/service-ia/api";
@@ -44,10 +48,30 @@ const COUNTRIES_AND_CURRENCIES = [
 ];
 
 const GOALS = [
-  { value: "sales", label: "Enregistrer mes ventes & caisse", detail: "Encaissements, factures et créances clients", icon: ShoppingBag },
-  { value: "depenses", label: "Suivre mes achats & dépenses", detail: "Contrôler les sorties d'argent et fournisseurs", icon: Wallet },
-  { value: "offers", label: "Organiser mes produits & stocks", detail: "Catalogue d'articles, prix et alertes de stock", icon: Layers },
-  { value: "discover", label: "Accéder au Cockpit Décisionnel", detail: "Vue d'ensemble et score Radar dirigeant", icon: ShieldCheck },
+  {
+    value: "sales",
+    label: "Enregistrer mes ventes & caisse",
+    detail: "Encaissements, factures et créances clients",
+    icon: ShoppingBag,
+  },
+  {
+    value: "depenses",
+    label: "Suivre mes achats & dépenses",
+    detail: "Contrôler les sorties d'argent et fournisseurs",
+    icon: Wallet,
+  },
+  {
+    value: "offers",
+    label: "Organiser mes produits & stocks",
+    detail: "Catalogue d'articles, prix et alertes de stock",
+    icon: Layers,
+  },
+  {
+    value: "discover",
+    label: "Accéder au Cockpit Décisionnel",
+    detail: "Vue d'ensemble et score Radar dirigeant",
+    icon: ShieldCheck,
+  },
 ];
 
 const DESTINATIONS: Record<string, string> = {
@@ -76,10 +100,13 @@ export function OrganizationOnboarding({
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState("");
 
-  // Step 2: Métier & Devise
+  // Step 2: Métier, Devise & Historique Financier
   const [businessCategory, setBusinessCategory] = useState<string>(organization.business_category || "retail");
   const [country, setCountry] = useState(organization.country || "Togo");
   const [primaryCurrency, setPrimaryCurrency] = useState("XOF");
+  const [isExistingBusiness, setIsExistingBusiness] = useState(false);
+  const [initialCashBalance, setInitialCashBalance] = useState("");
+  const [historicalReceivables, setHistoricalReceivables] = useState("");
 
   // Step 3: WhatsApp, Adresse & Caisse
   const [whatsappNumber, setWhatsappNumber] = useState("");
@@ -115,11 +142,18 @@ export function OrganizationOnboarding({
 
     try {
       if (logo) {
-        const optimized = await compressOrganizationLogo(logo);
-        const form = new FormData();
-        form.set("file", optimized);
-        await serviceIaFetch("/organizations/current/logo", { method: "POST", body: form });
+        try {
+          const optimized = await compressOrganizationLogo(logo);
+          const form = new FormData();
+          form.set("file", optimized);
+          await serviceIaFetch("/organizations/current/logo", { method: "POST", body: form });
+        } catch {
+          // Non-blocking logo error
+        }
       }
+
+      const rawCash = parseFloat(initialCashBalance.replace(/\s/g, "").replace(",", ".")) || null;
+      const rawReceivables = parseFloat(historicalReceivables.replace(/\s/g, "").replace(",", ".")) || null;
 
       const updated = await serviceIaFetch<OnboardingOrganization>("/organizations/current/onboarding", {
         method: "POST",
@@ -131,14 +165,21 @@ export function OrganizationOnboarding({
           responsible_name: responsibleName.trim() || "Dirigeant",
           responsible_role: responsibleRole.trim() || "Gérant",
           primary_goal: goal,
+          currency: primaryCurrency,
+          initial_cash_balance: isExistingBusiness ? rawCash : null,
+          historical_receivables: isExistingBusiness ? rawReceivables : null,
+          whatsapp_number: whatsappNumber.trim() || null,
+          city_address: cityAddress.trim() || null,
         }),
       });
 
       onComplete(updated);
       window.dispatchEvent(new CustomEvent("koryxa:organization-updated", { detail: updated }));
+      window.dispatchEvent(new CustomEvent("koryxa:record-created"));
       router.push(DESTINATIONS[goal] || "/espace");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "La configuration n'a pas pu être enregistrée.");
+    } catch (cause: any) {
+      const msg = cause?.message || "La configuration n'a pas pu être enregistrée. Veuillez réessayer.";
+      setError(msg);
     } finally {
       setBusy(false);
     }
@@ -182,7 +223,7 @@ export function OrganizationOnboarding({
               {/* Logo Upload Box */}
               <label className="onboarding-logo-input" title="Cliquez pour importer votre logo">
                 {logoPreview ? (
-                  <img src={logoPreview} alt="Aperçu du logo" />
+                  <img src={logoPreview} alt="Aperçu du logo" className="w-full h-full object-cover rounded-xl" />
                 ) : (
                   <>
                     <ImagePlus size={32} />
@@ -236,16 +277,16 @@ export function OrganizationOnboarding({
           </div>
         )}
 
-        {/* STEP 2: Métier, Pays & Devise */}
+        {/* STEP 2: Métier, Pays, Devise & Historique Financier */}
         {step === 2 && (
           <div className="onboarding-body">
             <span className="onboarding-icon">
               <Globe2 size={26} />
             </span>
-            <p className="app-eyebrow">Étape 2 · Activité & Monnaie</p>
-            <h1 id="onboarding-title">Votre secteur et votre devise</h1>
+            <p className="app-eyebrow">Étape 2 · Activité, Devise & Situation Financière</p>
+            <h1 id="onboarding-title">Votre secteur et vos chiffres de départ</h1>
             <p>
-              L'application adaptera automatiquement le vocabulaire, les registres de caisse et les calculs de TVA.
+              Précisez votre monnaie et renseignez votre réalité passée si votre entreprise est déjà en activité.
             </p>
 
             <div className="onboarding-form-grid">
@@ -286,8 +327,8 @@ export function OrganizationOnboarding({
                   onChange={(e) => setPrimaryCurrency(e.target.value)}
                   className="w-full mt-1.5 p-3 rounded-xl border border-border bg-background text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none"
                 >
-                  <option value="XOF">XOF - Franc CFA (UEMOA · Togo, Côte d'Ivoire, Bénin, Sénégal...)</option>
-                  <option value="XAF">XAF - Franc CFA (CEMAC · Cameroun, Gabon, Congo...)</option>
+                  <option value="XOF">XOF - Franc CFA (Togo, Côte d'Ivoire, Bénin, Sénégal...)</option>
+                  <option value="XAF">XAF - Franc CFA (Cameroun, Gabon, Congo...)</option>
                   <option value="GNF">GNF - Franc Guinéen (Guinée)</option>
                   <option value="CDF">CDF - Franc Congolais (RDC)</option>
                   <option value="EUR">EUR - Euro (€ · France, Europe)</option>
@@ -295,10 +336,65 @@ export function OrganizationOnboarding({
                 </select>
               </label>
             </div>
+
+            {/* Existing Business vs New Business Box */}
+            <div className="mt-4 p-3.5 rounded-2xl bg-card border border-border text-left">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <History size={18} className="text-primary" />
+                  <span className="text-xs font-bold text-foreground">
+                    Avez-vous déjà un historique d'activité ou un fond de caisse existant ?
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsExistingBusiness(!isExistingBusiness)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
+                    isExistingBusiness
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {isExistingBusiness ? "Oui, entreprise existante" : "Non, nouvelle entreprise (0)"}
+                </button>
+              </div>
+
+              {isExistingBusiness && (
+                <div className="mt-3 pt-3 border-t border-border/60 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="block text-xs font-semibold">
+                    Solde initial disponible en caisse ({primaryCurrency})
+                    <input
+                      type="text"
+                      value={initialCashBalance}
+                      onChange={(e) => setInitialCashBalance(e.target.value)}
+                      placeholder="Ex. 150 000"
+                      className="w-full mt-1 p-2.5 rounded-xl border border-border bg-background text-sm font-bold"
+                    />
+                    <small className="text-muted-foreground text-[10px]">
+                      Montant réellement présent dans votre tiroir-caisse
+                    </small>
+                  </label>
+
+                  <label className="block text-xs font-semibold">
+                    Créances clients antérieures ({primaryCurrency})
+                    <input
+                      type="text"
+                      value={historicalReceivables}
+                      onChange={(e) => setHistoricalReceivables(e.target.value)}
+                      placeholder="Ex. 50 000"
+                      className="w-full mt-1 p-2.5 rounded-xl border border-border bg-background text-sm font-bold"
+                    />
+                    <small className="text-muted-foreground text-[10px]">
+                      Total des factures impayées en attente d'encaissement
+                    </small>
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* STEP 3: WhatsApp, Adresse & Caisse Initiale */}
+        {/* STEP 3: WhatsApp, Adresse & Choix du Module de Départ */}
         {step === 3 && (
           <div className="onboarding-body">
             <span className="onboarding-icon">
@@ -318,7 +414,7 @@ export function OrganizationOnboarding({
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.target.value)}
                     placeholder="Ex. +228 90 00 00 00"
-                    maxLength={20}
+                    maxLength={25}
                   />
                   <small className="text-muted-foreground text-[11px]">
                     Utilisé pour la dictée vocale et l'envoi des reçus clients
@@ -338,39 +434,45 @@ export function OrganizationOnboarding({
 
               <div className="pt-2">
                 <label className="block text-xs font-bold text-foreground mb-2">
-                  Par quel module souhaitez-vous démarrer aujourd'hui ?
+                  Par quel module souhaitez-vous démarrer aujourd'hui ? *
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {GOALS.map((item) => {
                     const Icon = item.icon;
+                    const isSelected = goal === item.value;
                     return (
                       <button
                         key={item.value}
                         type="button"
-                        className={`p-3 rounded-xl border text-left flex items-start gap-3 transition cursor-pointer ${
-                          goal === item.value
-                            ? "bg-primary/10 border-primary shadow-xs"
-                            : "bg-card border-border hover:border-primary/50"
+                        className={`p-3.5 rounded-2xl border-2 text-left flex items-start gap-3 transition-all cursor-pointer relative ${
+                          isSelected
+                            ? "bg-emerald-500/10 border-emerald-600 shadow-sm ring-1 ring-emerald-500"
+                            : "bg-card border-border hover:border-emerald-500/40 hover:bg-muted/30"
                         }`}
                         onClick={() => setGoal(item.value)}
                       >
                         <div
-                          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                            goal === item.value
-                              ? "bg-primary text-primary-foreground"
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                            isSelected
+                              ? "bg-emerald-600 text-white shadow-xs"
                               : "bg-muted text-muted-foreground"
                           }`}
                         >
-                          <Icon size={18} />
+                          <Icon size={20} />
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 pr-6">
                           <strong className="block text-xs font-bold text-foreground">
                             {item.label}
                           </strong>
-                          <small className="text-[11px] text-muted-foreground leading-tight block">
+                          <small className="text-[11px] text-muted-foreground leading-tight block mt-0.5">
                             {item.detail}
                           </small>
                         </div>
+                        {isSelected && (
+                          <div className="absolute top-3 right-3 text-emerald-600">
+                            <CheckCircle2 size={18} />
+                          </div>
+                        )}
                       </button>
                     );
                   })}
@@ -381,7 +483,11 @@ export function OrganizationOnboarding({
         )}
 
         {/* Error Notification */}
-        {error && <p className="onboarding-error">{error}</p>}
+        {error && (
+          <div className="mx-6 mt-3 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-bold text-center">
+            {error}
+          </div>
+        )}
 
         {/* Footer Actions */}
         <footer className="onboarding-actions">
@@ -430,3 +536,4 @@ export function OrganizationOnboarding({
     </div>
   );
 }
+

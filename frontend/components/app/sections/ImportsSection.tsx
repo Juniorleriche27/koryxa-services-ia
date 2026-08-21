@@ -127,8 +127,9 @@ export function ImportsSection() {
         body: JSON.stringify({ column_mapping: customMapping }),
       });
       setSuccessMessage(
-        `Import de ${preview.row_count} lignes effectué avec succès dans le registre.`
+        `✅ Importation réussie : ${preview.row_count} ligne(s) ont été intégrées et comptabilisées avec succès dans votre registre.`
       );
+      window.dispatchEvent(new CustomEvent("koryxa:record-created"));
       setPreview(null);
       setFile(null);
     } catch (e) {
