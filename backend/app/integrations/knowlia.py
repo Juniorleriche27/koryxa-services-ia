@@ -109,19 +109,35 @@ class KnowliaClient:
         name: str,
         description: str = "Copilote opérationnel KORYXA Service IA",
         objective: str = "Assister le dirigeant et les équipes dans le pilotage opérationnel, les ventes, les stocks et les relances.",
-        business_profile: str = "Service IA KORYXA - Gestion et Pilotage Opérationnel",
+        business_profile: dict[str, Any] | str | None = None,
     ) -> dict[str, object]:
-        return await self._request(
-            "POST",
-            "/v1/assistants",
-            identity,
-            json={
-                "name": name,
-                "description": description,
-                "objective": objective,
-                "business_profile": business_profile,
+        if isinstance(business_profile, dict):
+            bp = business_profile
+        else:
+            bp = {
+                "business_name": name[:160] if name else "KORYXA Organisation",
+                "industry": "Pilotage & Opérations",
+                "description": description[:1200] if description else "Copilote opérationnel",
+                "target_customers": [],
+                "offers": [],
+            }
+
+        payload: dict[str, Any] = {
+            "name": name[:120],
+            "objective": objective[:600],
+            "business_profile": bp,
+            "config": {
+                "tone": "professional",
+                "capabilities": ["chat", "document_qa", "summary"],
+                "limits": {
+                    "max_response_tokens": 1200,
+                    "max_context_chunks": 6,
+                    "allow_external_actions": True,
+                    "allow_human_handoff": True,
+                },
             },
-        )
+        }
+        return await self._request("POST", "/v1/assistants", identity, json=payload)
 
     async def chat(
         self, identity: KoryxaIdentity, assistant_id: str, message: str, model: str
