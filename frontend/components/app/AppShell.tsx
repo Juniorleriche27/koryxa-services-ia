@@ -49,6 +49,7 @@ import { AICopilotDrawer } from "./AICopilotDrawer";
 import { InteractiveSpotlightTour } from "./InteractiveSpotlightTour";
 import { QuickHelpModal } from "./QuickHelpModal";
 import { PwaInstaller } from "./PwaInstaller";
+import { LanguageSelector } from "./LanguageSelector";
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -206,6 +207,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 
   const [isStandalone, setIsStandalone] = useState(false);
+  const [installDismissed, setInstallDismissed] = useState(false);
+
+  useEffect(() => {
+    setInstallDismissed(window.localStorage.getItem("koryxa:install-sidebar-dismissed") === "true");
+  }, []);
 
   useEffect(() => {
     const checkStandalone = () => {
@@ -388,9 +394,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* PWA Install Trigger in Sidebar (Hidden if already installed/standalone) */}
-        {!isStandalone && (
-          <div className="p-2.5 border-t border-border/60">
+        {/* PWA Install Trigger in Sidebar (Hidden if already installed/standalone or dismissed) */}
+        {!isStandalone && !installDismissed && (
+          <div className="p-2.5 border-t border-border/60 flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => {
@@ -399,13 +405,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               }}
               title={collapsed ? "Installer l'application sur cet appareil" : undefined}
               className={clsx(
-                "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 shadow-2xs",
+                "flex-1 flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 shadow-2xs",
                 collapsed && "justify-center px-1.5"
               )}
             >
               <Download size={15} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
               {!collapsed && <span>Installer l'app</span>}
             </button>
+            {!collapsed && (
+              <button
+                type="button"
+                onClick={() => {
+                  setInstallDismissed(true);
+                  window.localStorage.setItem("koryxa:install-sidebar-dismissed", "true");
+                }}
+                title="Masquer ce raccourci"
+                aria-label="Masquer ce raccourci"
+                className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         )}
       </aside>
@@ -457,6 +477,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <HelpCircle size={15} className="text-emerald-600" />
               <span>Guide</span>
             </button>
+
+            {/* Language Switcher */}
+            <LanguageSelector />
 
             <Link href="/" className="app-public-link hidden lg:inline-flex" title="Retourner sur le site public">
               <ExternalLink size={15} />
