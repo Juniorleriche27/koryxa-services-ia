@@ -59,9 +59,44 @@ class VoiceService:
         )
 
     def _extract_amounts(self, text: str) -> list[Decimal]:
-        # Match patterns like: 150 000, 150000, 15.000, 15,50
+        # Handle word numbers in French (mille, etc.)
+        t = text.lower()
+        word_numbers = {
+            "dix-huit mille": "18000",
+            "dix huit mille": "18000",
+            "quarante-cinq mille": "45000",
+            "quarante cinq mille": "45000",
+            "trente-cinq mille": "35000",
+            "trente cinq mille": "35000",
+            "vingt-cinq mille": "25000",
+            "vingt cinq mille": "25000",
+            "soixante-quinze mille": "75000",
+            "soixante quinze mille": "75000",
+            "cinquante mille": "50000",
+            "trente mille": "30000",
+            "vingt mille": "20000",
+            "quinze mille": "15000",
+            "dix mille": "10000",
+            "cent mille": "100000",
+            "cinq mille": "5000",
+            "deux mille": "2000",
+            "trois mille": "3000",
+            "quatre mille": "4000",
+            "six mille": "6000",
+            "sept mille": "7000",
+            "huit mille": "8000",
+            "neuf mille": "9000",
+            "un million": "1000000",
+            "deux millions": "2000000",
+        }
+        for w, num_str in word_numbers.items():
+            t = re.sub(rf"\b{w}\b", num_str, t)
+
+        # Handle (\d+)\s*(?:mille|k)\b -> e.g. "18 mille" or "18k" -> "18000"
+        t = re.sub(r"\b(\d+)\s*(?:mille|k)\b", lambda m: str(int(m.group(1)) * 1000), t)
+
         # Clean currency words and extract numbers
-        normalized = re.sub(r"(?i)\b(fcfa|cfa|francs?|f|euros?|€|dollars?|\$)\b", "", text)
+        normalized = re.sub(r"(?i)\b(fcfa|cfa|francs?|f|euros?|€|dollars?|\$)\b", "", t)
         matches = re.findall(r"\b\d+(?:[\s\.]\d{3})*(?:,\d+)?\b|\b\d+(?:,\d+)?\b", normalized)
         results: list[Decimal] = []
         for m in matches:

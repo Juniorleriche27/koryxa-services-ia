@@ -164,10 +164,38 @@ class WhatsAppService:
         self, s: AsyncSession, org_id: str, query: str
     ) -> str:
         """Interroge la base de connaissances et les registres pour formuler une réponse WhatsApp."""
+        from app.models.expense import Expense
+        from app.models.sale import Sale
+        from app.models.offer import Offer
+
         lower = query.lower()
 
-        # Questions sur les ventes du jour / totales
-        if any(w in lower for w in ["combien", "total", "chiffre", "ca", "ventes", "recette"]):
+        # 1. Questions sur le solde de caisse / trésorerie
+        if any(w in lower for w in ["solde", "caisse", "trésorerie", "tresorerie", "disponible", "liquidité", "liquidite"]):
+            total_collected = await s.scalar(
+                select(func.sum(Sale.total_amount)).where(
+                    Sale.organization_id == org_id,
+                    Sale.payment_status == PaymentStatus.PAID,
+                    Sale.is_archived.is_(False),
+                )
+            ) or Decimal("0")
+            total_expenses = await s.scalar(
+                select(func.sum(Expense.amount)).where(
+                    Expense.organization_id == org_id,
+                    Expense.is_archived.is_(False),
+                )
+            ) or Decimal("0")
+            solde = total_collected - total_expenses
+            return (
+                f"🏦 *Diagnostic Trésorerie & Caisse KORYXA*\n\n"
+                f"• 💰 Total Encaissé Réel : {float(total_collected):,.0f} XOF\n"
+                f"• 📤 Total Charges Payées : {float(total_expenses):,.0f} XOF\n"
+                f"• 🏦 Solde Réel Disponible : *{float(solde):,.0f} XOF*\n\n"
+                f"💡 _Votre trésorerie est saine et à jour._"
+            )
+
+        # 2. Questions sur les ventes du jour / totales
+        if any(w in lower for w in ["combien", "total", "chiffre", "ca", "ventes", "recette", "bilan"]):
             total_sales = await s.scalar(
                 select(func.count(Sale.id)).where(
                     Sale.organization_id == org_id, Sale.is_archived.is_(False)
@@ -179,11 +207,11 @@ class WhatsAppService:
                     Sale.payment_status == PaymentStatus.PAID,
                     Sale.is_archived.is_(False),
                 )
-            ) or 0
+            ) or Decimal("0")
             return (
                 f"📊 *Point d'activité KORYXA*\n\n"
                 f"• Nombre total de ventes enregistrées : {total_sales}\n"
-                f"• Encaissements confirmés : {total_amount:,.0f} FCFA\n\n"
+                f"• Encaissements confirmés : {float(total_amount):,.0f} XOF\n\n"
                 f"Pour déclarer une nouvelle vente, envoyez simplement : 'Vente [produit] [montant] client [nom]'"
             )
 
