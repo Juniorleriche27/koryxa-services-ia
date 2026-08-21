@@ -344,6 +344,30 @@ class WhatsAppService:
                 f"• Client : {client_name}\n"
                 f"• Source : WhatsApp Gateway"
             )
+        elif parsed.expense:
+            created = await self.voice_service.confirm_record(
+                s,
+                org_id,
+                f"whatsapp:{from_phone}",
+                VoiceConfirmRequest(
+                    intent=parsed.intent,
+                    payload=parsed.expense.model_dump(),
+                    source=RecordSource.INTEGRATION,
+                ),
+            )
+            ref = created.get("reference") or "Enregistrée"
+            amount = created.get("amount") or ""
+            currency = created.get("currency") or "XOF"
+            category = created.get("category") or "Charges d'exploitation"
+            desc = created.get("description") or "Dépense"
+            reply_text = (
+                f"📤 *Dépense enregistrée avec succès !*\n\n"
+                f"• Réf : {ref}\n"
+                f"• Montant : {amount} {currency}\n"
+                f"• Catégorie : {category}\n"
+                f"• Détail : {desc}\n"
+                f"• Rubrique : Frais d'exploitation"
+            )
         else:
             # Traitement d'une question conversationnelle
             reply_text = await self._handle_conversational_query(s, org_id, text)

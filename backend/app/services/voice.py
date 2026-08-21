@@ -10,9 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApplicationError
 from app.models.registers import PaymentStatus, RecordSource
-from app.schemas.registers import OfferCreate, ProcedureCreate, SaleCreate, StepInput
+from app.schemas.registers import ExpenseCreate, OfferCreate, ProcedureCreate, SaleCreate, StepInput
 from app.schemas.voice import (
     VoiceConfirmRequest,
+    VoiceExpenseCandidate,
     VoiceIntent,
     VoiceOfferCandidate,
     VoiceParseRequest,
@@ -33,7 +34,9 @@ class VoiceService:
 
         # Determine Intent
         intent = VoiceIntent.UNKNOWN
-        if any(w in lower for w in ["vente", "vendu", "encaissé", "facturé", "achat client", "vends"]):
+        if any(w in lower for w in ["dépense", "depense", "achat carburant", "achat fournitures", "charge", "frais", "décaissement", "decaissement", "payé fournisseur", "achat matériel", "loyer", "électricité", "facture fournisseur", "carburant"]):
+            intent = VoiceIntent.EXPENSE
+        elif any(w in lower for w in ["vente", "vendu", "encaissé", "facturé", "achat client", "vends"]):
             intent = VoiceIntent.SALE
         elif any(w in lower for w in ["procédure", "processus", "méthode", "étapes", "consigne", "protocole"]):
             intent = VoiceIntent.PROCEDURE
@@ -46,6 +49,8 @@ class VoiceService:
 
         if intent == VoiceIntent.SALE:
             return self._parse_sale(text)
+        elif intent == VoiceIntent.EXPENSE:
+            return self._parse_expense(text)
         elif intent == VoiceIntent.PROCEDURE:
             return self._parse_procedure(text)
         elif intent == VoiceIntent.OFFER:
@@ -55,7 +60,7 @@ class VoiceService:
             intent=VoiceIntent.UNKNOWN,
             confidence=0.2,
             original_transcript=text,
-            summary_message="Impossible de déterminer précisément s'il s'agit d'une vente, d'une offre ou d'une procédure.",
+            summary_message="Impossible de déterminer précisément s'il s'agit d'une vente, d'une dépense, d'une offre ou d'une procédure.",
         )
 
     def _extract_amounts(self, text: str) -> list[Decimal]:
@@ -470,6 +475,19 @@ class VoiceService:
                 "client_name": created_first["client_name"],
                 "item_label": created_first["item_label"],
             }
+        elif req.intent == VoiceIntent.EXPENSE:
+            payload = req.payload[0] if isinstance(req.payload, list) else req.payload
+            data = ExpenseCreate(**payload, source=req.source)
+            created = await self.register_service.create_expense(s, org, user, data)
+            return {
+                "type": "expense",
+                "id": created.id,
+                "reference": created.reference,
+                "amount": str(created.amount),
+                "currency": created.currency,
+                "category": created.category,
+                "description": created.description,
+            }
         elif req.intent == VoiceIntent.OFFER:
             data = OfferCreate(**req.payload, source=req.source)
             created = await self.register_service.create_offer(s, org, user, data)
@@ -483,6 +501,64 @@ class VoiceService:
             return {"type": "procedure", "id": created.id, "title": created.title}
         else:
             raise ApplicationError("invalid_intent", "Type de registre non supporté", 400)
+
+    def _parse_expense(self, text: str) -> VoiceParseResponse:
+        amounts = self._extract_amounts(text)
+        currency = self._extract_currency(text, "XOF")
+        payment_method, payment_status = self._extract_payment_method(text)
+        if payment_status == PaymentStatus.UNPAID and payment_method:
+            payment_status = PaymentStatus.PAID
+
+        # Category detection
+        lower = text.lower()
+        category = "Charges d'exploitation"
+        if any(w in lower for w in ["carburant", "essence", "gasoil", "déplacement", "deplacement", "transport", "taxi"]):
+            category = "Carburant & Déplacements"
+        elif any(w in lower for w in ["fournitures", "bureau", "papier", "rame", "stylos", "encre"]):
+            category = "Fournitures & Petit Matériel"
+        elif any(w in lower for w in ["loyer", "bail", "local"]):
+            category = "Loyer & Charges Locatives"
+        elif any(w in lower for w in ["électricité", "electricite", "eau", "cie", "sodeci", "internet", "connexion"]):
+            category = "Fluides & Télécoms"
+        elif any(w in lower for w in ["salaire", "prime", "avance sur salaire", "paie"]):
+            category = "Rémunérations & Salaires"
+        elif any(w in lower for w in ["maintenance", "réparation", "reparation", "entretien"]):
+            category = "Entretien & Réparations"
+
+        amount = amounts[0] if amounts else Decimal("0.00")
+        today = date.today()
+        ref = f"DEP-{today.strftime('%Y%m%d')}-{uuid4().hex[:4].upper()}"
+
+        # Clean description
+        clean_desc = re.sub(r"(?i)^(?:dépense|depense|dépenses|depenses|achat|frais|décaissement|paiement)\s+(?:de\s+)?", "", text.strip())
+        clean_desc = clean_desc[0].upper() + clean_desc[1:] if clean_desc else "Dépense d'exploitation"
+
+        candidate = VoiceExpenseCandidate(
+            reference=ref,
+            expense_date=today,
+            beneficiary=clean_desc if clean_desc else "Fournisseur / Frais d'exploitation",
+            category=category,
+            amount=amount,
+            currency=currency,
+            payment_method=payment_method or "Espèces",
+            payment_status=PaymentStatus.PAID,
+            comment="Enregistré par passerelle vocale / WhatsApp",
+        )
+
+        return VoiceParseResponse(
+            intent=VoiceIntent.EXPENSE,
+            confidence=0.95 if amount > 0 else 0.6,
+            original_transcript=text,
+            expense=candidate,
+            expenses=[candidate],
+            extracted_entities={
+                "amount": str(amount),
+                "category": category,
+                "currency": currency,
+                "payment_method": payment_method or "Espèces",
+            },
+            summary_message=f"Dépense de {amount:,.0f} {currency} pour {category} détectée.",
+        )
 
     async def transcribe_audio(
         self,

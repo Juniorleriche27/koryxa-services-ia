@@ -12,6 +12,7 @@ from app.models.registers import PaymentStatus, RecordSource
 
 class VoiceIntent(StrEnum):
     SALE = "sale"
+    EXPENSE = "expense"
     OFFER = "offer"
     PROCEDURE = "procedure"
     UNKNOWN = "unknown"
@@ -39,6 +40,18 @@ class VoiceSaleCandidate(BaseModel):
     comment: str | None = None
 
 
+class VoiceExpenseCandidate(BaseModel):
+    reference: str
+    expense_date: date
+    beneficiary: str
+    category: str = "Charges d'exploitation"
+    amount: Decimal = Decimal("0")
+    currency: str = "XOF"
+    payment_method: str | None = None
+    payment_status: PaymentStatus = PaymentStatus.PAID
+    comment: str | None = None
+
+
 class VoiceOfferCandidate(BaseModel):
     name: str
     category: str | None = None
@@ -61,6 +74,8 @@ class VoiceParseResponse(BaseModel):
     original_transcript: str
     sale: VoiceSaleCandidate | None = None
     sales: list[VoiceSaleCandidate] = Field(default_factory=list)
+    expense: VoiceExpenseCandidate | None = None
+    expenses: list[VoiceExpenseCandidate] = Field(default_factory=list)
     offer: VoiceOfferCandidate | None = None
     procedure: VoiceProcedureCandidate | None = None
     extracted_entities: dict[str, Any] = Field(default_factory=dict)
