@@ -49,7 +49,7 @@ async def complete_current_organization_onboarding(
     data: OrganizationOnboarding,
     session: SessionDep,
     organization: OrganizationDep,
-    _: ManageDep,
+    _: MemberDep,
 ) -> Organization:
     return await OrganizationService().complete_onboarding(session, organization, data)
 
@@ -58,7 +58,7 @@ async def complete_current_organization_onboarding(
 async def update_current_logo(
     session: SessionDep,
     organization: OrganizationDep,
-    _: ManageDep,
+    _: MemberDep,
     file: UploadFile = File(...),
 ) -> Organization:
     content = await file.read(3 * 1024 * 1024 + 1)
