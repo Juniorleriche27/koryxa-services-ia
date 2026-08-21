@@ -65,3 +65,64 @@ async def update_whatsapp_config(
 async def test_whatsapp_connection(s: SessionDep, o: OrgDep, _: ManageDep):
     """Teste la connexion avec l'API Meta Cloud en utilisant les identifiants de l'organisation."""
     return await service.test_connection(s, o.id)
+
+
+@router.get("/session-qr")
+async def get_whatsapp_session_qr(o: OrgDep):
+    """Récupère le QR Code de session temps réel généré par le bridge Baileys."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(f"http://koryxa-whatsapp-bridge:8097/v1/session/qr?org_id={o.id}")
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.get(f"http://127.0.0.1:8097/v1/session/qr?org_id={o.id}")
+                if resp.status_code == 200:
+                    return resp.json()
+        except Exception:
+            pass
+    return {"status": "disconnected", "qr": None, "phone": None}
+
+
+@router.get("/session-status")
+async def get_whatsapp_session_status(o: OrgDep):
+    """Vérifie le statut de la session WhatsApp Multi-Device."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            resp = await client.get(f"http://koryxa-whatsapp-bridge:8097/v1/session/status?org_id={o.id}")
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        try:
+            async with httpx.AsyncClient(timeout=6.0) as client:
+                resp = await client.get(f"http://127.0.0.1:8097/v1/session/status?org_id={o.id}")
+                if resp.status_code == 200:
+                    return resp.json()
+        except Exception:
+            pass
+    return {"status": "disconnected", "is_connected": False, "phone": None}
+
+
+@router.post("/session-disconnect")
+async def disconnect_whatsapp_session(o: OrgDep, _: ManageDep):
+    """Déconnecte la session WhatsApp active."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            resp = await client.post(f"http://koryxa-whatsapp-bridge:8097/v1/session/disconnect?org_id={o.id}")
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        try:
+            async with httpx.AsyncClient(timeout=6.0) as client:
+                resp = await client.post(f"http://127.0.0.1:8097/v1/session/disconnect?org_id={o.id}")
+                if resp.status_code == 200:
+                    return resp.json()
+        except Exception:
+            pass
+    return {"ok": True, "status": "disconnected"}
+

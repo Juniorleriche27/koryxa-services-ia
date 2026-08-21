@@ -9,7 +9,6 @@ import {
   Sparkles,
   Smartphone,
   ShieldCheck,
-  HelpCircle,
   Plus,
   Trash2,
   KeyRound,
@@ -18,9 +17,9 @@ import {
   CheckCircle2,
   QrCode,
   RefreshCw,
-  Zap,
+  LogOut,
+  Radio,
 } from "lucide-react";
-import QRCode from "qrcode";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { StatusPill } from "./Ui";
 import { useI18n } from "@/lib/i18n";
@@ -47,6 +46,13 @@ interface ConnectionTestResult {
   quality_rating?: string;
 }
 
+interface SessionQrResponse {
+  status: "disconnected" | "scanning" | "connecting" | "connected";
+  qr: string | null;
+  phone: string | null;
+  user_name: string | null;
+}
+
 export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
   const { lang } = useI18n();
   const [activeTab, setActiveTab] = useState<"qrcode" | "meta">("qrcode");
@@ -62,7 +68,13 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
     has_access_token: false,
   });
 
+  // Live Baileys Multi-Device Session State
+  const [sessionStatus, setSessionStatus] = useState<"disconnected" | "scanning" | "connecting" | "connected">("scanning");
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+  const [connectedPhone, setConnectedPhone] = useState<string | null>(null);
+  const [connectedUserName, setConnectedUserName] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+
   const [accessTokenInput, setAccessTokenInput] = useState("");
   const [appSecretInput, setAppSecretInput] = useState("");
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -92,29 +104,58 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
       ? `${window.location.origin}/api/service-ia/integrations/whatsapp/webhook?org_id=${orgSlug}`
       : `https://koryxa.com/api/service-ia/integrations/whatsapp/webhook?org_id=${orgSlug}`;
 
+  // 1. Fetch Config
   useEffect(() => {
     serviceIaFetch<WhatsAppConfigData>("/integrations/whatsapp/config")
       .then((data) => {
         setConfig(data);
       })
       .catch(() => {});
-
-    // Generate Direct WhatsApp Session QR Code
-    const sessionPayload = JSON.stringify({
-      protocol: "koryxa-whatsapp-direct",
-      org: orgSlug,
-      session_id: `wa_sess_${orgSlug || "org"}`,
-      timestamp: Date.now(),
-    });
-
-    QRCode.toDataURL(sessionPayload, {
-      width: 320,
-      margin: 2,
-      color: { dark: "#065f46", light: "#ffffff" },
-    })
-      .then(setQrCodeDataUrl)
-      .catch(() => {});
   }, [orgSlug]);
+
+  // 2. Poll Live Baileys QR Code / Connection Status
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+
+    const pollSession = async () => {
+      try {
+        const res = await serviceIaFetch<SessionQrResponse>("/integrations/whatsapp/session-qr");
+        if (res) {
+          setSessionStatus(res.status);
+          if (res.qr) {
+            setQrCodeDataUrl(res.qr);
+          }
+          if (res.phone) {
+            setConnectedPhone(res.phone);
+          }
+          if (res.user_name) {
+            setConnectedUserName(res.user_name);
+          }
+        }
+      } catch (_) {}
+    };
+
+    void pollSession();
+    timer = setInterval(pollSession, 3000);
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, []);
+
+  const handleDisconnect = async () => {
+    setDisconnecting(true);
+    try {
+      await serviceIaFetch("/integrations/whatsapp/session-disconnect", { method: "POST" });
+      setSessionStatus("disconnected");
+      setConnectedPhone(null);
+      setConnectedUserName(null);
+      setQrCodeDataUrl("");
+    } catch (_) {
+    } finally {
+      setDisconnecting(false);
+    }
+  };
 
   const copyToClipboard = (text: string, isUrl: boolean) => {
     navigator.clipboard.writeText(text);
@@ -256,7 +297,7 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <h2>Passerelle WhatsApp & Mobilité Terrain</h2>
             <StatusPill>
-              Connecteur WhatsApp Opérationnel
+              {sessionStatus === "connected" ? "🟢 WhatsApp Connecté" : "🟡 Prêt pour Appairage"}
             </StatusPill>
           </div>
           <p>
@@ -297,68 +338,119 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
       <div className="kx-wa-grid">
         {/* Left Column: Direct QR Connection or Meta API */}
         {activeTab === "qrcode" ? (
-          /* DIRECT QR CODE SCANNING MODE */
+          /* DIRECT QR CODE SCANNING / CONNECTED STATE */
           <div className="app-panel kx-wa-card">
             <div className="app-panel-head">
               <div>
                 <span className="app-eyebrow">Connexion Sans Code</span>
-                <h3>Liaison WhatsApp par QR Code</h3>
+                <h3>Liaison WhatsApp Multi-Device</h3>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Passerelle Prête
-              </span>
+              {sessionStatus === "connected" ? (
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Connecté
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
+                  <Radio size={12} className="animate-pulse" />
+                  En attente de scan
+                </span>
+              )}
             </div>
 
             <div className="p-6 flex flex-col items-center justify-center text-center space-y-5">
-              {/* QR Code Container */}
-              <div className="p-4 bg-white rounded-2xl shadow-lg border border-border flex flex-col items-center">
-                {qrCodeDataUrl ? (
-                  <img
-                    src={qrCodeDataUrl}
-                    alt="Scan WhatsApp QR Code"
-                    className="w-60 h-60 object-contain rounded-xl"
-                  />
-                ) : (
-                  <div className="w-60 h-60 flex items-center justify-center">
-                    <RefreshCw className="animate-spin text-primary" size={32} />
+              {sessionStatus === "connected" ? (
+                /* CONNECTED STATE VIEW */
+                <div className="w-full max-w-md p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-4 text-center">
+                  <div className="w-16 h-16 rounded-full bg-emerald-600 text-white mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <CheckCircle2 size={32} />
                   </div>
-                )}
-                <span className="text-[11px] font-bold text-muted-foreground mt-2">
-                  Session KORYXA certifiée
-                </span>
-              </div>
+                  <div>
+                    <h4 className="text-base font-bold text-emerald-950 dark:text-emerald-200">
+                      WhatsApp Appairé & Opérationnel
+                    </h4>
+                    <p className="text-xs font-mono font-bold text-emerald-800 dark:text-emerald-300 mt-1">
+                      Numéro lié : {connectedPhone || "Session Active"}
+                    </p>
+                    {connectedUserName && (
+                      <p className="text-xs text-muted-foreground">
+                        Profil : {connectedUserName}
+                      </p>
+                    )}
+                  </div>
 
-              {/* Instructions Pas-à-Pas Claires */}
-              <div className="w-full max-w-lg text-left space-y-3">
-                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs space-y-1">
-                  <div className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-400">
-                    <ShieldCheck size={16} />
-                    <span>Synchronisation Automatique & Chiffrée</span>
-                  </div>
-                  <p className="text-[11.5px] text-muted-foreground leading-relaxed">
-                    Scannez ce QR Code avec votre téléphone pour connecter le numéro WhatsApp de votre entreprise à KORYXA. Aucune configuration technique complexe n'est requise.
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Votre session est active. Vous et vos commerciaux pouvez envoyer des <strong>messages écrits</strong> ou des <strong>notes vocales</strong> à ce numéro pour enregistrer vos ventes et dépenses.
                   </p>
-                </div>
 
-                <strong className="text-sm font-bold text-foreground block pt-1">
-                  Comment connecter votre WhatsApp en 3 étapes :
-                </strong>
-                <ol className="text-xs text-muted-foreground space-y-2 list-decimal pl-4">
-                  <li>
-                    Ouvrez <strong>WhatsApp</strong> sur votre smartphone.
-                  </li>
-                  <li>
-                    Touchez les <strong>trois points en haut à droite (ou Réglages)</strong> ➔ <strong>Appareils connectés</strong> ➔ <strong>Connecter un appareil</strong>.
-                  </li>
-                  <li>
-                    Pointez la caméra de votre smartphone vers le <strong>QR Code ci-dessus</strong>.
-                  </li>
-                  <li>
-                    Dès que le scan est validé, vous pouvez envoyer des messages écrits ou des <strong>notes vocales</strong> pour enregistrer vos ventes !
-                  </li>
-                </ol>
-              </div>
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      disabled={disconnecting}
+                      onClick={handleDisconnect}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-destructive/30 text-destructive bg-destructive/5 hover:bg-destructive/15 transition cursor-pointer"
+                    >
+                      <LogOut size={14} />
+                      <span>{disconnecting ? "Déconnexion en cours…" : "Déconnecter la session WhatsApp"}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* SCANNING / QR CODE VIEW */
+                <>
+                  <div className="p-4 bg-white rounded-2xl shadow-lg border border-border flex flex-col items-center">
+                    {qrCodeDataUrl ? (
+                      <img
+                        src={qrCodeDataUrl}
+                        alt="Scan WhatsApp QR Code"
+                        className="w-64 h-64 object-contain rounded-xl"
+                      />
+                    ) : (
+                      <div className="w-64 h-64 flex flex-col items-center justify-center gap-3">
+                        <RefreshCw className="animate-spin text-emerald-600" size={32} />
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Génération du QR Code en direct…
+                        </span>
+                      </div>
+                    )}
+                    <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-400 mt-2 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Session Baileys temps réel
+                    </span>
+                  </div>
+
+                  {/* Instructions Pas-à-Pas Claires */}
+                  <div className="w-full max-w-lg text-left space-y-3">
+                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs space-y-1">
+                      <div className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-400">
+                        <ShieldCheck size={16} />
+                        <span>Appairage Officiel & Chiffré</span>
+                      </div>
+                      <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+                        Scannez ce QR Code avec votre téléphone pour connecter le numéro WhatsApp de votre entreprise à KORYXA.
+                      </p>
+                    </div>
+
+                    <strong className="text-sm font-bold text-foreground block pt-1">
+                      Comment connecter votre WhatsApp en 3 étapes :
+                    </strong>
+                    <ol className="text-xs text-muted-foreground space-y-2 list-decimal pl-4">
+                      <li>
+                        Ouvrez <strong>WhatsApp</strong> sur votre smartphone.
+                      </li>
+                      <li>
+                        Touchez les <strong>trois points en haut à droite (ou Réglages)</strong> ➔ <strong>Appareils connectés</strong> ➔ <strong>Connecter un appareil</strong>.
+                      </li>
+                      <li>
+                        Pointez la caméra de votre smartphone vers le <strong>QR Code ci-dessus</strong>.
+                      </li>
+                      <li>
+                        Dès le scan validé, vous pouvez envoyer des messages écrits ou des <strong>notes vocales</strong> pour enregistrer vos ventes !
+                      </li>
+                    </ol>
+                  </div>
+                </>
+              )}
 
               {/* Authorized Numbers Manager */}
               <div className="w-full pt-4 border-t border-border/60">
