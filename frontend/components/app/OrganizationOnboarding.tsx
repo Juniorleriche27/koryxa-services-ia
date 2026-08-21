@@ -33,18 +33,115 @@ export type OnboardingOrganization = {
 };
 
 const COUNTRIES_AND_CURRENCIES = [
+  // --- Afrique de l'Ouest & Centrale (UEMOA / CEMAC / CEDEAO) ---
   { country: "Togo", currency: "XOF", flag: "🇹🇬" },
   { country: "Côte d'Ivoire", currency: "XOF", flag: "🇨🇮" },
   { country: "Bénin", currency: "XOF", flag: "🇧🇯" },
   { country: "Sénégal", currency: "XOF", flag: "🇸🇳" },
-  { country: "Cameroun", currency: "XAF", flag: "🇨🇲" },
-  { country: "Guinée", currency: "GNF", flag: "🇬🇳" },
-  { country: "Mali", currency: "XOF", flag: "🇲🇱" },
   { country: "Burkina Faso", currency: "XOF", flag: "🇧🇫" },
+  { country: "Mali", currency: "XOF", flag: "🇲🇱" },
+  { country: "Niger", currency: "XOF", flag: "🇳🇪" },
+  { country: "Guinée-Bissau", currency: "XOF", flag: "🇬🇼" },
+  { country: "Cameroun", currency: "XAF", flag: "🇨🇲" },
   { country: "Gabon", currency: "XAF", flag: "🇬🇦" },
+  { country: "Congo (Brazzaville)", currency: "XAF", flag: "🇨🇬" },
   { country: "Congo (RDC)", currency: "CDF", flag: "🇨🇩" },
-  { country: "France / Europe", currency: "EUR", flag: "🇫🇷" },
-  { country: "États-Unis / International", currency: "USD", flag: "🇺🇸" },
+  { country: "Tchad", currency: "XAF", flag: "🇹🇩" },
+  { country: "Centrafrique", currency: "XAF", flag: "🇨🇫" },
+  { country: "Guinée équatoriale", currency: "XAF", flag: "🇬🇶" },
+  { country: "Guinée (Conakry)", currency: "GNF", flag: "🇬🇳" },
+  { country: "Ghana", currency: "GHS", flag: "🇬🇭" },
+  { country: "Nigeria", currency: "NGN", flag: "🇳🇬" },
+  { country: "Liberia", currency: "LRD", flag: "🇱🇷" },
+  { country: "Sierra Leone", currency: "SLE", flag: "🇸🇱" },
+  { country: "Gambie", currency: "GMD", flag: "🇬🇲" },
+  { country: "Cap-Vert", currency: "CVE", flag: "🇨🇻" },
+  { country: "Mauritanie", currency: "MRU", flag: "🇲🇷" },
+
+  // --- Afrique du Nord ---
+  { country: "Maroc", currency: "MAD", flag: "🇲🇦" },
+  { country: "Algérie", currency: "DZD", flag: "🇩🇿" },
+  { country: "Tunisie", currency: "TND", flag: "🇹🇳" },
+  { country: "Égypte", currency: "EGP", flag: "🇪🇬" },
+  { country: "Libye", currency: "LYD", flag: "🇱🇾" },
+
+  // --- Afrique de l'Est & Australe ---
+  { country: "Afrique du Sud", currency: "ZAR", flag: "🇿🇦" },
+  { country: "Kenya", currency: "KES", flag: "🇰🇪" },
+  { country: "Rwanda", currency: "RWF", flag: "🇷🇼" },
+  { country: "Burundi", currency: "BIF", flag: "🇧🇮" },
+  { country: "Tanzanie", currency: "TZS", flag: "🇹🇿" },
+  { country: "Ouganda", currency: "UGX", flag: "🇺🇬" },
+  { country: "Éthiopie", currency: "ETB", flag: "🇪🇹" },
+  { country: "Madagascar", currency: "MGA", flag: "🇲🇬" },
+  { country: "Maurice", currency: "MUR", flag: "🇲🇺" },
+  { country: "Comores", currency: "KMF", flag: "🇰🇲" },
+  { country: "Seychelles", currency: "SCR", flag: "🇸🇨" },
+  { country: "Djibouti", currency: "DJF", flag: "🇩🇯" },
+  { country: "Angola", currency: "AOA", flag: "🇦🇴" },
+  { country: "Mozambique", currency: "MZN", flag: "🇲🇿" },
+  { country: "Zambie", currency: "ZMW", flag: "🇿🇲" },
+  { country: "Zimbabwe", currency: "USD", flag: "🇿🇼" },
+  { country: "Namibie", currency: "NAD", flag: "🇳🇦" },
+  { country: "Botswana", currency: "BWP", flag: "🇧🇼" },
+
+  // --- Europe ---
+  { country: "France", currency: "EUR", flag: "🇫🇷" },
+  { country: "Belgique", currency: "EUR", flag: "🇧🇪" },
+  { country: "Suisse", currency: "CHF", flag: "🇨🇭" },
+  { country: "Luxembourg", currency: "EUR", flag: "🇱🇺" },
+  { country: "Allemagne", currency: "EUR", flag: "🇩🇪" },
+  { country: "Royaume-Uni", currency: "GBP", flag: "🇬🇧" },
+  { country: "Espagne", currency: "EUR", flag: "🇪🇸" },
+  { country: "Italie", currency: "EUR", flag: "🇮🇹" },
+  { country: "Portugal", currency: "EUR", flag: "🇵🇹" },
+  { country: "Pays-Bas", currency: "EUR", flag: "🇳🇱" },
+  { country: "Irlande", currency: "EUR", flag: "🇮🇪" },
+  { country: "Autriche", currency: "EUR", flag: "🇦🇹" },
+  { country: "Suède", currency: "SEK", flag: "🇸🇪" },
+  { country: "Norvège", currency: "NOK", flag: "🇳🇴" },
+  { country: "Danemark", currency: "DKK", flag: "🇩🇰" },
+  { country: "Finlande", currency: "EUR", flag: "🇫🇮" },
+  { country: "Pologne", currency: "PLN", flag: "🇵🇱" },
+  { country: "Roumanie", currency: "RON", flag: "🇷🇴" },
+  { country: "Grèce", currency: "EUR", flag: "🇬🇷" },
+  { country: "Turquie", currency: "TRY", flag: "🇹🇷" },
+  { country: "Russie", currency: "RUB", flag: "🇷🇺" },
+  { country: "Ukraine", currency: "UAH", flag: "🇺🇦" },
+
+  // --- Amériques ---
+  { country: "États-Unis", currency: "USD", flag: "🇺🇸" },
+  { country: "Canada", currency: "CAD", flag: "🇨🇦" },
+  { country: "Brésil", currency: "BRL", flag: "🇧🇷" },
+  { country: "Haïti", currency: "HTG", flag: "🇭🇹" },
+  { country: "Mexique", currency: "MXN", flag: "🇲🇽" },
+  { country: "Colombie", currency: "COP", flag: "🇨🇴" },
+  { country: "Argentine", currency: "ARS", flag: "🇦🇷" },
+  { country: "Chili", currency: "CLP", flag: "🇨🇱" },
+  { country: "Pérou", currency: "PEN", flag: "🇵🇪" },
+  { country: "Guadeloupe / Martinique (Antilles)", currency: "EUR", flag: "🇬🇵" },
+  { country: "Guyane Française", currency: "EUR", flag: "🇬🇫" },
+  { country: "La Réunion / Mayotte", currency: "EUR", flag: "🇷🇪" },
+
+  // --- Moyen-Orient & Asie ---
+  { country: "Émirats Arabes Unis (Dubaï)", currency: "AED", flag: "🇦🇪" },
+  { country: "Arabie Saoudite", currency: "SAR", flag: "🇸🇦" },
+  { country: "Qatar", currency: "QAR", flag: "🇶🇦" },
+  { country: "Liban", currency: "USD", flag: "🇱🇧" },
+  { country: "Chine", currency: "CNY", flag: "🇨🇳" },
+  { country: "Inde", currency: "INR", flag: "🇮🇳" },
+  { country: "Japon", currency: "JPY", flag: "🇯🇵" },
+  { country: "Corée du Sud", currency: "KRW", flag: "🇰🇷" },
+  { country: "Singapour", currency: "SGD", flag: "🇸🇬" },
+  { country: "Indonésie", currency: "IDR", flag: "🇮🇩" },
+  { country: "Malaisie", currency: "MYR", flag: "🇲🇾" },
+  { country: "Thaïlande", currency: "THB", flag: "🇹🇭" },
+  { country: "Vietnam", currency: "VND", flag: "🇻🇳" },
+
+  // --- Océanie ---
+  { country: "Australie", currency: "AUD", flag: "🇦🇺" },
+  { country: "Nouvelle-Zélande", currency: "NZD", flag: "🇳🇿" },
+  { country: "Autre Pays (International)", currency: "USD", flag: "🌐" },
 ];
 
 const GOALS = [
@@ -327,12 +424,29 @@ export function OrganizationOnboarding({
                   onChange={(e) => setPrimaryCurrency(e.target.value)}
                   className="w-full mt-1.5 p-3 rounded-xl border border-border bg-background text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none"
                 >
-                  <option value="XOF">XOF - Franc CFA (Togo, Côte d'Ivoire, Bénin, Sénégal...)</option>
-                  <option value="XAF">XAF - Franc CFA (Cameroun, Gabon, Congo...)</option>
+                  <option value="XOF">XOF - Franc CFA (UEMOA · Togo, Côte d'Ivoire, Bénin, Sénégal...)</option>
+                  <option value="XAF">XAF - Franc CFA (CEMAC · Cameroun, Gabon, Congo, Tchad...)</option>
                   <option value="GNF">GNF - Franc Guinéen (Guinée)</option>
                   <option value="CDF">CDF - Franc Congolais (RDC)</option>
+                  <option value="NGN">NGN - Naira (Nigeria)</option>
+                  <option value="GHS">GHS - Cedi (Ghana)</option>
+                  <option value="MAD">MAD - Dirham Marocain (Maroc)</option>
+                  <option value="DZD">DZD - Dinar Algérien (Algérie)</option>
+                  <option value="TND">TND - Dinar Tunisien (Tunisie)</option>
+                  <option value="EGP">EGP - Livre Égyptienne (Égypte)</option>
+                  <option value="ZAR">ZAR - Rand Sud-Africain (Afrique du Sud)</option>
+                  <option value="KES">KES - Shilling Kényan (Kenya)</option>
+                  <option value="RWF">RWF - Franc Rwandais (Rwanda)</option>
+                  <option value="MGA">MGA - Ariary Malgache (Madagascar)</option>
                   <option value="EUR">EUR - Euro (€ · France, Europe)</option>
                   <option value="USD">USD - Dollar US ($ · International)</option>
+                  <option value="CAD">CAD - Dollar Canadien (Canada)</option>
+                  <option value="GBP">GBP - Livre Sterling (Royaume-Uni)</option>
+                  <option value="CHF">CHF - Franc Suisse (Suisse)</option>
+                  <option value="AED">AED - Dirham des Émirats (Dubaï)</option>
+                  <option value="CNY">CNY - Yuan Renminbi (Chine)</option>
+                  <option value="BRL">BRL - Real Brésilien (Brésil)</option>
+                  <option value="HTG">HTG - Gourde Haïtienne (Haïti)</option>
                 </select>
               </label>
             </div>
