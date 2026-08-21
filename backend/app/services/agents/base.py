@@ -32,6 +32,7 @@ class BaseSpecializedAgent(ABC):
         context: dict[str, Any],
         org_name: str,
         currency: str,
+        domain: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Traite une demande et retourne la réponse soignée avec actions éventuelles."""
         pass

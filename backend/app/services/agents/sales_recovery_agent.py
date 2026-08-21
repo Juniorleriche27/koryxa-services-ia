@@ -37,8 +37,13 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
         context: dict[str, Any],
         org_name: str,
         currency: str,
+        domain: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         msg_lower = user_message.lower()
+        domain = domain or {}
+        sector_label = domain.get("sector_label", "Commerce & Entreprise")
+        agent_role = domain.get("role_sales", self.role_title)
+        is_education = "scol" in sector_label.lower() or "ecole" in sector_label.lower() or "éduc" in sector_label.lower()
 
         # Action: Detect "Enregistre une vente / écolage / scolarité..."
         sale_triggers = [
@@ -60,58 +65,64 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
         unpaid_sales = context.get("unpaid_sales", [])
 
         llm_prompt = (
-            f"{self.system_prompt}\n\n"
-            f"Entreprise : {org_name}\n"
-            f"Devise : {currency}\n"
+            f"Tu es le {agent_role} spécialisé dans le secteur : {sector_label}.\n"
+            f"Entreprise / Établissement : {org_name}\n"
+            f"Devise de compte : {currency}\n\n"
+            f"Règles et expertise métier sectorielle :\n"
+            f"{domain.get('kpi_rules', '')}\n\n"
             f"Situation commerciale réelle :\n"
-            f"- Nombre de ventes : {total_sales_count}\n"
-            f"- Chiffre d'affaires facturé : {total_sales_amount:,.0f} {currency}\n"
-            f"- Total Encaissé : {total_sales_paid:,.0f} {currency}\n"
-            f"- Créances clients impayées : {total_sales_unpaid:,.0f} {currency}\n"
-            f"- Factures en attente : {unpaid_sales[:5]}\n\n"
-            f"Demande du dirigeant : {user_message}\n\n"
-            f"Consigne : Réponds en responsable commercial expert. Sans aucun ** dans le texte."
+            f"- Nombre d'enregistrements : {total_sales_count}\n"
+            f"- Total facturé / écolages dus : {total_sales_amount:,.0f} {currency}\n"
+            f"- Total Encaissé en caisse : {total_sales_paid:,.0f} {currency}\n"
+            f"- Reste à recouvrer / Impayés : {total_sales_unpaid:,.0f} {currency}\n"
+            f"- Éléments en attente : {unpaid_sales[:5]}\n\n"
+            f"Demande de l'utilisateur : {user_message}\n\n"
+            f"Consigne : Adopte le vocabulaire exact du secteur ({'Écolages, Élèves, Parents, Tranches' if is_education else 'Ventes, Clients, Factures, Devis'}). Donne des conseils concrets et actionnables. Sans aucun markdown brut **."
         )
 
         reply = await self.call_knowlia_llm(s, org, user, llm_prompt)
 
         if not reply:
+            client_word = "l'élève / parent" if is_education else "le client"
+            sale_word = "l'écolage" if is_education else "la facture"
+
             if any(w in msg_lower for w in ["relance", "impayé", "impayes", "créance", "creance", "débiteur", "debiteur", "qui me doit"]):
                 if not unpaid_sales or total_sales_unpaid == 0:
                     reply = (
-                        f"✅ Situation Commerciale Saine pour {org_name} !\n\n"
-                        f"Toutes vos factures sont 100% réglées. Vous n'avez aucune créance client en souffrance."
+                        f"✅ Situation Saine pour {org_name} !\n\n"
+                        f"Tous les règlements sont 100% à jour. Vous n'avez aucun impayé en attente de recouvrement."
                     )
                 else:
                     unpaid_list = "\n".join(
                         [
-                            f"• 👤 {s_item.get('client', 'Client')} (Réf. {s_item.get('ref')}) : {float(s_item.get('amount', 0)):,.0f} {currency} (Date : {s_item.get('date')})"
+                            f"• 👤 {s_item.get('client', 'Débiteur')} (Réf. {s_item.get('ref')}) : {float(s_item.get('amount', 0)):,.0f} {currency} (Date : {s_item.get('date')})"
                             for s_item in unpaid_sales[:5]
                         ]
                     ).replace(",", " ")
 
                     reply = (
-                        f"🚨 Plan de Recouvrement Client Prioritaire ({total_sales_unpaid:,.0f} {currency} en attente) :\n\n"
+                        f"🚨 Plan de Recouvrement Prioritaire ({total_sales_unpaid:,.0f} {currency} en attente) :\n\n"
                         f"{unpaid_list}\n\n"
-                        f"💡 Recommandation du Responsable Commercial :\n"
-                        f"1. Relancez en priorité les clients ayant plus de 7 jours de retard.\n"
-                        f"2. Vous pouvez générer un message de relance WhatsApp en 1 clic directement dans l'onglet Ventes."
+                        f"💡 Recommandations de votre {agent_role} :\n"
+                        f"1. Relancez en priorité {client_word} ayant plus de 7 jours de retard.\n"
+                        f"2. Modèle de relance suggéré :\n"
+                        f"{domain.get('example_relance', '').format(eleve='Paul', tranche='2ème tranche', montant=f'{total_sales_unpaid:,.0f} {currency}', date='lundi prochain', client='Monsieur', ref='FAC-001')}"
                     ).replace(",", " ")
             else:
                 reply = (
-                    f"📈 Synthèse Commerciale pour {org_name} :\n\n"
-                    f"• 🧾 Volume total de transactions : {total_sales_count} vente(s) suivie(s)\n"
+                    f"📈 Synthèse des Opérations pour {org_name} ({sector_label}) :\n\n"
+                    f"• 🧾 Volume total : {total_sales_count} opération(s) enregistrée(s)\n"
                     f"• 📥 Total encaissé : {total_sales_paid:,.0f} {currency}\n"
                     f"• ⏳ Reste à recouvrer : {total_sales_unpaid:,.0f} {currency}\n\n"
-                    f"👉 Pour enregistrer une vente rapidement, vous pouvez me dicter simplement :\n"
-                    f"« Enregistre une vente de 2 articles à 25 000 FCFA pour M. Paul »"
+                    f"👉 Pour enregistrer un encaissement rapidement, dictez-moi simplement :\n"
+                    f"« {'Enregistre le paiement de 45 000 FCFA pour l’élève Kofi en 3ème A' if is_education else 'Enregistre une vente de 25 000 FCFA pour M. Paul'} »"
                 ).replace(",", " ")
 
         return {
             "reply": reply,
-            "agent_name": self.name,
-            "agent_badge": self.badge,
-            "thinking_summary": "Synthèse des performances commerciales et du carnet de commandes...",
+            "agent_name": f"{agent_role} (KORYXA Expert)",
+            "agent_badge": "🎓 Recouvrement Écolages" if is_education else "🤝 Ventes & Recouvrement",
+            "thinking_summary": f"Analyse commerciale adaptée au secteur {sector_label}...",
             "action_executed": None,
             "suggested_actions": [
                 {"title": "Consulter les Ventes", "action_type": "navigate", "payload": {"path": "/espace/ventes"}},

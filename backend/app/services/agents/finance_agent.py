@@ -36,8 +36,13 @@ class FinanceAgent(BaseSpecializedAgent):
         context: dict[str, Any],
         org_name: str,
         currency: str,
+        domain: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         msg_lower = user_message.lower()
+        domain = domain or {}
+        sector_label = domain.get("sector_label", "Commerce & Entreprise")
+        agent_role = domain.get("role_finance", self.role_title)
+        is_education = "scol" in sector_label.lower() or "ecole" in sector_label.lower() or "éduc" in sector_label.lower()
 
         # Action: Detect "Enregistre une dépense / vacation / charge..."
         expense_triggers = [
@@ -65,18 +70,19 @@ class FinanceAgent(BaseSpecializedAgent):
         )
 
         llm_prompt = (
-            f"{self.system_prompt}\n\n"
-            f"Entreprise : {org_name}\n"
-            f"Devise : {currency}\n"
+            f"Tu es le {agent_role} expert pour : {sector_label}.\n"
+            f"Organisation : {org_name}\n"
+            f"Devise : {currency}\n\n"
+            f"Règles financières sectorielles :\n"
+            f"{domain.get('kpi_rules', '')}\n\n"
             f"Données comptables vérifiées :\n"
-            f"- Chiffre d'affaires facturé : {total_sales_amount:,.0f} {currency}\n"
-            f"- Total Encaissé en caisse : {total_sales_paid:,.0f} {currency} ({recouvrement_rate}%)\n"
-            f"- Créances clients en attente : {total_sales_unpaid:,.0f} {currency}\n"
-            f"- Dépenses décaissées : {total_expenses_paid:,.0f} {currency}\n"
-            f"- Solde Net réel de caisse (Encaissé - Dépensé) : {net_cash:,.0f} {currency}\n"
-            f"- Valeur du stock : {total_stock_value:,.0f} {currency}\n\n"
-            f"Demande du dirigeant : {user_message}\n\n"
-            f"Consigne : Réponds en expert financier bienveillant et direct. Sans aucun ** dans le texte."
+            f"- Total facturé / recettes attendues : {total_sales_amount:,.0f} {currency}\n"
+            f"- Total Encaissé en caisse : {total_sales_paid:,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)\n"
+            f"- Sommes en attente d'encaissement : {total_sales_unpaid:,.0f} {currency}\n"
+            f"- Dépenses / Vacations réglées : {total_expenses_paid:,.0f} {currency}\n"
+            f"- Solde Net réel de caisse (Encaissé - Dépensé) : {net_cash:,.0f} {currency}\n\n"
+            f"Demande de l'utilisateur : {user_message}\n\n"
+            f"Consigne : Adopte le ton d'un {agent_role} bienveillant, direct et orienté rentabilité. Sans aucun markdown brut **."
         )
 
         reply = await self.call_knowlia_llm(s, org, user, llm_prompt)
@@ -88,26 +94,25 @@ class FinanceAgent(BaseSpecializedAgent):
                 health_tip = "Votre trésorerie est saine et vous permet de couvrir vos charges opérationnelles sereinement."
             elif net_cash == 0:
                 cash_health = f"Solde à l'Équilibre (0 {currency})"
-                health_tip = "Vos entrées couvrent tout juste vos sorties. Il est prioritaire d'accélérer les encaissements clients."
+                health_tip = "Vos entrées couvrent tout juste vos sorties. Il est prioritaire d'accélérer les encaissements."
             else:
                 cash_health = f"Déficit Temporaire ({net_cash:,.0f} {currency})".replace(",", " ")
-                health_tip = "Attention : vos sorties de fonds dépassent vos encaissements actuels. Récupérez en priorité les créances clients."
+                health_tip = "Attention : vos sorties de fonds dépassent vos encaissements actuels. Récupérez en priorité les créances en attente."
 
             reply = (
-                f"📊 Diagnostic Financier & Trésorerie pour {org_name} :\n\n"
+                f"📊 Diagnostic Financier pour {org_name} ({sector_label}) :\n\n"
                 f"• 🏦 Solde Réel Disponible en Caisse : {net_cash:,.0f} {currency} ({cash_health})\n"
-                f"• 📥 Total Encaissé Réel : {total_sales_paid:,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)\n"
-                f"• 📤 Total Dépenses Payées : {total_expenses_paid:,.0f} {currency}\n"
-                f"• ⏳ Créances Clients en Attente : {total_sales_unpaid:,.0f} {currency}\n"
-                f"• 📦 Valeur Estimée du Stock : {total_stock_value:,.0f} {currency}\n\n"
-                f"💡 Recommandation Stratégique :\n{health_tip}"
+                f"• 📥 Total Encaissé : {total_sales_paid:,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)\n"
+                f"• 📤 Total Charges & Dépenses Payées : {total_expenses_paid:,.0f} {currency}\n"
+                f"• ⏳ Reste à Recouvrer : {total_sales_unpaid:,.0f} {currency}\n\n"
+                f"💡 Recommandation de l'expert :\n{health_tip}"
             ).replace(",", " ")
 
         return {
             "reply": reply,
-            "agent_name": self.name,
-            "agent_badge": self.badge,
-            "thinking_summary": "Analyse rigoureuse de la trésorerie nette, calcul du taux de recouvrement et évaluation du BFR...",
+            "agent_name": f"{agent_role} (KORYXA Expert)",
+            "agent_badge": "🎓 Intendance & Trésorerie" if is_education else "📊 Finance & Trésorerie",
+            "thinking_summary": f"Analyse rigoureuse de la trésorerie et conformité ({sector_label})...",
             "action_executed": None,
             "suggested_actions": [
                 {"title": "Voir la Trésorerie & Dépenses", "action_type": "navigate", "payload": {"path": "/espace/depenses"}},

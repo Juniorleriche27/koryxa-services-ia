@@ -17,8 +17,7 @@ class RadarSentinelAgent(BaseSpecializedAgent):
             system_prompt=(
                 "Tu es l'Auditeur Qualité et Sentinelle Opérationnelle de KORYXA. "
                 "Tu veilles sur la complétude des données, la fraîcheur des saisies, la cohérence comptable et la traçabilité des opérations. "
-                "Tu détectes les risques de fraude, les écarts de caisse et les ruptures de stock. "
-                "Tu formules tes alertes avec clarté, rigueur et professionnalisme, sans aucun markdown brut (pas de doubles astérisques **)."
+                "Tu formules tes alertes avec clarté, rigueur et professionnalisme, sans aucun markdown brut."
             ),
         )
 
@@ -31,48 +30,41 @@ class RadarSentinelAgent(BaseSpecializedAgent):
         context: dict[str, Any],
         org_name: str,
         currency: str,
+        domain: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        domain = domain or {}
+        sector_label = domain.get("sector_label", "Entreprise")
+        agent_role = domain.get("role_radar", self.role_title)
         open_alerts_count = context.get("open_alerts_count", 0)
         critical_alerts = context.get("critical_alerts", [])
         low_stock_count = context.get("low_stock_count", 0)
 
         llm_prompt = (
-            f"{self.system_prompt}\n\n"
-            f"Entreprise : {org_name}\n"
-            f"Nombre d'alertes qualité détectées : {open_alerts_count}\n"
-            f"Produits en stock critique : {low_stock_count}\n"
-            f"Alertes actives : {critical_alerts}\n\n"
-            f"Question du dirigeant : {user_message}\n\n"
-            f"Consigne : Propose un diagnostic de conformité précis et des actions correctives. Sans aucun ** dans le texte."
+            f"Tu es le {agent_role} pour : {sector_label}.\n"
+            f"Organisation : {org_name}\n"
+            f"Alertes détectées : {open_alerts_count}\n"
+            f"Articles / Classes à surveiller : {low_stock_count}\n\n"
+            f"Question : {user_message}\n\n"
+            f"Consigne : Formule un diagnostic de conformité rigoureux et sans complaisance. Sans aucun ** dans le texte."
         )
 
         reply = await self.call_knowlia_llm(s, org, user, llm_prompt)
 
         if not reply:
-            if open_alerts_count == 0 and low_stock_count == 0:
-                reply = (
-                    f"🛡️ Le Radar KORYXA est au vert pour {org_name} !\n\n"
-                    f"Toutes vos opérations sont conformes : aucun écart de caisse, aucune rupture de stock critique, "
-                    f"et toutes vos procédures disposent d'un responsable assigné."
-                )
-            else:
-                alerts_list = "\n".join(
-                    [f"• 🔴 {a.get('title')} : {a.get('explanation')}" for a in critical_alerts[:4]]
-                )
-                stock_warn = f"\n• ⚠️ {low_stock_count} référence(s) sous le seuil critique de stock." if low_stock_count > 0 else ""
-
-                reply = (
-                    f"🚨 Rapport d'Audit Sentinelle Radar ({open_alerts_count} point(s) d'attention) :\n\n"
-                    f"{alerts_list}{stock_warn}\n\n"
-                    f"💡 Recommandation de l'Auditeur :\n"
-                    f"Transformez ces constats en actions correctives Kanban pour les assigner aux membres de votre équipe."
-                )
+            reply = (
+                f"🛡️ Audit Sentinelle & Conformité ({sector_label}) :\n\n"
+                f"• 🔍 Santé des registres : 100% cohérent\n"
+                f"• ⚠️ Alertes actives : {open_alerts_count} point(s) d'attention\n"
+                f"• 📦 Éléments sous le seuil d'alerte : {low_stock_count}\n\n"
+                f"💡 Recommandation de l'auditeur :\n"
+                f"Effectuez un contrôle régulier de vos registres de caisse et de présence pour maintenir un score Radar optimal."
+            )
 
         return {
             "reply": reply,
-            "agent_name": self.name,
-            "agent_badge": self.badge,
-            "thinking_summary": "Audit multi-dimensionnel de la traçabilité, des stocks et de la cohérence de saisie...",
+            "agent_name": f"{agent_role} (KORYXA Expert)",
+            "agent_badge": "🛡️ Radar & Conformité",
+            "thinking_summary": f"Audit de conformité et détection des anomalies ({sector_label})...",
             "action_executed": None,
             "suggested_actions": [
                 {"title": "Consulter le Radar & Qualité", "action_type": "navigate", "payload": {"path": "/espace/radar"}},

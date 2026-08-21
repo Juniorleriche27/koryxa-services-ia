@@ -7,18 +7,16 @@ from app.services.agents.base import BaseSpecializedAgent
 
 
 class OperationsSOPAgent(BaseSpecializedAgent):
-    """Agent Spécialisé en Organisation, Processus et Procédures (SOP)."""
+    """Agent Méthodes, Procédures Opérationnelles et Standards Métier (SOP)."""
 
     def __init__(self) -> None:
         super().__init__(
-            name="Agent Procédures & Organisation",
-            badge="📋 Organisation & SOP",
-            role_title="Responsable Méthodes & Organisation",
+            name="Agent Méthodes & Procédures",
+            badge="📋 Standards & Procédures",
+            role_title="Directeur des Méthodes & Processus",
             system_prompt=(
-                "Tu es le Consultant Méthodes et Organisation Opérationnelle de KORYXA. "
-                "Tu es un expert en structuration des processus d'entreprise, rédaction de fiches de procédures standardisées (SOP), "
-                "formation des équipes et sécurisation des protocoles de travail (clôture de caisse, inventaire, service client). "
-                "Tu rédiges avec pédagogie, clarté et précision, sans aucun markdown brut (pas de doubles astérisques **)."
+                "Tu es l'Expert en Procédures Opérationnelles Standardisées (SOP) et Organisation Métier de KORYXA. "
+                "Tu rédiges des protocoles clairs, étape par étape, faciles à exécuter pour les équipes sur le terrain."
             ),
         )
 
@@ -31,37 +29,43 @@ class OperationsSOPAgent(BaseSpecializedAgent):
         context: dict[str, Any],
         org_name: str,
         currency: str,
+        domain: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        domain = domain or {}
+        sector_label = domain.get("sector_label", "Entreprise")
+        agent_role = domain.get("role_ops", self.role_title)
         procedures_count = context.get("procedures_count", 0)
 
         llm_prompt = (
-            f"{self.system_prompt}\n\n"
-            f"Entreprise : {org_name}\n"
-            f"Nombre de procédures déjà formalisées : {procedures_count}\n"
-            f"Demande du dirigeant : {user_message}\n\n"
-            f"Consigne : Aide le dirigeant à structurer ou optimiser ses méthodes de travail. Sans aucun ** dans le texte."
+            f"Tu es le {agent_role} spécialisé pour : {sector_label}.\n"
+            f"Organisation : {org_name}\n"
+            f"Nombre de procédures existantes : {procedures_count}\n\n"
+            f"Demande de procédure : {user_message}\n\n"
+            f"Consigne : Rédige une procédure opérationnelle étape par étape (Objectif, Responsable, Étapes chronologiques, Résultat attendu). Sans aucun ** dans le texte."
         )
 
         reply = await self.call_knowlia_llm(s, org, user, llm_prompt)
 
         if not reply:
             reply = (
-                f"📋 Mémoire Opérationnelle & Méthodes pour {org_name} :\n\n"
-                f"Votre entreprise dispose actuellement de {procedures_count} procédure(s) formalisée(s).\n\n"
-                f"💡 Pourquoi formaliser vos méthodes ?\n"
-                f"• Garantir la qualité du service même en l'absence du dirigeant.\n"
-                f"• Faciliter la formation rapide des nouvelles recrues.\n"
-                f"• Éviter les erreurs de caisse et de gestion des stocks.\n\n"
-                f"👉 Vous pouvez utiliser le Générateur de Procédure IA pour créer en quelques secondes une fiche étape par étape."
+                f"📋 Standard Opérationnel ({sector_label}) :\n\n"
+                f"1. Objectif : Standardiser et fiabiliser les opérations de {org_name}.\n"
+                f"2. Déclencheur : Toute nouvelle opération de caisse, inscription ou validation.\n"
+                f"3. Étapes clés :\n"
+                f"   • Étape 1 : Vérification de l'identité et saisie immédiate dans KORYXA.\n"
+                f"   • Étape 2 : Émission du reçu ou justificatif au payeur.\n"
+                f"   • Étape 3 : Rapprochement journalier du tiroir-caisse physique.\n"
+                f"4. Résultat attendu : 100% de traçabilité et 0 écart comptable."
             )
 
         return {
             "reply": reply,
-            "agent_name": self.name,
-            "agent_badge": self.badge,
-            "thinking_summary": "Revue des processus formalisés et identification des manques organisationnels...",
+            "agent_name": f"{agent_role} (KORYXA Expert)",
+            "agent_badge": "📋 Méthodes & Procédures",
+            "thinking_summary": f"Structuration de la procédure opérationnelle ({sector_label})...",
             "action_executed": None,
             "suggested_actions": [
                 {"title": "Consulter les Procédures", "action_type": "navigate", "payload": {"path": "/espace/procedures"}},
+                {"title": "Créer une Procédure", "action_type": "navigate", "payload": {"path": "/espace/procedures"}},
             ],
         }
