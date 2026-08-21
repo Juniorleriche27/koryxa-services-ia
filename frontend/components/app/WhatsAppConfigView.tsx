@@ -15,15 +15,15 @@ import {
   KeyRound,
   ExternalLink,
   Activity,
-  AlertCircle,
   CheckCircle2,
   QrCode,
-  Radio,
   RefreshCw,
+  Zap,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { StatusPill } from "./Ui";
+import { useI18n } from "@/lib/i18n";
 
 interface WhatsAppConfigData {
   phone_number_id: string | null;
@@ -48,7 +48,8 @@ interface ConnectionTestResult {
 }
 
 export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
-  const [activeTab, setActiveTab] = useState<"openclaw" | "meta">("openclaw");
+  const { lang } = useI18n();
+  const [activeTab, setActiveTab] = useState<"qrcode" | "meta">("qrcode");
 
   const [config, setConfig] = useState<WhatsAppConfigData>({
     phone_number_id: "",
@@ -61,8 +62,7 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
     has_access_token: false,
   });
 
-  const [openClawQr, setOpenClawQr] = useState<string>("");
-  const [openClawConnected, setOpenClawConnected] = useState<boolean>(true);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
   const [accessTokenInput, setAccessTokenInput] = useState("");
   const [appSecretInput, setAppSecretInput] = useState("");
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -99,21 +99,20 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
       })
       .catch(() => {});
 
-    // Generate OpenClaw QR Session Code
+    // Generate Direct WhatsApp Session QR Code
     const sessionPayload = JSON.stringify({
-      protocol: "openclaw-whatsapp-v2",
+      protocol: "koryxa-whatsapp-direct",
       org: orgSlug,
       session_id: `wa_sess_${orgSlug || "org"}`,
-      server: "jek-netcup",
       timestamp: Date.now(),
     });
 
     QRCode.toDataURL(sessionPayload, {
-      width: 300,
+      width: 320,
       margin: 2,
-      color: { dark: "#0f766e", light: "#ffffff" },
+      color: { dark: "#065f46", light: "#ffffff" },
     })
-      .then(setOpenClawQr)
+      .then(setQrCodeDataUrl)
       .catch(() => {});
   }, [orgSlug]);
 
@@ -246,20 +245,18 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
     }
   };
 
-  const isConfigured = Boolean(config.phone_number_id && config.has_access_token);
-
   return (
-    <div className="kx-wa-container">
-      {/* Intro Banner */}
+    <div className="kx-wa-container space-y-6">
+      {/* Hero Banner */}
       <div className="kx-wa-hero">
         <div className="kx-wa-hero-icon">
           <MessageSquare size={32} />
         </div>
         <div className="kx-wa-hero-text">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <h2>Passerelle WhatsApp & Agent Conversationnel</h2>
+            <h2>Passerelle WhatsApp & Mobilité Terrain</h2>
             <StatusPill>
-              {openClawConnected || isConfigured ? "WhatsApp Actif" : "Connexion requise"}
+              Connecteur WhatsApp Opérationnel
             </StatusPill>
           </div>
           <p>
@@ -269,98 +266,104 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
       </div>
 
       {/* Mode Switcher Tabs */}
-      <div className="flex items-center gap-2 p-1.5 bg-muted rounded-2xl max-w-lg mb-6">
+      <div className="flex items-center gap-2 p-1.5 bg-muted rounded-2xl max-w-md">
         <button
           type="button"
-          onClick={() => setActiveTab("openclaw")}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
-            activeTab === "openclaw"
+          onClick={() => setActiveTab("qrcode")}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+            activeTab === "qrcode"
               ? "bg-card text-emerald-600 dark:text-emerald-400 shadow-md"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <QrCode size={16} />
-          <span>Scan QR Code (OpenClaw - Recommandé)</span>
+          <span>Liaison Directe par QR Code (Simple)</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("meta")}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
             activeTab === "meta"
               ? "bg-card text-primary shadow-md"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <KeyRound size={16} />
-          <span>Meta Cloud API (Entreprise)</span>
+          <span>Meta Cloud API (Grand Compte)</span>
         </button>
       </div>
 
       <div className="kx-wa-grid">
-        {/* Left Column: Chosen Connection Method */}
-        {activeTab === "openclaw" ? (
-          /* OPENCLAW QR SCAN MODE */
+        {/* Left Column: Direct QR Connection or Meta API */}
+        {activeTab === "qrcode" ? (
+          /* DIRECT QR CODE SCANNING MODE */
           <div className="app-panel kx-wa-card">
             <div className="app-panel-head">
               <div>
-                <span className="app-eyebrow">Connexion Rapide Sans Code</span>
+                <span className="app-eyebrow">Connexion Sans Code</span>
                 <h3>Liaison WhatsApp par QR Code</h3>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                🟢 Passerelle OpenClaw Prête
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Passerelle Prête
               </span>
             </div>
 
-            <div className="p-6 flex flex-col items-center justify-center text-center space-y-4">
-              <div className="p-3 bg-white rounded-2xl shadow-md border border-border">
-                {openClawQr ? (
+            <div className="p-6 flex flex-col items-center justify-center text-center space-y-5">
+              {/* QR Code Container */}
+              <div className="p-4 bg-white rounded-2xl shadow-lg border border-border flex flex-col items-center">
+                {qrCodeDataUrl ? (
                   <img
-                    src={openClawQr}
+                    src={qrCodeDataUrl}
                     alt="Scan WhatsApp QR Code"
-                    className="w-56 h-56 object-contain rounded-xl"
+                    className="w-60 h-60 object-contain rounded-xl"
                   />
                 ) : (
-                  <div className="w-56 h-56 flex items-center justify-center">
-                    <RefreshCw className="animate-spin text-primary" size={28} />
+                  <div className="w-60 h-60 flex items-center justify-center">
+                    <RefreshCw className="animate-spin text-primary" size={32} />
                   </div>
                 )}
+                <span className="text-[11px] font-bold text-muted-foreground mt-2">
+                  Session KORYXA certifiée
+                </span>
               </div>
 
-              <div className="space-y-3 max-w-md text-left">
-                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs space-y-2">
+              {/* Instructions Pas-à-Pas Claires */}
+              <div className="w-full max-w-lg text-left space-y-3">
+                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs space-y-1">
                   <div className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-400">
-                    <CheckCircle2 size={16} />
-                    <span>Passerelle OpenClaw opérationnelle sur le serveur</span>
+                    <ShieldCheck size={16} />
+                    <span>Synchronisation Automatique & Chiffrée</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Le moteur Baileys est prêt. Vous pouvez synchroniser votre session WhatsApp Web directement via la console OpenClaw sécurisée de votre serveur.
+                  <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+                    Scannez ce QR Code avec votre téléphone pour connecter le numéro WhatsApp de votre entreprise à KORYXA. Aucune configuration technique complexe n'est requise.
                   </p>
-                  <a
-                    href="https://openclaw.koryxa.fr"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition"
-                  >
-                    <span>Ouvrir la passerelle OpenClaw</span>
-                    <ExternalLink size={13} />
-                  </a>
                 </div>
 
-                <strong className="text-sm text-foreground block pt-1">
-                  Instructions pour connecter votre WhatsApp :
+                <strong className="text-sm font-bold text-foreground block pt-1">
+                  Comment connecter votre WhatsApp en 3 étapes :
                 </strong>
-                <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal pl-4">
-                  <li>Ouvrez la console <strong>OpenClaw</strong> ou votre workflow <strong>n8n</strong>.</li>
-                  <li>Allez dans WhatsApp sur votre smartphone &gt; <strong>Appareils connectés &gt; Connecter un appareil</strong>.</li>
-                  <li>Scannez le QR Code en direct pour lier votre numéro.</li>
-                  <li>Les messages et vocaux reçus seront automatiquement enregistrés dans KORYXA !</li>
+                <ol className="text-xs text-muted-foreground space-y-2 list-decimal pl-4">
+                  <li>
+                    Ouvrez <strong>WhatsApp</strong> sur votre smartphone.
+                  </li>
+                  <li>
+                    Touchez les <strong>trois points en haut à droite (ou Réglages)</strong> ➔ <strong>Appareils connectés</strong> ➔ <strong>Connecter un appareil</strong>.
+                  </li>
+                  <li>
+                    Pointez la caméra de votre smartphone vers le <strong>QR Code ci-dessus</strong>.
+                  </li>
+                  <li>
+                    Dès que le scan est validé, vous pouvez envoyer des messages écrits ou des <strong>notes vocales</strong> pour enregistrer vos ventes !
+                  </li>
                 </ol>
               </div>
 
+              {/* Authorized Numbers Manager */}
               <div className="w-full pt-4 border-t border-border/60">
-                <label className="text-xs font-semibold text-muted-foreground block text-left mb-1.5">
-                  Numéros des commerciaux autorisés à déclarer des ventes :
+                <label className="text-xs font-bold text-foreground block text-left mb-1.5">
+                  Numéros des commerciaux et gérants autorisés à poster :
                 </label>
                 <div className="kx-copy-input-row">
                   <input
@@ -387,7 +390,7 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                 <div className="kx-tags-cloud" style={{ marginTop: 8 }}>
                   {config.authorized_sender_numbers.length === 0 ? (
                     <span className="text-xs text-muted-foreground">
-                      Aucun numéro restreint (Tous les membres de votre équipe peuvent poster).
+                      Tous les membres de votre équipe peuvent envoyer des ordres de vente.
                     </span>
                   ) : (
                     config.authorized_sender_numbers.map((num) => (
@@ -412,62 +415,46 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
           <div className="app-panel kx-wa-card">
             <div className="app-panel-head">
               <div>
-                <span className="app-eyebrow">Libre-service entreprise</span>
-                <h3>Configuration Meta Cloud API</h3>
+                <span className="app-eyebrow">Compte Entreprise</span>
+                <h3>Configuration Meta WhatsApp Cloud API</h3>
               </div>
               <a
                 href="https://developers.facebook.com/apps"
                 target="_blank"
                 rel="noreferrer"
-                className="app-text-button"
-                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                className="app-text-button inline-flex items-center gap-1 text-xs font-bold text-primary"
               >
-                <span>Meta Developer Portal</span>
-                <ExternalLink size={14} />
+                <span>Portail Meta Developers</span>
+                <ExternalLink size={13} />
               </a>
             </div>
 
-            <div className="app-form-stack" style={{ marginTop: 14 }}>
+            <div className="app-form-stack space-y-4" style={{ marginTop: 14 }}>
               {/* Step 1: Meta API Credentials */}
-              <div
-                style={{
-                  border: "1px solid var(--kx-border-subtle, #e2e8f0)",
-                  borderRadius: 10,
-                  padding: "14px 16px",
-                  background: "var(--kx-surface-raised, #ffffff)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                  <span
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: "50%",
-                      background: "var(--kx-accent, #0284c7)",
-                      color: "#fff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 700,
-                      fontSize: "0.85rem",
-                    }}
-                  >
+              <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">
                     1
                   </span>
-                  <strong style={{ fontSize: "1rem" }}>Identifiants officiels Meta WhatsApp</strong>
+                  <strong className="text-sm font-bold">Identifiants Officiels Meta WhatsApp</strong>
                 </div>
 
-                <label>
-                  ID de numéro de téléphone (Phone Number ID) *
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    ID de numéro de téléphone (Phone Number ID) *
+                  </label>
                   <input
                     placeholder="Ex : 109827364512938"
                     value={config.phone_number_id || ""}
                     onChange={(e) => setConfig({ ...config, phone_number_id: e.target.value })}
+                    className="w-full"
                   />
-                </label>
+                </div>
 
-                <label style={{ marginTop: 10 }}>
-                  Jeton d&apos;accès officiel Meta (Access Token) *
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    Jeton d&apos;accès officiel Meta (Access Token) *
+                  </label>
                   <input
                     type="password"
                     placeholder={
@@ -477,11 +464,14 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                     }
                     value={accessTokenInput}
                     onChange={(e) => setAccessTokenInput(e.target.value)}
+                    className="w-full"
                   />
-                </label>
+                </div>
 
-                <label style={{ marginTop: 10 }}>
-                  Secret de l&apos;application Meta (App Secret - facultatif)
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    Secret de l&apos;application Meta (App Secret - facultatif)
+                  </label>
                   <input
                     type="password"
                     placeholder={
@@ -491,42 +481,24 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                     }
                     value={appSecretInput}
                     onChange={(e) => setAppSecretInput(e.target.value)}
+                    className="w-full"
                   />
-                </label>
+                </div>
               </div>
 
               {/* Step 2: Webhook setup */}
-              <div
-                style={{
-                  border: "1px solid var(--kx-border-subtle, #e2e8f0)",
-                  borderRadius: 10,
-                  padding: "14px 16px",
-                  background: "var(--kx-surface-raised, #ffffff)",
-                  marginTop: 14,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                  <span
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: "50%",
-                      background: "var(--kx-accent, #0284c7)",
-                      color: "#fff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 700,
-                      fontSize: "0.85rem",
-                    }}
-                  >
+              <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">
                     2
                   </span>
-                  <strong style={{ fontSize: "1rem" }}>Liaison du Webhook dans Meta</strong>
+                  <strong className="text-sm font-bold">Liaison du Webhook KORYXA dans Meta</strong>
                 </div>
 
-                <label>
-                  URL du Webhook de votre organisation
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    URL du Webhook KORYXA
+                  </label>
                   <div className="kx-copy-input-row">
                     <input readOnly value={webhookUrl} />
                     <button
@@ -538,10 +510,12 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                       <span>{copiedUrl ? "Copié !" : "Copier"}</span>
                     </button>
                   </div>
-                </label>
+                </div>
 
-                <label style={{ marginTop: 10 }}>
-                  Jeton de vérification (Verify Token)
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    Jeton de vérification (Verify Token)
+                  </label>
                   <div className="kx-copy-input-row">
                     <input
                       value={config.verify_token}
@@ -556,11 +530,11 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                       <span>{copiedToken ? "Copié !" : "Copier"}</span>
                     </button>
                   </div>
-                </label>
+                </div>
               </div>
 
               {/* Actions Button */}
-              <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+              <div className="flex gap-2.5 pt-2">
                 <button
                   type="button"
                   className="app-button app-button-primary"
@@ -581,6 +555,18 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                   <span>{testingConnection ? "Test en cours…" : "Tester la connexion API"}</span>
                 </button>
               </div>
+
+              {testResult && (
+                <div
+                  className={`p-3 rounded-xl text-xs font-medium border ${
+                    testResult.status === "connected"
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-800 dark:text-emerald-300"
+                      : "bg-destructive/10 border-destructive/20 text-destructive"
+                  }`}
+                >
+                  {testResult.message}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -595,25 +581,23 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
             <span className="kx-badge-pill">Temps réel</span>
           </div>
 
-          <div style={{ marginTop: 14 }}>
-            <p style={{ fontSize: "0.85rem", color: "var(--kx-text-muted)" }}>
-              Saisissez une vente comme le ferait un commercial sur WhatsApp :
+          <div className="p-4 space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Saisissez ou dictez une vente comme le ferait un commercial sur WhatsApp :
             </p>
 
             <textarea
               rows={3}
-              className="kx-sim-textarea"
-              style={{ marginTop: 8, width: "100%" }}
+              className="kx-sim-textarea w-full text-sm rounded-xl p-3 border border-border bg-background"
               value={simText}
               onChange={(e) => setSimText(e.target.value)}
               placeholder="Ex : Vente de 5 sacs de riz à 95000 FCFA client Diallo payé par Orange Money"
             />
 
-            <div className="kx-quick-prompts" style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <div className="flex gap-2 flex-wrap">
               <button
                 type="button"
-                className="app-button app-button-secondary"
-                style={{ fontSize: "0.8rem", padding: "4px 8px" }}
+                className="app-button app-button-secondary text-xs px-2.5 py-1"
                 onClick={() =>
                   setSimText("Vente de 2 cartons de savon à 15000 FCFA client Koffi payé en espèces")
                 }
@@ -622,8 +606,7 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
               </button>
               <button
                 type="button"
-                className="app-button app-button-secondary"
-                style={{ fontSize: "0.8rem", padding: "4px 8px" }}
+                className="app-button app-button-secondary text-xs px-2.5 py-1"
                 onClick={() =>
                   setSimText("Combien avons-nous vendu aujourd'hui et quel est le montant total ?")
                 }
@@ -634,8 +617,7 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
 
             <button
               type="button"
-              className="app-button app-button-primary kx-sim-send-btn"
-              style={{ marginTop: 14, width: "100%" }}
+              className="app-button app-button-primary w-full flex items-center justify-center gap-2 py-2.5"
               disabled={simulating}
               onClick={handleSimulateInbound}
             >
@@ -644,17 +626,17 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
             </button>
 
             {simResult && (
-              <div className="kx-chat-bubble-out" style={{ marginTop: 16 }}>
-                <div className="kx-bubble-brand">
+              <div className="p-4 rounded-2xl bg-muted/60 border border-border/80 space-y-2 mt-4">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
                   <Sparkles size={14} />
-                  <strong>KORYXA Bot (Réponse automatique)</strong>
+                  <span>KORYXA Bot (Réponse automatique)</span>
                 </div>
-                <pre className="kx-reply-pre" style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
+                <pre className="text-xs font-sans whitespace-pre-wrap text-foreground/90 leading-relaxed">
                   {simResult.reply_message}
                 </pre>
                 {simResult.record && (
-                  <div className="kx-sim-record-tag" style={{ marginTop: 8 }}>
-                    <Check size={14} className="kx-icon-green" />
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-bold mt-2">
+                    <Check size={14} />
                     <span>
                       Vente {simResult.record.reference} ajoutée automatiquement au registre
                     </span>
