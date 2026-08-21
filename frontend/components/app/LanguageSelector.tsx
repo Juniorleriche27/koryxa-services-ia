@@ -1,26 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Globe, Check } from "lucide-react";
-import { SUPPORTED_LANGUAGES, LanguageCode, LanguageOption } from "@/lib/i18n";
+import { Check } from "lucide-react";
+import { SUPPORTED_LANGUAGES, LanguageCode, useI18n } from "@/lib/i18n";
 
 export function LanguageSelector() {
-  const [currentLang, setCurrentLang] = useState<LanguageCode>("fr");
+  const { lang, setLang } = useI18n();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem("koryxa:language") as LanguageCode;
-    if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
-      setCurrentLang(saved);
-      document.documentElement.lang = saved;
-      if (saved === "ar") {
-        document.documentElement.dir = "rtl";
-      } else {
-        document.documentElement.dir = "ltr";
-      }
-    }
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -32,21 +19,7 @@ export function LanguageSelector() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const selectLanguage = (code: LanguageCode) => {
-    setCurrentLang(code);
-    window.localStorage.setItem("koryxa:language", code);
-    document.documentElement.lang = code;
-    if (code === "ar") {
-      document.documentElement.dir = "rtl";
-    } else {
-      document.documentElement.dir = "ltr";
-    }
-    setOpen(false);
-    // Dispatch event so any listening component updates instantly
-    window.dispatchEvent(new CustomEvent("koryxa:language-changed", { detail: code }));
-  };
-
-  const activeOption = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
+  const activeOption = SUPPORTED_LANGUAGES.find((l) => l.code === lang) || SUPPORTED_LANGUAGES[0];
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -65,13 +38,16 @@ export function LanguageSelector() {
           <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
             Langue / Language
           </div>
-          {SUPPORTED_LANGUAGES.map((lang) => {
-            const isSelected = lang.code === currentLang;
+          {SUPPORTED_LANGUAGES.map((item) => {
+            const isSelected = item.code === lang;
             return (
               <button
-                key={lang.code}
+                key={item.code}
                 type="button"
-                onClick={() => selectLanguage(lang.code)}
+                onClick={() => {
+                  setLang(item.code);
+                  setOpen(false);
+                }}
                 className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
                   isSelected
                     ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 font-bold"
@@ -79,8 +55,8 @@ export function LanguageSelector() {
                 }`}
               >
                 <span className="flex items-center gap-2">
-                  <span className="text-base">{lang.flag}</span>
-                  <span>{lang.label}</span>
+                  <span className="text-base">{item.flag}</span>
+                  <span>{item.label}</span>
                 </span>
                 {isSelected && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
               </button>

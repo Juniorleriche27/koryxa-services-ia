@@ -28,6 +28,7 @@ import { formatMoney, formatDate, formatLabel } from "./RegistersTable";
 import { OperationalAuditReport, OperationalAuditData } from "./OperationalAuditReport";
 import { getBusinessCategoryConfig } from "@/lib/service-ia/business-categories";
 import { serviceIaFetch } from "@/lib/service-ia/api";
+import { useI18n } from "@/lib/i18n";
 
 interface SummaryData {
   total_sales_count: number;
@@ -100,6 +101,7 @@ export function ExecutiveDashboard({
   onResolveAlert,
   onCreateActionFromAlert,
 }: ExecutiveDashboardProps) {
+  const { t } = useI18n();
   const [showReport, setShowReport] = useState(false);
   const [reportGeneratedAt] = useState(() => new Date());
   const [businessCategory, setBusinessCategory] = useState<string>("retail");
@@ -212,10 +214,10 @@ export function ExecutiveDashboard({
       {/* Top Banner with Executive Greeting and Fast CTA */}
       <div className="kx-executive-header">
         <div className="kx-executive-headline">
-          <span className="app-eyebrow">Cockpit Décisionnel</span>
-          <h1>Mémoire Opérationnelle du Dirigeant</h1>
+          <span className="app-eyebrow">{t("dash_eyebrow")}</span>
+          <h1>{t("dash_title")}</h1>
           <p>
-            Surveillez le chiffre d&apos;affaires vérifié, le recouvrement des créances et la qualité de structuration de <strong>{organizationName}</strong>.
+            {t("dash_desc")} <strong>{organizationName}</strong>.
           </p>
         </div>
 
@@ -226,14 +228,14 @@ export function ExecutiveDashboard({
             title="Consulter et imprimer le Bilan Opérationnel en PDF"
           >
             <Printer size={16} />
-            <span>Bilan Opérationnel (PDF)</span>
+            <span>{t("btn_pdf_report")}</span>
           </button>
           <button
             className="app-button app-button-primary"
             onClick={() => onOpenCreate("sales")}
           >
             <Plus size={16} />
-            <span>Nouvelle vente</span>
+            <span>{t("btn_new_sale")}</span>
           </button>
         </div>
       </div>
@@ -243,37 +245,37 @@ export function ExecutiveDashboard({
         {/* 1. Chiffre d'Affaires Global */}
         <article className="kx-kpi-card is-primary-kpi">
           <div className="kx-kpi-head">
-            <span>Chiffre d&apos;Affaires</span>
+            <span>{t("kpi_turnover")}</span>
             <TrendingUp size={18} className="kx-icon-emerald" />
           </div>
           <strong>{formatMoney(totalSales, currency)}</strong>
-          <small>{summary?.total_sales_count || 0} vente(s) suivie(s)</small>
+          <small>{summary?.total_sales_count || 0} {t("kpi_sales_followed")}</small>
         </article>
 
         {/* 2. Total Encaissé (Entrées d'argent) */}
         <article className="kx-kpi-card is-success-kpi">
           <div className="kx-kpi-head">
-            <span>Total Encaissé</span>
+            <span>{t("kpi_total_collected")}</span>
             <CheckCircle2 size={18} className="kx-icon-green" />
           </div>
           <strong>{formatMoney(totalPaid, currency)}</strong>
           <small>
             {totalSales > 0
-              ? `${Math.round((totalPaid / totalSales) * 100)}% de recouvrement`
-              : "0% encaissé"}
+              ? `${Math.round((totalPaid / totalSales) * 100)}% ${t("kpi_recovery_rate")}`
+              : `0% ${t("kpi_recovery_rate")}`}
           </small>
         </article>
 
         {/* 3. Dépenses & Décaissements (Sorties d'argent) */}
         <article className="kx-kpi-card is-warning-kpi">
           <div className="kx-kpi-head">
-            <span>Dépenses Payées</span>
+            <span>{t("kpi_expenses_paid")}</span>
             <TrendingDown size={18} className="text-rose-500" />
           </div>
           <strong className="text-rose-600 dark:text-rose-400">-{formatMoney(totalExpensesPaid, currency)}</strong>
           <small>
             <Link href="/espace/depenses" className="kx-inline-link">
-              {summary?.expenses_count || 0} dépense(s) réglée(s) →
+              {summary?.expenses_count || 0} {t("kpi_expenses_link")}
             </Link>
           </small>
         </article>
@@ -281,25 +283,25 @@ export function ExecutiveDashboard({
         {/* 4. Solde Réel en Caisse (Trésorerie Restante) */}
         <article className="kx-kpi-card bg-emerald-500/10 border border-emerald-500/30">
           <div className="kx-kpi-head">
-            <span className="font-bold text-emerald-800 dark:text-emerald-300">Solde Réel Caisse</span>
+            <span className="font-bold text-emerald-800 dark:text-emerald-300">{t("kpi_cash_balance")}</span>
             <Wallet size={18} className="text-emerald-600 dark:text-emerald-400" />
           </div>
           <strong className="text-emerald-900 dark:text-emerald-100 font-black">{formatMoney(netCash, currency)}</strong>
           <small className="text-emerald-700 dark:text-emerald-300 font-semibold">
-            {netCash >= 0 ? "Trésorerie disponible" : "Déficit temporaire"}
+            {netCash >= 0 ? t("kpi_cash_available") : "Déficit"}
           </small>
         </article>
 
         {/* 5. Créances Clients (Reste à encaisser) */}
         <article className="kx-kpi-card is-warning-kpi">
           <div className="kx-kpi-head">
-            <span>Créances en attente</span>
+            <span>{t("kpi_unpaid_debts")}</span>
             <Clock size={18} className="kx-icon-orange" />
           </div>
           <strong className={totalUnpaid > 0 ? "text-amber-600 dark:text-amber-400" : ""}>{formatMoney(totalUnpaid, currency)}</strong>
           <small>
             <Link href="/espace/ventes" className="kx-inline-link">
-              Factures impayées →
+              {t("kpi_unpaid_link")}
             </Link>
           </small>
         </article>
@@ -307,7 +309,7 @@ export function ExecutiveDashboard({
         {/* 6. Score Radar KORYXA */}
         <article className="kx-kpi-card is-score-kpi">
           <div className="kx-kpi-head">
-            <span>Score Radar</span>
+            <span>{t("kpi_radar_score")}</span>
             <ShieldCheck size={18} className="kx-icon-blue" />
           </div>
           <div className="kx-kpi-score-val">
@@ -320,18 +322,17 @@ export function ExecutiveDashboard({
         </article>
       </section>
 
-
       {/* Morning Briefing Banner */}
       <section className="kx-briefing-card">
         <div className="kx-briefing-icon">
           <Sparkles size={24} />
         </div>
         <div className="kx-briefing-content">
-          <h3>Briefing Prioritaire du Dirigeant</h3>
+          <h3>{t("briefing_title")}</h3>
           <p>
             {openAlerts.length > 0
-              ? `Radar a identifié ${openAlerts.length} point(s) d'attention sur vos ventes et procédures. Résolvez en priorité les anomalies de paiement et les procédures sans responsable.`
-              : "Excellente nouvelle : aucun conflit ni anomalie critique détectée aujourd'hui. Vos registres de vente et vos méthodes de travail sont bien synchronisés."}
+              ? `Radar a identifié ${openAlerts.length} point(s) d'attention sur vos ventes et procédures.`
+              : t("briefing_ok")}
           </p>
         </div>
         <div className="kx-briefing-action">
@@ -341,7 +342,7 @@ export function ExecutiveDashboard({
             onClick={onTriggerRadar}
           >
             <Play size={15} />
-            <span>{radarRunning ? "Analyse en cours…" : "Scanner avec Radar"}</span>
+            <span>{radarRunning ? "…" : t("btn_scan_radar")}</span>
           </button>
         </div>
       </section>
@@ -352,11 +353,11 @@ export function ExecutiveDashboard({
         <article className="app-panel">
           <div className="app-panel-head">
             <div>
-              <span className="app-eyebrow">Sentinelle Opérationnelle</span>
-              <h2>Alertes à Traiter ({openAlerts.length})</h2>
+              <span className="app-eyebrow">{t("alerts_title")}</span>
+              <h2>{t("alerts_subtitle")} ({openAlerts.length})</h2>
             </div>
             <Link href="/espace/radar" className="kx-panel-link">
-              <span>Voir tout Radar</span>
+              <span>{t("see_all_radar")}</span>
               <ArrowRight size={15} />
             </Link>
           </div>

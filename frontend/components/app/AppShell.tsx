@@ -50,10 +50,12 @@ import { InteractiveSpotlightTour } from "./InteractiveSpotlightTour";
 import { QuickHelpModal } from "./QuickHelpModal";
 import { PwaInstaller } from "./PwaInstaller";
 import { LanguageSelector } from "./LanguageSelector";
+import { useI18n } from "@/lib/i18n";
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -77,9 +79,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navGroups = useMemo(() => [
     {
       id: "pilotage",
-      title: "Pilotage & Ventes",
+      title: t("group_pilotage"),
       items: [
-        { label: "Cockpit Décisionnel", href: "/espace", icon: LayoutDashboard },
+        { label: t("nav_cockpit"), href: "/espace", icon: LayoutDashboard },
         { label: proConfig.registers.sales.title, href: "/espace/ventes", icon: ReceiptText },
         { label: proConfig.registers.offers.title, href: "/espace/offres", icon: Tag },
         { label: proConfig.registers.expenses.title, href: "/espace/depenses", icon: Wallet },
@@ -88,42 +90,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       id: "operations",
-      title: "Équipe & Opérations",
+      title: t("group_operations"),
       items: [
         { label: proConfig.registers.attendance.title, href: "/espace/presence", icon: UserCheck },
         { label: proConfig.registers.procedures.title, href: "/espace/procedures", icon: FileCheck2 },
-        { label: "Documents & Preuves", href: "/espace/documents", icon: FolderSync },
+        { label: t("nav_documents"), href: "/espace/documents", icon: FolderSync },
       ],
     },
     {
       id: "radar",
-      title: "Radar & Qualité",
+      title: t("group_radar"),
       items: [
-        { label: "Radar Sentinelle", href: "/espace/radar", icon: Radar },
-        { label: "Validations IA", href: "/espace/validations", icon: Activity },
-        { label: "Plan d'Actions", href: "/espace/actions", icon: Zap },
+        { label: t("nav_radar"), href: "/espace/radar", icon: Radar },
+        { label: t("nav_validations"), href: "/espace/validations", icon: Activity },
+        { label: t("nav_actions"), href: "/espace/actions", icon: Zap },
       ],
     },
     {
       id: "system",
-      title: "Canaux & Système",
+      title: t("group_system"),
       items: [
-        { label: "WhatsApp Gateway", href: "/espace/whatsapp", icon: MessageSquare },
-        { label: "Reprise & Imports", href: "/espace/imports", icon: FileSpreadsheet },
-        { label: "Organisation & Membres", href: "/espace/organisation", icon: Building2 },
-        { label: "Paramètres", href: "/espace/parametres", icon: Settings },
+        { label: t("nav_whatsapp"), href: "/espace/whatsapp", icon: MessageSquare },
+        { label: t("nav_imports"), href: "/espace/imports", icon: FileSpreadsheet },
+        { label: t("nav_organization"), href: "/espace/organisation", icon: Building2 },
+        { label: t("nav_settings"), href: "/espace/parametres", icon: Settings },
       ],
     },
     {
       id: "aide",
-      title: "Aide & Accompagnement",
+      title: t("group_help"),
       items: [
-        { label: "Manuel & Guide Détaillé", href: "/espace/aide", icon: BookOpen },
-        { label: "Foire Aux Questions (FAQ)", href: "/espace/aide?tab=faq", icon: HelpCircle },
-        { label: "Retours & Suggestions", href: "/espace/aide?tab=feedback", icon: MessageSquarePlus },
+        { label: t("nav_manual"), href: "/espace/aide", icon: BookOpen },
+        { label: t("nav_faq"), href: "/espace/aide?tab=faq", icon: HelpCircle },
+        { label: t("nav_feedback"), href: "/espace/aide?tab=feedback", icon: MessageSquarePlus },
       ],
     },
-  ], [proConfig]);
+  ], [proConfig, t]);
 
   // Open / closed accordion groups state - All closed by default
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
@@ -410,7 +412,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             >
               <Download size={15} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
-              {!collapsed && <span>Installer l'app</span>}
+              {!collapsed && <span>{t("install_app")}</span>}
             </button>
             {!collapsed && (
               <button
@@ -452,7 +454,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               title="Ouvrir la palette de commande (Cmd + K / Ctrl + K)"
             >
               <Search size={14} />
-              <span className="kx-topbar-search-text">Recherche & actions…</span>
+              <span className="kx-topbar-search-text">{t("search_prompt")}</span>
               <kbd className="kx-cmd-kbd">⌘K</kbd>
             </button>
 
@@ -464,7 +466,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               title="Dictée Vocale IA (Enregistrer une vente, dépense ou opération)"
             >
               <Mic size={15} className="text-emerald-600 dark:text-emerald-400" />
-              <span>Vocal</span>
+              <span>{t("vocal_btn")}</span>
             </button>
 
             {/* Quick Help & Guidance trigger */}
@@ -475,7 +477,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               title="Centre d'aide & visite guidée"
             >
               <HelpCircle size={15} className="text-emerald-600" />
-              <span>Guide</span>
+              <span>{t("guide_btn")}</span>
             </button>
 
             {/* Language Switcher */}
@@ -483,12 +485,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             <Link href="/" className="app-public-link hidden lg:inline-flex" title="Retourner sur le site public">
               <ExternalLink size={15} />
-              <span>Site public</span>
+              <span>{t("public_site")}</span>
             </Link>
 
             <span className="app-live hidden xl:inline-flex">
               <i />
-              API connectée
+              {t("api_connected")}
             </span>
 
             <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 sm:h-11 sm:w-11" } }} />
