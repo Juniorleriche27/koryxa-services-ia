@@ -115,6 +115,8 @@ class CoraOrchestrator:
         # 2. Route to Sales & Recovery Agent
         sales_terms = [
             "vente", "vendre", "vendu", "client", "relance", "créance", "creance", "impayé", "facture",
+            "chiffre d'affaire", "chiffre d'affaires", "ca", "chiffre daffaire", "recette", "recettes",
+            "revenu", "revenus", "combien j'ai gagné", "combien on a vendu",
             "écolage", "ecolage", "scolarité", "scolarite", "tranche", "inscription", "élève", "eleve", "parent",
         ]
         if any(w in msg_lower for w in sales_terms):

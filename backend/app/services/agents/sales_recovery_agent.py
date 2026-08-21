@@ -86,7 +86,24 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
             client_word = "l'élève / parent" if is_education else "le client"
             sale_word = "l'écolage" if is_education else "la facture"
 
-            if any(w in msg_lower for w in ["relance", "impayé", "impayes", "créance", "creance", "débiteur", "debiteur", "qui me doit"]):
+            if any(w in msg_lower for w in ["chiffre d'affaire", "chiffre d'affaires", "ca", "chiffre daffaire", "recette", "recettes", "total vente", "total des ventes", "combien j'ai vendu", "combien on a vendu", "revenu"]):
+                total_ca = total_sales_amount
+                ca_encaisse = total_sales_paid
+                ca_attente = total_sales_unpaid
+                taux = round((ca_encaisse / total_ca * 100) if total_ca > 0 else 100)
+
+                reply = (
+                    f"📈 Point sur le Chiffre d'Affaires de {org_name} :\n\n"
+                    f"• 💰 Chiffre d'Affaires Total Facturé : {total_ca:,.0f} {currency}\n"
+                    f"• 📥 CA Réellement Encaissé en Caisse : {ca_encaisse:,.0f} {currency} ({taux}% du total)\n"
+                    f"• ⏳ CA en Attente d'Encaissement : {ca_attente:,.0f} {currency}\n"
+                    f"• 🧾 Volume d'Opérations : {total_sales_count} transaction(s) enregistrée(s)\n\n"
+                    f"💡 Conseil de votre {agent_role} :\n"
+                    f"Votre activité a généré {total_ca:,.0f} {currency} au total. "
+                    f"Pour sécuriser vos rentrées, vous avez {ca_attente:,.0f} {currency} à encaisser auprès des clients en compte."
+                ).replace(",", " ")
+
+            elif any(w in msg_lower for w in ["relance", "impayé", "impayes", "créance", "creance", "débiteur", "debiteur", "qui me doit"]):
                 if not unpaid_sales or total_sales_unpaid == 0:
                     reply = (
                         f"✅ Situation Saine pour {org_name} !\n\n"
