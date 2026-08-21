@@ -65,6 +65,10 @@ class ChatMessage(BaseModel):
 
 class AIChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(..., description="Historique des messages")
+    language: str = Field(
+        default="fr",
+        description="Langue de conversation préférée (fr, en, es, pt, ar)",
+    )
     include_financial_context: bool = Field(
         default=True,
         description="Injecter automatiquement les métriques réelles de l'entreprise (ventes, dépenses, trésorerie)",

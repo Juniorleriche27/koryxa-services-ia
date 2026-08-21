@@ -20,6 +20,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
+import { useI18n } from "@/lib/i18n";
 
 interface ChatMessage {
   id: string;
@@ -48,19 +49,6 @@ interface AIChatResponse {
   action_executed?: Record<string, any> | null;
   suggested_actions: SuggestedAction[];
 }
-
-const QUICK_PROMPTS = [
-  "Quelle est ma trésorerie réelle en caisse ?",
-  "Quels clients dois-je relancer en priorité ?",
-  "Enregistre une vente de 25 000 FCFA pour M. Paul",
-  "Fais-moi un bilan des alertes Radar de conformité",
-];
-
-const THINKING_STEPS = [
-  "Consultation des registres de caisse et de ventes…",
-  "Analyse des créances et des marges bénéficiaires…",
-  "Formulation du conseil stratégique du dirigeant…",
-];
 
 /**
  * Clean & Polish text content: removes raw markdown artifacts and parses bold/bullets cleanly.
@@ -100,7 +88,7 @@ function FormattedMessage({ text }: { text: string }) {
 
         // Standard paragraph
         return (
-          <p key={lIdx} className="text-foreground/90">
+          <p key={lIdx} className="text-foreground/90 m-0">
             {renderInlineMarkdown(trimmed)}
           </p>
         );
@@ -145,16 +133,36 @@ export function AICopilotDrawer({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "init-welcome",
-      role: "assistant",
-      agent_name: "Cora · Directrice des Opérations",
-      agent_badge: "🧑‍💼 Coach Exécutif",
-      content:
-        "Bonjour ! Je suis Cora, votre directrice des opérations et assistante IA.\n\nJe suis connectée en temps réel à l'ensemble de vos registres (Ventes, Caisse, Dépenses, Radar et Procédures).\n\nComment puis-je vous aider aujourd'hui ? Je peux analyser vos chiffres, enregistrer une opération en direct ou vous conseiller sur vos décisions du jour.",
-    },
-  ]);
+  const { t, lang } = useI18n();
+
+  const QUICK_PROMPTS = [
+    t("copilot_prompt_1"),
+    t("copilot_prompt_2"),
+    t("copilot_prompt_3"),
+    t("copilot_prompt_4"),
+  ];
+
+  const THINKING_STEPS = [
+    t("copilot_thinking_1"),
+    t("copilot_thinking_2"),
+    t("copilot_thinking_3"),
+  ];
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  // Update initial message when language changes or starts
+  useEffect(() => {
+    setMessages([
+      {
+        id: `init-welcome-${lang}`,
+        role: "assistant",
+        agent_name: t("copilot_title"),
+        agent_badge: t("copilot_badge"),
+        content: t("copilot_welcome"),
+      },
+    ]);
+  }, [lang, t]);
+
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [thinkingIndex, setThinkingIndex] = useState(0);
@@ -183,7 +191,7 @@ export function AICopilotDrawer({
       setThinkingIndex((prev) => (prev + 1) % THINKING_STEPS.length);
     }, 1800);
     return () => clearInterval(timer);
-  }, [loading]);
+  }, [loading, THINKING_STEPS.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -237,6 +245,7 @@ export function AICopilotDrawer({
         method: "POST",
         body: JSON.stringify({
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          language: lang,
         }),
       });
 
@@ -244,11 +253,11 @@ export function AICopilotDrawer({
         id: `assistant-${Date.now()}`,
         role: "assistant",
         content: res.reply,
-        agent_name: res.agent_name || "Cora · Directrice des Opérations",
-        agent_badge: res.agent_badge || "🧑‍💼 Coach Exécutif",
+        agent_name: res.agent_name || t("copilot_title"),
+        agent_badge: res.agent_badge || t("copilot_badge"),
         thinking_summary: res.thinking_summary,
         action_executed: res.action_executed,
-        suggested_actions: res.suggested_actions,
+        suggested_actions: res.suggested_actions || [],
       };
 
       setLoading(false);
@@ -504,7 +513,7 @@ export function AICopilotDrawer({
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Posez une question ou ordonnez une action (ex: Enregistre une vente de 15 000 FCFA…)"
+              placeholder={t("copilot_placeholder")}
               disabled={loading || streamingText !== null}
               autoFocus
               className="text-sm font-medium"

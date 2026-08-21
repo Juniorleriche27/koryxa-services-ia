@@ -432,9 +432,272 @@ export const BUSINESS_CATEGORIES: Record<BusinessCategory, BusinessCategoryConfi
   },
 };
 
-export function getBusinessCategoryConfig(category?: string | null): BusinessCategoryConfig {
-  if (category && category in BUSINESS_CATEGORIES) {
-    return BUSINESS_CATEGORIES[category as BusinessCategory];
+const CATEGORY_TRANSLATIONS: Record<
+  string,
+  Record<
+    BusinessCategory,
+    {
+      name: string;
+      registers: {
+        offers: { title: string; subtitle: string; singular: string };
+        sales: { title: string; subtitle: string; singular: string };
+        expenses: { title: string; subtitle: string; singular: string };
+        suppliers: { title: string; subtitle: string; singular: string };
+        procedures: { title: string; subtitle: string; singular: string };
+        attendance: { title: string; subtitle: string; singular: string };
+      };
+    }
+  >
+> = {
+  en: {
+    retail: {
+      name: "Retail & Distribution",
+      registers: {
+        offers: { title: "Products & Stock", subtitle: "Manage products, sales prices and stock levels", singular: "Product" },
+        sales: { title: "Sales & Cash", subtitle: "Collect client payments and monitor cash balance", singular: "Sale" },
+        expenses: { title: "Purchases & Expenses", subtitle: "Operating costs and supplier payouts", singular: "Expense" },
+        suppliers: { title: "Suppliers & Wholesalers", subtitle: "Wholesale suppliers and distributors", singular: "Supplier" },
+        procedures: { title: "Methods & SOP", subtitle: "Operational checklists and store procedures", singular: "Procedure" },
+        attendance: { title: "Staff Attendance", subtitle: "Sales team QR clock-in and work presence", singular: "Attendance" },
+      },
+    },
+    services: {
+      name: "Services & Consulting",
+      registers: {
+        offers: { title: "Offers & Services", subtitle: "Service packages and consulting catalogue", singular: "Offer" },
+        sales: { title: "Sales & Invoicing", subtitle: "Invoices, billing and client receivables", singular: "Invoice" },
+        expenses: { title: "Operating Expenses", subtitle: "Software licenses, missions and office costs", singular: "Expense" },
+        suppliers: { title: "Contractors & Partners", subtitle: "Subcontractors, partners and tools", singular: "Partner" },
+        procedures: { title: "Methods & SOP", subtitle: "Client onboarding and delivery procedures", singular: "SOP" },
+        attendance: { title: "Timesheets & Team", subtitle: "Daily presence and team activity tracking", singular: "Timesheet" },
+      },
+    },
+    hospitality: {
+      name: "Hospitality & Restaurant",
+      registers: {
+        offers: { title: "Menu & Beverages", subtitle: "Dishes, daily menus and bar drinks", singular: "Item" },
+        sales: { title: "Orders & Bills", subtitle: "Table receipts and cash register", singular: "Order" },
+        expenses: { title: "Food & Beverage Purchases", subtitle: "Fresh ingredients and stock costs", singular: "Purchase" },
+        suppliers: { title: "Food Suppliers & Markets", subtitle: "Wholesale food markets and brewers", singular: "Supplier" },
+        procedures: { title: "Hygiene & Recipe Cards", subtitle: "Kitchen recipes and health compliance", singular: "Recipe" },
+        attendance: { title: "Shift & Service Staff", subtitle: "Kitchen and dining room shifts", singular: "Shift" },
+      },
+    },
+    crafts: {
+      name: "Crafts & Production",
+      registers: {
+        offers: { title: "Fabrication & Parts", subtitle: "Custom works and price catalogue", singular: "Item" },
+        sales: { title: "Quotes & Job Invoices", subtitle: "Job site estimates and deposits", singular: "Quote" },
+        expenses: { title: "Materials & Tooling", subtitle: "Raw materials and machine costs", singular: "Material" },
+        suppliers: { title: "Trade Suppliers", subtitle: "Hardware and material merchants", singular: "Merchant" },
+        procedures: { title: "Safety & Manufacturing", subtitle: "Manufacturing guides and site safety", singular: "Safety" },
+        attendance: { title: "Site Clock-in", subtitle: "Daily site team clock-in", singular: "Clock-in" },
+      },
+    },
+    association: {
+      name: "Education & Non-Profit",
+      registers: {
+        offers: { title: "Members & Enrollments", subtitle: "School tuitions, member plans and dues", singular: "Tuition" },
+        sales: { title: "Tuitions & Receipts", subtitle: "Collected fees, donations and grants", singular: "Receipt" },
+        expenses: { title: "Project Expenses", subtitle: "Field operations and project expenses", singular: "Expense" },
+        suppliers: { title: "Donors & Partners", subtitle: "Institutional funders and NGOs", singular: "Donor" },
+        procedures: { title: "Governance & Bylaws", subtitle: "Internal regulations and committees", singular: "Rule" },
+        attendance: { title: "Team & Volunteer Attendance", subtitle: "Meeting sheets and field presence", singular: "Presence" },
+      },
+    },
+  },
+  es: {
+    retail: {
+      name: "Comercio y Distribución",
+      registers: {
+        offers: { title: "Productos y Stock", subtitle: "Gestión de artículos y existencias físicas", singular: "Producto" },
+        sales: { title: "Ventas y Caja", subtitle: "Cobros y control de tesorería diaria", singular: "Venta" },
+        expenses: { title: "Compras y Gastos", subtitle: "Compras de mercancías y costes operativos", singular: "Gasto" },
+        suppliers: { title: "Proveedores y Mayoristas", subtitle: "Mayoristas y distribuidores", singular: "Proveedor" },
+        procedures: { title: "Métodos y SOP", subtitle: "Guías de venta y procedimientos", singular: "Procedimiento" },
+        attendance: { title: "Asistencia de Vendedores", subtitle: "Fichaje QR y control de turnos", singular: "Asistencia" },
+      },
+    },
+    services: {
+      name: "Servicios y Consultoría",
+      registers: {
+        offers: { title: "Ofertas y Servicios", subtitle: "Catálogo de prestaciones y consultoría", singular: "Oferta" },
+        sales: { title: "Ventas y Facturación", subtitle: "Facturas y cobro a clientes", singular: "Factura" },
+        expenses: { title: "Gastos de Operación", subtitle: "Costes operativos y herramientas", singular: "Gasto" },
+        suppliers: { title: "Prestadores y Socios", subtitle: "Subcontratistas y socios", singular: "Socio" },
+        procedures: { title: "Métodos y SOP", subtitle: "Metodologías de entrega y soporte", singular: "SOP" },
+        attendance: { title: "Control de Tiempos", subtitle: "Registro horario y actividad del equipo", singular: "Horas" },
+      },
+    },
+    hospitality: {
+      name: "Restauración y Hostelería",
+      registers: {
+        offers: { title: "Carta y Bebidas", subtitle: "Platos, menús y bebidas", singular: "Plato" },
+        sales: { title: "Pedidos y Cuentas", subtitle: "Comandas y caja del restaurante", singular: "Comanda" },
+        expenses: { title: "Compras de Alimentos", subtitle: "Ingredientes y bebidas al por mayor", singular: "Compra" },
+        suppliers: { title: "Proveedores y Mercados", subtitle: "Mercados y distribuidores", singular: "Proveedor" },
+        procedures: { title: "Higiene y Recetas", subtitle: "Fichas técnicas y normas de sanidad", singular: "Receta" },
+        attendance: { title: "Turnos y Servicio", subtitle: "Fichaje de cocina y sala", singular: "Turno" },
+      },
+    },
+    crafts: {
+      name: "Artesanía y Obras",
+      registers: {
+        offers: { title: "Piezas y Obras", subtitle: "Obras por encargo y catálogo", singular: "Pieza" },
+        sales: { title: "Presupuestos y Facturas", subtitle: "Presupuestos de obras y anticipos", singular: "Presupuesto" },
+        expenses: { title: "Materiales y Herramientas", subtitle: "Materias primas y maquinaria", singular: "Material" },
+        suppliers: { title: "Almacenes y Proveedores", subtitle: "Distribuidores de materiales", singular: "Proveedor" },
+        procedures: { title: "Seguridad y Fabricación", subtitle: "Guías de taller y seguridad en obra", singular: "Guía" },
+        attendance: { title: "Fichaje en Obra", subtitle: "Control de presencia de operarios", singular: "Fichaje" },
+      },
+    },
+    association: {
+      name: "Educación y Asociaciones",
+      registers: {
+        offers: { title: "Matrículas y Membresías", subtitle: "Planes escolares y cuotas de miembros", singular: "Matrícula" },
+        sales: { title: "Ingresos y Cuotas", subtitle: "Cobro de cuotas, donaciones y ayudas", singular: "Ingreso" },
+        expenses: { title: "Gastos de Proyectos", subtitle: "Gastos de misión y acciones de campo", singular: "Gasto" },
+        suppliers: { title: "Donantes y Socios", subtitle: "Organismos de financiación y ONGs", singular: "Donante" },
+        procedures: { title: "Estatutos y Normas", subtitle: "Reglamento interno y comités", singular: "Reglamento" },
+        attendance: { title: "Asistencia y Voluntarios", subtitle: "Presencia en reuniones y clases", singular: "Presencia" },
+      },
+    },
+  },
+  pt: {
+    retail: {
+      name: "Comércio e Distribuição",
+      registers: {
+        offers: { title: "Produtos e Stock", subtitle: "Gestão de catálogo e níveis de stock", singular: "Produto" },
+        sales: { title: "Vendas e Caixa", subtitle: "Recebimentos e controlo de caixa", singular: "Venda" },
+        expenses: { title: "Compras e Despesas", subtitle: "Custos operacionais e pagamentos", singular: "Despesa" },
+        suppliers: { title: "Fornecedores e Grossistas", subtitle: "Grossistas e distribuidores", singular: "Fornecedor" },
+        procedures: { title: "Métodos e SOP", subtitle: "Procedimentos e rotinas da loja", singular: "Procedimento" },
+        attendance: { title: "Presença da Equipa", subtitle: "Registo QR de presença dos vendedores", singular: "Presença" },
+      },
+    },
+    services: {
+      name: "Serviços e Consultoria",
+      registers: {
+        offers: { title: "Ofertas e Serviços", subtitle: "Catálogo de prestações e consultoria", singular: "Oferta" },
+        sales: { title: "Vendas e Faturação", subtitle: "Faturação e cobranças a clientes", singular: "Fatura" },
+        expenses: { title: "Despesas Operacionais", subtitle: "Custos correntes e ferramentas", singular: "Despesa" },
+        suppliers: { title: "Prestadores e Parceiros", subtitle: "Subcontratados e fornecedores", singular: "Parceiro" },
+        procedures: { title: "Métodos e SOP", subtitle: "Processos de entrega e qualidade", singular: "SOP" },
+        attendance: { title: "Registo de Horas", subtitle: "Registo diário de atividade da equipa", singular: "Horas" },
+      },
+    },
+    hospitality: {
+      name: "Restauração e Hotelaria",
+      registers: {
+        offers: { title: "Ementa e Bebidas", subtitle: "Pratos, menus e bebidas de bar", singular: "Item" },
+        sales: { title: "Pedidos e Contas", subtitle: "Comandas e fecho de caixa", singular: "Pedido" },
+        expenses: { title: "Compras de Matérias-Primas", subtitle: "Alimentos frescos e bebidas", singular: "Compra" },
+        suppliers: { title: "Fornecedores e Mercados", subtitle: "Mercados e distribuidores", singular: "Fornecedor" },
+        procedures: { title: "Higiene e Fichas Técnicas", subtitle: "Fichas técnicas e regras de HACCP", singular: "Ficha" },
+        attendance: { title: "Turnos e Escalas", subtitle: "Ponto de cozinha e sala", singular: "Turno" },
+      },
+    },
+    crafts: {
+      name: "Produção e Construção",
+      registers: {
+        offers: { title: "Peças e Obras", subtitle: "Trabalhos por medida e catálogo", singular: "Peça" },
+        sales: { title: "Orçamentos e Obras", subtitle: "Orçamentos e autos de medição", singular: "Orçamento" },
+        expenses: { title: "Materiais e Ferramentas", subtitle: "Matérias-primas e equipamentos", singular: "Material" },
+        suppliers: { title: "Armazéns e Fornecedores", subtitle: "Distribuidores de materiais", singular: "Fornecedor" },
+        procedures: { title: "Segurança e Produção", subtitle: "Segurança no trabalho e guias de fábrica", singular: "Guia" },
+        attendance: { title: "Ponto em Obra", subtitle: "Registo diário de operários", singular: "Ponto" },
+      },
+    },
+    association: {
+      name: "Educação e Associações",
+      registers: {
+        offers: { title: "Propinas e Membros", subtitle: "Mensalidades escolares e quotas", singular: "Propina" },
+        sales: { title: "Receitas e Mensalidades", subtitle: "Cobrança de mensalidades e donativos", singular: "Receita" },
+        expenses: { title: "Despesas de Projetos", subtitle: "Ações de terreno e despesas do projeto", singular: "Despesa" },
+        suppliers: { title: "Financiadores e Parceiros", subtitle: "Entidades financiadoras e ONGs", singular: "Financiador" },
+        procedures: { title: "Estatutos e Normas", subtitle: "Regulamento interno e atas", singular: "Regulamento" },
+        attendance: { title: "Presença e Voluntariado", subtitle: "Assiduidade a aulas e reuniões", singular: "Presença" },
+      },
+    },
+  },
+  ar: {
+    retail: {
+      name: "التجارة والتوزيع",
+      registers: {
+        offers: { title: "المنتجات والمخزون", subtitle: "إدارة قائمة الأصناف ومستويات المخزون", singular: "منتج" },
+        sales: { title: "المبيعات والصندوق", subtitle: "تحصيل المبيعات ومتابعة النقد اليومي", singular: "عملية بيع" },
+        expenses: { title: "المشتريات والمصروفات", subtitle: "تكاليف التشغيل ومشتريات البضاعة", singular: "مصروف" },
+        suppliers: { title: "الموردون وتجار الجملة", subtitle: "تجار الجملة والموزعون", singular: "مورد" },
+        procedures: { title: "إجراءات العمل القياسية", subtitle: "دليل العمليات وسياسات المتجر", singular: "إجراء" },
+        attendance: { title: "حضور البائعين", subtitle: "تسجيل الحضور برمز QR للموظفين", singular: "حضور" },
+      },
+    },
+    services: {
+      name: "الخدمات والاستشارات",
+      registers: {
+        offers: { title: "العروض والخدمات", subtitle: "باقات الخدمات والاستشارات", singular: "عرض" },
+        sales: { title: "المبيعات والفوترة", subtitle: "الفواتير وتحصيل مستحقات العملاء", singular: "فاتورة" },
+        expenses: { title: "تكاليف التشغيل", subtitle: "المصروفات التشغيلية والاشتراكات", singular: "مصروف" },
+        suppliers: { title: "الموردون والشركاء", subtitle: "المتعاقدون والشركاء", singular: "شريك" },
+        procedures: { title: "إجراءات العمل القياسية", subtitle: "إجراءات تقديم الخدمات وضمان الجودة", singular: "إجراء" },
+        attendance: { title: "تسجيل الساعات والدوام", subtitle: "متابعة أداء وحضور الفريق اليومي", singular: "ساعات عمل" },
+      },
+    },
+    hospitality: {
+      name: "المطاعم والضيافة",
+      registers: {
+        offers: { title: "قائمة الطعام والمشروبات", subtitle: "الأطباق والوجبات اليومية والمشروبات", singular: "صنف" },
+        sales: { title: "الطلبات وفواتير الطاولات", subtitle: "حسابات الطاولات وصندوق المطعم", singular: "طلب" },
+        expenses: { title: "مشتريات المواد الغذائية", subtitle: "المواد الطازجة والتموين", singular: "شراء" },
+        suppliers: { title: "الموردون والأسواق", subtitle: "أسواق الجملة وموردو الأغذية", singular: "مورد" },
+        procedures: { title: "معايير النظافة وإعداد الوصفات", subtitle: "بطاقات الوصفات ومعايير السلامة", singular: "وصفة" },
+        attendance: { title: "ورديات العمل والخدمة", subtitle: "دوام طاقم المطبخ والصالة", singular: "وردية" },
+      },
+    },
+    crafts: {
+      name: "الحرف والإنتاج والمقاولات",
+      registers: {
+        offers: { title: "دليل القطع والأعمال", subtitle: "الأعمال حسب الطلب والمنتجات", singular: "قطعة" },
+        sales: { title: "عروض الأسعار والفواتير", subtitle: "عقود الورش والدفعات المقدمة", singular: "عرض سعر" },
+        expenses: { title: "المواد والمعدات", subtitle: "المواد الأولية وصيانة الآلات", singular: "مادة" },
+        suppliers: { title: "الموردون والمتاجر", subtitle: "موردو المعدات ومواد البناء", singular: "مورد" },
+        procedures: { title: "بطاقات التصنيع والسلامة", subtitle: "إرشادات السلامة في الورش والمواقع", singular: "إرشاد" },
+        attendance: { title: "تسجيل دوام الورش والمواقع", subtitle: "متابعة حضور العمال في المواقع", singular: "دوام" },
+      },
+    },
+    association: {
+      name: "التعليم والجمعيات",
+      registers: {
+        offers: { title: "الاشتراكات والرسوم الدراسية", subtitle: "الأقساط المدرسية ورسوم العضوية", singular: "اشتراك" },
+        sales: { title: "المتحصلات والرسوم", subtitle: "تحصيل الأقساط والتبرعات والمساعدات", singular: "متحصل" },
+        expenses: { title: "نفقات المشاريع", subtitle: "نفقات الأنشطة والمهام الميدانية", singular: "نفقة" },
+        suppliers: { title: "المانحون والشركاء", subtitle: "الجهات المانحة والمنظمات الشريكة", singular: "مانح" },
+        procedures: { title: "اللوائح والحوكمة", subtitle: "النظام الداخلي ومحاضر الاجتماعات", singular: "لائحة" },
+        attendance: { title: "حضور الفريق والمتطوعين", subtitle: "سجلات حضور الدروس والاجتماعات", singular: "حضور" },
+      },
+    },
+  },
+};
+
+export function getBusinessCategoryConfig(category?: string | null, lang: string = "fr"): BusinessCategoryConfig {
+  const catKey = (category && category in BUSINESS_CATEGORIES ? category : "retail") as BusinessCategory;
+  const base = BUSINESS_CATEGORIES[catKey];
+
+  if (lang && lang !== "fr" && CATEGORY_TRANSLATIONS[lang]?.[catKey]) {
+    const tr = CATEGORY_TRANSLATIONS[lang][catKey];
+    return {
+      ...base,
+      name: tr.name,
+      registers: {
+        offers: { ...base.registers.offers, ...tr.registers.offers },
+        sales: { ...base.registers.sales, ...tr.registers.sales },
+        expenses: { ...base.registers.expenses, ...tr.registers.expenses },
+        suppliers: { ...base.registers.suppliers, ...tr.registers.suppliers },
+        procedures: { ...base.registers.procedures, ...tr.registers.procedures },
+        attendance: { ...base.registers.attendance, ...tr.registers.attendance },
+      },
+    };
   }
-  return BUSINESS_CATEGORIES.retail;
+
+  return base;
 }

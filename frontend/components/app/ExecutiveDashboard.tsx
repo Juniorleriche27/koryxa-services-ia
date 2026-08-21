@@ -101,7 +101,7 @@ export function ExecutiveDashboard({
   onResolveAlert,
   onCreateActionFromAlert,
 }: ExecutiveDashboardProps) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [showReport, setShowReport] = useState(false);
   const [reportGeneratedAt] = useState(() => new Date());
   const [businessCategory, setBusinessCategory] = useState<string>("retail");
@@ -114,7 +114,7 @@ export function ExecutiveDashboard({
       .catch(() => {});
   });
 
-  const proConfig = getBusinessCategoryConfig(businessCategory);
+  const proConfig = getBusinessCategoryConfig(businessCategory, lang);
 
   const openAlerts = alerts.filter(
     (a) => a.status !== "resolved" && a.status !== "ignored"
@@ -382,14 +382,14 @@ export function ExecutiveDashboard({
                     onClick={() => onCreateActionFromAlert(alert)}
                     title="Transformer cette alerte en tâche corrective"
                   >
-                    Action
+                    {t("btn_action")}
                   </button>
                   <button
                     className="app-text-button kx-btn-xs"
                     onClick={() => onResolveAlert(alert.id)}
                     title="Marquer comme vérifié et résolu"
                   >
-                    Résoudre
+                    {t("btn_resolve")}
                   </button>
                 </div>
               </div>
@@ -398,8 +398,8 @@ export function ExecutiveDashboard({
             {openAlerts.length === 0 && (
               <div className="kx-empty-box">
                 <CheckCircle2 size={32} className="kx-icon-green" />
-                <strong>Aucune anomalie ouverte</strong>
-                <p>Vos ventes et procédures respectent les règles de conformité définies.</p>
+                <strong>{t("no_anomalies_open")}</strong>
+                <p>{t("no_anomalies_desc")}</p>
               </div>
             )}
           </div>
@@ -411,11 +411,11 @@ export function ExecutiveDashboard({
           <article className="app-panel">
             <div className="app-panel-head">
               <div>
-                <span className="app-eyebrow">Exécution</span>
-                <h2>Actions en Cours ({activeActions.length})</h2>
+                <span className="app-eyebrow">{t("execution_eyebrow")}</span>
+                <h2>{t("actions_subtitle")} ({activeActions.length})</h2>
               </div>
               <Link href="/espace/actions" className="kx-panel-link">
-                <span>Kanban</span>
+                <span>{t("see_all_actions")}</span>
                 <ArrowRight size={15} />
               </Link>
             </div>
@@ -426,7 +426,7 @@ export function ExecutiveDashboard({
                   <Zap size={16} className="kx-icon-emerald" />
                   <div className="kx-action-main">
                     <strong>{act.title}</strong>
-                    <span>Assignée à : {act.responsible_user_id || "Non assignée"} · Échéance : {formatDate(act.due_date)}</span>
+                    <span>{t("assigned_to")} : {act.responsible_user_id || t("unassigned")} · {t("due_date")} : {formatDate(act.due_date)}</span>
                   </div>
                   <StatusPill>{formatLabel(act.status)}</StatusPill>
                 </div>
@@ -434,7 +434,7 @@ export function ExecutiveDashboard({
 
               {activeActions.length === 0 && (
                 <div className="kx-empty-box kx-compact">
-                  <p>Aucune action corrective urgente en cours.</p>
+                  <p>{t("no_active_actions")}</p>
                 </div>
               )}
             </div>
@@ -443,7 +443,7 @@ export function ExecutiveDashboard({
           {/* Registries Summary Counter */}
           <article className="app-panel kx-registry-counters-panel">
             <div className="app-panel-head">
-              <h2>Registres Actifs</h2>
+              <h2>{t("active_registers")}</h2>
             </div>
             <div className="kx-mini-registers-grid kx-five-grid">
               <Link href="/espace/ventes" className="kx-mini-register-item">

@@ -137,13 +137,23 @@ class CoraOrchestrator(BaseSpecializedAgent):
                     suggested_actions=[SuggestedAction(**a) for a in expense_action.get("suggested_actions", [])],
                 )
 
-        # 3. Build Deep Semantic Prompt for Knowlia LLM
+        # 3. Build Deep Multilingual Semantic Prompt for Knowlia LLM
+        lang = getattr(request, "language", "fr") or "fr"
+        lang_names = {
+            "fr": "Français",
+            "en": "English",
+            "es": "Español",
+            "pt": "Português",
+            "ar": "العربية",
+        }
+        target_lang = lang_names.get(lang, "Français")
         unpaid_summary = ", ".join([f"{u['client']} ({u['amount']:,.0f} {currency})" for u in unpaid_sales_rows[:5]]) or "Aucun impayé en cours"
 
         semantic_prompt = (
-            f"Tu es Cora, la Directrice des Opérations de l'organisation : {org_name} ({sector_label}).\n"
+            f"Tu es Cora, la Directrice des Opérations et Copilote IA de l'organisation : {org_name} ({sector_label}).\n"
             f"Interlocuteur : {responsible}\n"
-            f"Devise principale : {currency}\n\n"
+            f"Devise principale : {currency}\n"
+            f"LANGUE OBLIGATOIRE DE RÉPONSE : Tu DOIS obligatoirement formuler TOUTE ta réponse en {target_lang} ({lang}).\n\n"
             f"Règles et vocabulaire métier sectoriels :\n"
             f"{domain.get('kpi_rules', '')}\n\n"
             f"Registre comptable et opérationnel en temps réel (Données certifiées) :\n"
@@ -157,80 +167,129 @@ class CoraOrchestrator(BaseSpecializedAgent):
             f"Historique de la conversation récente :\n"
             f"{history_str}\n\n"
             f"Consigne d'intelligence :\n"
-            f"Comprends le sens exact du dernier message de l'utilisateur ({last_user_msg}). S'il pose une question sur son chiffre d'affaires, réponds précisément sur le chiffre d'affaires. S'il pose une question sur sa trésorerie, réponds sur la trésorerie. S'il dit bonjour, accueille-le chaleureusement. S'il s'agit d'une relance ou d'un suivi, donne les détails pertinents. "
-            f"Sois claire, percutante, pédagogue et oriente toujours vers la rentabilité et la bonne gestion. "
-            f"Règle de format : Aucun markdown brut avec des doubles astérisques (**)."
+            f"Comprends le sens exact du dernier message ({last_user_msg}). Réponds toujours avec précision, bienveillance et rigueur dans la langue cible ({target_lang}). "
+            f"Règle de format : Ne jamais utiliser de markdown brut avec des doubles astérisques (**)."
         )
 
         # 4. Invoke LLM via Knowlia
         llm_reply = await self.call_knowlia_llm(s, org_id, user_id, semantic_prompt)
+
+        # Suggested actions localized per language
+        suggested_dict = {
+            "fr": [
+                SuggestedAction(title="Situation de trésorerie", action_type="send_chat", payload={"prompt": "Quelle est ma trésorerie réelle et mon solde de caisse ?"}),
+                SuggestedAction(title="Chiffre d'affaires", action_type="send_chat", payload={"prompt": "Quel est mon chiffre d'affaires global ?"}),
+                SuggestedAction(title="Créances à relancer", action_type="send_chat", payload={"prompt": "Quels sont les impayés prioritaires ?"}),
+            ],
+            "en": [
+                SuggestedAction(title="Cash position", action_type="send_chat", payload={"prompt": "What is my actual cash in hand?"}),
+                SuggestedAction(title="Total Revenue", action_type="send_chat", payload={"prompt": "What is my total turnover?"}),
+                SuggestedAction(title="Debt recovery", action_type="send_chat", payload={"prompt": "Which clients should I follow up with for unpaid debts?"}),
+            ],
+            "es": [
+                SuggestedAction(title="Situación de caja", action_type="send_chat", payload={"prompt": "¿Cuál es mi saldo real en caja?"}),
+                SuggestedAction(title="Facturación total", action_type="send_chat", payload={"prompt": "¿Cuál es mi facturación global?"}),
+                SuggestedAction(title="Cobros pendientes", action_type="send_chat", payload={"prompt": "¿Cuáles son las deudas pendientes de cobro?"}),
+            ],
+            "pt": [
+                SuggestedAction(title="Saldo de caixa", action_type="send_chat", payload={"prompt": "Qual é o meu saldo real em caixa?"}),
+                SuggestedAction(title="Faturação total", action_type="send_chat", payload={"prompt": "Qual é a minha faturação total?"}),
+                SuggestedAction(title="Cobranças pendentes", action_type="send_chat", payload={"prompt": "Quais são as dívidas pendentes a cobrar?"}),
+            ],
+            "ar": [
+                SuggestedAction(title="السيولة النقدية", action_type="send_chat", payload={"prompt": "ما هو الرصيد الفعلي في الصندوق؟"}),
+                SuggestedAction(title="إجمالي الإيرادات", action_type="send_chat", payload={"prompt": "ما هو إجمالي الإيرادات والمبيعات؟"}),
+                SuggestedAction(title="الديون المستحقة", action_type="send_chat", payload={"prompt": "ما هي الديون والعملاء الواجب تحصيل مبالغهم؟"}),
+            ],
+        }
+        current_suggested = suggested_dict.get(lang, suggested_dict["fr"])
 
         if llm_reply:
             return AIChatResponse(
                 reply=llm_reply,
                 provider_used="Knowlia Intelligence Core",
                 model_used="koryxa-cora-orchestrator",
-                agent_name="Cora · Directrice des Opérations",
+                agent_name="Cora · Directrice des Opérations" if lang == "fr" else f"Cora · Operations AI ({target_lang})",
                 agent_badge="🧑‍💼 Coach Exécutif",
-                thinking_summary=f"Raisonnement contextuel multi-tour pour {org_name}...",
+                thinking_summary=f"Analyse contextuelle ({target_lang}) pour {org_name}...",
                 action_executed=None,
-                suggested_actions=[
-                    SuggestedAction(title="Situation de trésorerie", action_type="send_chat", payload={"prompt": "Quelle est ma trésorerie réelle et mon solde de caisse ?"}),
-                    SuggestedAction(title="Chiffre d'affaires", action_type="send_chat", payload={"prompt": "Quel est mon chiffre d'affaires global ?"}),
-                    SuggestedAction(title="Créances à relancer", action_type="send_chat", payload={"prompt": "Quels sont les impayés prioritaires ?"}),
-                ],
+                suggested_actions=current_suggested,
             )
 
-        # 5. Fallback if LLM engine is offline
-        if msg_lower in ["bonjour", "salut", "bonsoir", "coucou", "hello", "hi", "bonjour cora", "salut cora"]:
+        # 5. Localized Fallbacks (5 Languages)
+        if lang == "en":
             reply = (
-                f"Bonjour {responsible} ! C'est un plaisir de vous retrouver au pilotage de {org_name} ({sector_label}).\n\n"
-                f"Je suis à vos côtés avec nos experts dédiés (Analyste Financier, Responsable Commercial et Auditeur Sentinelle).\n\n"
-                f"De quoi souhaitez-vous parler aujourd'hui ? Je peux analyser votre trésorerie, vos ventes, vos créances ou enregistrer une opération."
-            )
-        elif any(w in msg_lower for w in ["chiffre d'affaire", "chiffre d'affaires", "ca", "recette", "revenu", "combien on a vendu", "combien j'ai vendu"]):
-            reply = (
-                f"📈 Point sur le Chiffre d'Affaires de {org_name} :\n\n"
-                f"• 💰 Chiffre d'Affaires Total Facturé : {total_sales_amount:,.0f} {currency}\n"
-                f"• 📥 CA Réellement Encaissé en Caisse : {total_sales_paid:,.0f} {currency} ({recouvrement_rate}% du total)\n"
-                f"• ⏳ CA en Attente d'Encaissement (Créances) : {total_sales_unpaid:,.0f} {currency}\n"
-                f"• 🧾 Volume d'Opérations : {total_sales_count} transaction(s) enregistrée(s)\n\n"
-                f"💡 Recommandation :\n"
-                f"Votre chiffre d'affaires actif s'élève à {total_sales_amount:,.0f} {currency}. Pour consolider votre trésorerie, récupérez en priorité les {total_sales_unpaid:,.0f} {currency} de créances."
+                f"📊 Financial & Operational Summary for {org_name} ({sector_label}) :\n\n"
+                f"• 🏦 Actual Cash in Hand : {net_cash:,.0f} {currency}\n"
+                f"• 💰 Total Turnover : {total_sales_amount:,.0f} {currency} ({total_sales_paid:,.0f} {currency} collected, {recouvrement_rate}%)\n"
+                f"• ⏳ Outstanding Receivables : {total_sales_unpaid:,.0f} {currency}\n"
+                f"• 📤 Total Paid Expenses : {total_expenses_paid:,.0f} {currency}\n"
+                f"• 📦 Radar Alerts / Stocks : {low_stock_count} point(s) of attention\n\n"
+                f"💡 Recommendation :\n"
+                f"Your operations generated {total_sales_amount:,.0f} {currency}. " + (
+                    "Your treasury is healthy." if net_cash >= 0 else "Warning: your cash expenses currently exceed collected revenues."
+                )
             ).replace(",", " ")
-        elif any(w in msg_lower for w in ["argent", "trésorerie", "tresorerie", "caisse", "solde", "dépense", "depense"]):
+        elif lang == "es":
             reply = (
-                f"📊 Diagnostic Financier & Trésorerie pour {org_name} ({sector_label}) :\n\n"
-                f"• 🏦 Solde Réel Disponible en Caisse : {net_cash:,.0f} {currency}\n"
-                f"• 📥 Total Encaissé : {total_sales_paid:,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)\n"
-                f"• 📤 Total Charges Payées : {total_expenses_paid:,.0f} {currency}\n"
-                f"• ⏳ Créances en Attente : {total_sales_unpaid:,.0f} {currency}\n\n"
-                f"💡 Recommandation :\n"
-                f"Votre solde net est de {net_cash:,.0f} {currency}. " + (
-                    "Votre trésorerie est saine." if net_cash >= 0 else "Attention : vos dépenses dépassent vos encaissements actuels."
+                f"📊 Resumen Financiero y Operativo para {org_name} ({sector_label}) :\n\n"
+                f"• 🏦 Saldo Real en Caja : {net_cash:,.0f} {currency}\n"
+                f"• 💰 Facturación Total : {total_sales_amount:,.0f} {currency} ({total_sales_paid:,.0f} {currency} cobrados, {recouvrement_rate}%)\n"
+                f"• ⏳ Cobros Pendientes : {total_sales_unpaid:,.0f} {currency}\n"
+                f"• 📤 Gastos Pagados : {total_expenses_paid:,.0f} {currency}\n"
+                f"• 📦 Alertas Radar / Stock : {low_stock_count} punto(s) de atención\n\n"
+                f"💡 Recomendación del Director :\n"
+                f"Su actividad generó {total_sales_amount:,.0f} {currency}. " + (
+                    "Su tesorería es estable." if net_cash >= 0 else "Atención: sus gastos actuales superan los cobros realizados."
+                )
+            ).replace(",", " ")
+        elif lang == "pt":
+            reply = (
+                f"📊 Resumo Financeiro e Operacional para {org_name} ({sector_label}) :\n\n"
+                f"• 🏦 Saldo Real em Caixa : {net_cash:,.0f} {currency}\n"
+                f"• 💰 Faturação Total : {total_sales_amount:,.0f} {currency} ({total_sales_paid:,.0f} {currency} recebidos, {recouvrement_rate}%)\n"
+                f"• ⏳ Valores a Receber : {total_sales_unpaid:,.0f} {currency}\n"
+                f"• 📤 Despesas Pagas : {total_expenses_paid:,.0f} {currency}\n"
+                f"• 📦 Alertas Radar / Stock : {low_stock_count} ponto(s) de atenção\n\n"
+                f"💡 Recomendação do Gestor :\n"
+                f"A sua empresa gerou {total_sales_amount:,.0f} {currency}. " + (
+                    "A sua tesouraria está saudável." if net_cash >= 0 else "Atenção: as suas despesas ultrapassam as entradas atuais."
+                )
+            ).replace(",", " ")
+        elif lang == "ar":
+            reply = (
+                f"📊 التقرير المالي والتشغيلي لمؤسسة {org_name} ({sector_label}) :\n\n"
+                f"• 🏦 السيولة النقدية الفعلية في الصندوق : {net_cash:,.0f} {currency}\n"
+                f"• 💰 إجمالي الإيرادات والمبيعات : {total_sales_amount:,.0f} {currency} (تم تحصيل {total_sales_paid:,.0f} {currency} بنسبة {recouvrement_rate}%)\n"
+                f"• ⏳ الديون والذمم المستحقة للتحصيل : {total_sales_unpaid:,.0f} {currency}\n"
+                f"• 📤 إجمالي المصروفات المسددة : {total_expenses_paid:,.0f} {currency}\n"
+                f"• 📦 تنبيهات الرادار والمخزون : {low_stock_count} نقطة متابعة\n\n"
+                f"💡 نصيحة الإدارة :\n"
+                f"حققت مؤسستك إيرادات إجمالية قدرها {total_sales_amount:,.0f} {currency}. " + (
+                    "الوضع المالي سليم ومستقر." if net_cash >= 0 else "تنبيه: المصروفات الحالية تتجاوز الإيرادات المحصلة."
                 )
             ).replace(",", " ")
         else:
             reply = (
-                f"📊 Synthèse Globale pour {org_name} ({sector_label}) :\n\n"
-                f"• 🏦 Solde de Caisse : {net_cash:,.0f} {currency}\n"
-                f"• 💰 Chiffre d'Affaires : {total_sales_amount:,.0f} {currency} ({total_sales_paid:,.0f} {currency} encaissés)\n"
-                f"• ⏳ Créances : {total_sales_unpaid:,.0f} {currency}\n"
+                f"📊 Diagnostic Financier & Trésorerie pour {org_name} ({sector_label}) :\n\n"
+                f"• 🏦 Solde Réel Disponible en Caisse : {net_cash:,.0f} {currency}\n"
+                f"• 💰 Chiffre d'Affaires Total Facturé : {total_sales_amount:,.0f} {currency} ({total_sales_paid:,.0f} {currency} encaissés, {recouvrement_rate}%)\n"
+                f"• ⏳ Créances / Impayés en Attente : {total_sales_unpaid:,.0f} {currency}\n"
+                f"• 📤 Total Charges Payées : {total_expenses_paid:,.0f} {currency}\n"
                 f"• 📦 Alertes Stocks / Radar : {low_stock_count} point(s) d'attention\n\n"
-                f"Posez-moi toute question spécifique sur vos finances, vos clients ou vos opérations !"
+                f"💡 Recommandation du Dirigeant :\n"
+                f"Votre activité a généré {total_sales_amount:,.0f} {currency}. " + (
+                    "Votre trésorerie est saine." if net_cash >= 0 else "Attention : vos dépenses dépassent vos encaissements actuels."
+                )
             ).replace(",", " ")
 
         return AIChatResponse(
             reply=reply,
             provider_used="Cora Intelligence (KORYXA Core)",
             model_used="koryxa-cora-orchestrator",
-            agent_name="Cora · Directrice des Opérations",
+            agent_name="Cora · Directrice des Opérations" if lang == "fr" else f"Cora · Operations AI ({target_lang})",
             agent_badge="🧑‍💼 Coach Exécutif",
-            thinking_summary=f"Analyse contextuelle pour {org_name}...",
+            thinking_summary=f"Analyse contextuelle ({target_lang}) pour {org_name}...",
             action_executed=None,
-            suggested_actions=[
-                SuggestedAction(title="Situation de trésorerie", action_type="send_chat", payload={"prompt": "Quelle est ma trésorerie réelle ?"}),
-                SuggestedAction(title="Chiffre d'affaires", action_type="send_chat", payload={"prompt": "Quel est mon chiffre d'affaires global ?"}),
-                SuggestedAction(title="Créances à relancer", action_type="send_chat", payload={"prompt": "Quels sont les impayés prioritaires ?"}),
-            ],
+            suggested_actions=current_suggested,
         )

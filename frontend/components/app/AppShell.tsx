@@ -55,7 +55,7 @@ import { useI18n } from "@/lib/i18n";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -74,7 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress || "Compte KORYXA";
   const initials = userName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
-  const proConfig = getBusinessCategoryConfig(organization.business_category);
+  const proConfig = getBusinessCategoryConfig(organization.business_category, lang);
 
   const navGroups = useMemo(() => [
     {
@@ -443,7 +443,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
 
           <div className="app-topbar-context">
-            <h1 className="text-sm sm:text-base font-bold text-foreground tracking-tight m-0 p-0">{context.eyebrow}</h1>
+            <h1 className="text-sm sm:text-base font-bold text-foreground tracking-tight m-0 p-0">
+              {pathname === "/espace" ? t("topbar_eyebrow") : context.eyebrow}
+            </h1>
           </div>
 
           <div className="app-topbar-actions">
