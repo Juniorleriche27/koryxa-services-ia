@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/lib/i18n";
 
 import { useState, useMemo, useEffect } from "react";
 import clsx from "clsx";
@@ -229,6 +230,7 @@ interface SalesTableInteractiveProps {
 }
 
 export function SalesTableInteractive({
+
   sales,
   organizationName = "ECO",
   organizationCategory = "Commerce & Distribution",
@@ -241,6 +243,7 @@ export function SalesTableInteractive({
   onAddSale,
   onOpenPos,
 }: SalesTableInteractiveProps) {
+  const { t, lang } = useI18n();
   const [internalFullscreen, setInternalFullscreen] = useState(false);
   const isTableFullscreen = isFullscreen !== undefined ? isFullscreen : internalFullscreen;
   const toggleTableFullscreen = onToggleFullscreen || (() => setInternalFullscreen((prev) => !prev));
@@ -432,10 +435,10 @@ export function SalesTableInteractive({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-black text-foreground tracking-tight m-0">
-                Ventes & Caisse — Mode Plein Écran
+                {t("sales_title")} — {t("common_fullscreen")}
               </h2>
               <p className="text-[11px] text-muted-foreground m-0">
-                Affichage étendu de vos opérations et factures
+                {t("sales_desc")}
               </p>
             </div>
           </div>
@@ -449,7 +452,7 @@ export function SalesTableInteractive({
                 title="Ouvrir la caisse tactile comptoir pour encaissement rapide"
               >
                 <ShoppingBag size={14} className="text-emerald-600 dark:text-emerald-400" />
-                <span>Mode Caisse Express (POS)</span>
+                <span>{t("sales_btn_pos")}</span>
               </button>
             )}
 
@@ -460,7 +463,7 @@ export function SalesTableInteractive({
                 onClick={onAddSale}
               >
                 <Plus size={14} />
-                <span>+ Ajouter une Vente</span>
+                <span>{t("sales_btn_new")}</span>
               </button>
             )}
 
@@ -470,7 +473,7 @@ export function SalesTableInteractive({
               className="px-3.5 py-2 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold text-xs flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer shadow-md"
             >
               <Minimize2 size={14} />
-              <span>Quitter Plein Écran (Échap)</span>
+              <span>{t("common_exit_fullscreen")}</span>
             </button>
           </div>
         </div>
@@ -481,7 +484,7 @@ export function SalesTableInteractive({
         <div className="bg-card p-4 rounded-2xl border border-border/80 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Total Facturé / Émis
+              {t("sales_kpi_invoiced")}
             </span>
             <span className="w-2 h-2 rounded-full bg-foreground/40" />
           </div>
@@ -489,14 +492,14 @@ export function SalesTableInteractive({
             {formatMoney(totalAmount, currency)}
           </div>
           <div className="text-xs text-muted-foreground mt-1 font-medium">
-            {filteredSales.length} document{filteredSales.length > 1 ? "s" : ""} émis
+            {filteredSales.length} {t("sales_kpi_docs_sub")}
           </div>
         </div>
 
         <div className="bg-card p-4 rounded-2xl border border-border/80 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Encaissé Réel
+              {t("sales_kpi_collected")}
             </span>
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
           </div>
@@ -504,14 +507,14 @@ export function SalesTableInteractive({
             {formatMoney(paidAmount, currency)}
           </div>
           <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-            {recoveryRate}% taux de recouvrement
+            {recoveryRate}% {t("sales_kpi_recovery_sub")}
           </div>
         </div>
 
         <div className="bg-card p-4 rounded-2xl border border-border/80 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Créances & Acomptes Restants
+              {t("sales_kpi_unpaid")}
             </span>
             <span className={`w-2 h-2 rounded-full ${unpaidAmount > 0 ? "bg-amber-500" : "bg-muted"}`} />
           </div>
@@ -519,7 +522,7 @@ export function SalesTableInteractive({
             {formatMoney(unpaidAmount, currency)}
           </div>
           <div className="text-xs text-muted-foreground mt-1 font-medium">
-            {filteredSales.filter((s) => s.payment_status !== "paid").length} document(s) à solder
+            {filteredSales.filter((s) => s.payment_status !== "paid").length} {t("sales_kpi_unpaid_sub")}
           </div>
         </div>
       </div>
@@ -532,7 +535,7 @@ export function SalesTableInteractive({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher réf, client, article, mode..."
+              placeholder={t("sales_search_placeholder")}
             />
           </label>
 
@@ -543,19 +546,19 @@ export function SalesTableInteractive({
             title="Exporter en CSV"
           >
             <Download size={14} />
-            <span>Exporter CSV ({filteredSales.length})</span>
+            <span>{t("common_export_csv")} ({filteredSales.length})</span>
           </button>
         </div>
 
         {/* Quick Filter Tabs - Single Row Horizontal Swipe Bar */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 shrink-0 -mx-1 px-1">
           {[
-            { id: "all", label: "Tous", count: sales.length },
-            { id: "invoices", label: "Factures", count: sales.length - quotesCount },
-            { id: "quotes", label: "Devis & Pro Forma", count: quotesCount },
-            { id: "partials", label: "Acomptes & Partiels", count: partialsCount },
-            { id: "overdue", label: "En retard", count: overdueCount },
-            { id: "paid", label: "Soldées", count: paidCount },
+            { id: "all", label: t("sales_tab_all"), count: sales.length },
+            { id: "invoices", label: t("sales_tab_invoices"), count: sales.length - quotesCount },
+            { id: "quotes", label: t("sales_tab_quotes"), count: quotesCount },
+            { id: "partials", label: t("sales_tab_partial"), count: partialsCount },
+            { id: "overdue", label: t("sales_tab_late"), count: overdueCount },
+            { id: "paid", label: t("sales_tab_paid"), count: paidCount },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -589,37 +592,37 @@ export function SalesTableInteractive({
             <tr>
               <th onClick={() => handleSort("reference")} className="kx-th-sortable">
                 <div className="kx-th-inner">
-                  <span>Document & Réf</span>
+                  <span>{t("sales_th_doc")}</span>
                   <ArrowUpDown size={12} />
                 </div>
               </th>
               <th onClick={() => handleSort("sale_date")} className="kx-th-sortable">
                 <div className="kx-th-inner">
-                  <span>Date & Échéance</span>
+                  <span>{t("sales_th_date")}</span>
                   <ArrowUpDown size={12} />
                 </div>
               </th>
               <th onClick={() => handleSort("client_name")} className="kx-th-sortable">
                 <div className="kx-th-inner">
-                  <span>Client & Canal</span>
+                  <span>{t("sales_th_client")}</span>
                   <ArrowUpDown size={12} />
                 </div>
               </th>
-              <th>Article / Prestation</th>
+              <th>{t("sales_th_item")}</th>
               <th onClick={() => handleSort("total_amount")} className="kx-th-sortable app-number">
                 <div className="kx-th-inner app-number">
-                  <span>Règlement & Solde</span>
+                  <span>{t("sales_th_amounts")}</span>
                   <ArrowUpDown size={12} />
                 </div>
               </th>
-              <th style={{ textAlign: "center" }}>Actions & Documents</th>
+              <th style={{ textAlign: "center" }}>{t("common_actions")}</th>
             </tr>
           </thead>
           <tbody>
             {filteredSales.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
-                  Aucun document commercial trouvé avec ces filtres.
+                  {t("sales_empty_title")}
                 </td>
               </tr>
             ) : (
@@ -865,6 +868,7 @@ export function OffersTableInteractive({
   onArchive,
   onAdjustStock,
 }: OffersTableInteractiveProps) {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -899,7 +903,7 @@ export function OffersTableInteractive({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher une offre, un article, une condition..."
+              placeholder={t("offers_search_placeholder")}
             />
           </label>
 
@@ -908,7 +912,7 @@ export function OffersTableInteractive({
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
           >
-            <option value="all">Toutes les catégories</option>
+            <option value="all">{t("common_all")}</option>
             {categories
               .filter((c) => c !== "all")
               .map((c) => (
@@ -924,21 +928,21 @@ export function OffersTableInteractive({
         <table className="app-data-table kx-rich-table">
           <thead>
             <tr>
-              <th>Offre / Article</th>
-              <th>Catégorie</th>
-              <th className="app-number">Prix de vente</th>
-              <th className="app-number">Coût unitaire</th>
+              <th>{t("offers_th_name")}</th>
+              <th>{t("offers_th_category")}</th>
+              <th className="app-number">{t("offers_th_price")}</th>
+              <th className="app-number">{t("offers_th_cost")}</th>
               <th className="app-number">Marge brute</th>
-              <th>Stock Actuel</th>
-              <th>Statut</th>
-              <th style={{ textAlign: "center" }}>Actions</th>
+              <th>{t("offers_th_stock")}</th>
+              <th>{t("common_status")}</th>
+              <th style={{ textAlign: "center" }}>{t("common_actions")}</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
-                  Aucun article trouvé.
+                  {t("common_all")}
                 </td>
               </tr>
             ) : (
@@ -1061,6 +1065,7 @@ export function ProceduresTableInteractive({
   onEdit,
   onArchive,
 }: ProceduresTableInteractiveProps) {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
 
@@ -1095,7 +1100,7 @@ export function ProceduresTableInteractive({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher une méthode, un département, un responsable..."
+              placeholder={t("procedures_search_placeholder")}
             />
           </label>
 
@@ -1120,12 +1125,12 @@ export function ProceduresTableInteractive({
           <thead>
             <tr>
               <th>Méthode / Procédure</th>
-              <th>Département</th>
-              <th>Responsable</th>
+              <th>{t("procedures_th_category")}</th>
+              <th>{t("procedures_th_role")}</th>
               <th>Version</th>
               <th>Prochaine Révision</th>
-              <th>Statut</th>
-              <th style={{ textAlign: "center" }}>Actions</th>
+              <th>{t("common_status")}</th>
+              <th style={{ textAlign: "center" }}>{t("common_actions")}</th>
             </tr>
           </thead>
           <tbody>

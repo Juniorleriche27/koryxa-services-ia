@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/lib/i18n";
 
 import React, { useState, useMemo } from "react";
 import {
@@ -53,6 +54,7 @@ export function ExpressPosModal({
   onClose,
   onSaleCompleted,
 }: ExpressPosModalProps) {
+  const { t } = useI18n();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cart, setCart] = useState<CartItem[]>([]);

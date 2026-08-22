@@ -22,8 +22,10 @@ import {
 export type { OfferItem, ProcedureItem, SaleItem };
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { getBusinessCategoryConfig, BusinessCategory } from "@/lib/service-ia/business-categories";
+import { useI18n } from "@/lib/i18n";
 
 export function RegistersSection({
+
   kind,
   items,
   loading,
@@ -68,7 +70,8 @@ export function RegistersSection({
     return () => window.removeEventListener("koryxa:organization-updated", updated);
   }, []);
 
-  const proConfig = getBusinessCategoryConfig(businessCategory);
+  const { t, lang } = useI18n();
+  const proConfig = getBusinessCategoryConfig(businessCategory, lang);
   const regConfig = proConfig.registers[kind];
 
   const [creating, setCreating] = useState(false);
@@ -121,17 +124,17 @@ export function RegistersSection({
               type="button"
               className="app-button app-button-secondary"
               onClick={toggleFullscreen}
-              title={isFullscreen ? "Quitter le mode plein écran" : "Afficher en plein écran immersif"}
+              title={isFullscreen ? t("common_exit_fullscreen") : t("common_fullscreen")}
             >
               {isFullscreen ? (
                 <>
                   <Minimize2 size={16} className="text-emerald-600 dark:text-emerald-400" />
-                  <span>Quitter Plein Écran</span>
+                  <span>{t("common_exit_fullscreen")}</span>
                 </>
               ) : (
                 <>
                   <Maximize2 size={16} className="text-emerald-600 dark:text-emerald-400" />
-                  <span>Plein Écran</span>
+                  <span>{t("common_fullscreen")}</span>
                 </>
               )}
             </button>
@@ -141,10 +144,10 @@ export function RegistersSection({
                 type="button"
                 className="app-button app-button-secondary"
                 onClick={() => setPosOpen(true)}
-                title="Ouvrir la caisse tactile comptoir pour encaissement rapide"
+                title={t("sales_btn_pos")}
               >
                 <ShoppingBag size={16} className="text-emerald-600 dark:text-emerald-400" />
-                <span>Mode Caisse Express (POS)</span>
+                <span>{t("sales_btn_pos")}</span>
               </button>
             )}
 
@@ -153,10 +156,10 @@ export function RegistersSection({
                 type="button"
                 className="app-button app-button-secondary"
                 onClick={() => setAiProcedureOpen(true)}
-                title="Générer automatiquement une méthode standardisée par IA"
+                title={t("procedures_btn_ai")}
               >
                 <Sparkles size={16} />
-                <span>Générer par IA (SOP)</span>
+                <span>{t("procedures_btn_ai")}</span>
               </button>
             )}
 
@@ -165,7 +168,7 @@ export function RegistersSection({
               onClick={() => setCreating(true)}
             >
               <Plus size={16} />
-              <span>Ajouter un(e) {regConfig.singular}</span>
+              <span>{t("common_add")} {regConfig.singular}</span>
             </button>
           </div>
         }
@@ -173,11 +176,11 @@ export function RegistersSection({
 
       <section className="app-panel">
         {loading && <TableSkeleton />}
-        {error && <EmptyState title="Données indisponibles" detail={error} onRetry={onReload} />}
+        {error && <EmptyState title={t("common_error")} detail={error} onRetry={onReload} />}
         {!loading && !error && items.length === 0 && (
           <EmptyState
-            title="Aucune donnée enregistrée"
-            detail="Aucun élément n'a encore été créé dans ce registre pour votre organisation."
+            title={t(kind === "sales" ? "sales_empty_title" : "common_all")}
+            detail={t(kind === "sales" ? "sales_empty_desc" : "common_loading")}
             onRetry={onReload}
           />
         )}

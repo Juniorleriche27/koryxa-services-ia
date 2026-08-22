@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/lib/i18n";
 
 import React, { useState } from "react";
 import { FileText } from "lucide-react";
@@ -18,6 +19,7 @@ export type AttachmentItem = {
 };
 
 export function DocumentsSection() {
+  const { t } = useI18n();
   const [registerType, setRegisterType] = useState("offers");
   const [recordId, setRecordId] = useState("");
   const [items, setItems] = useState<AttachmentItem[]>([]);

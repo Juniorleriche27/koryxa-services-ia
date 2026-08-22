@@ -149,52 +149,127 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
     async def _try_record_sale(
         self, s: AsyncSession, org: str, user: str, msg: str, currency: str
     ) -> dict[str, Any] | None:
-        amount_match = re.search(r"(\d+(?:[\s.,]\d+)?)\s*(?:f|cfa|xof|eur|\$|francs?)?", msg, re.IGNORECASE)
-        if not amount_match:
-            return None
+        msg_clean = msg.strip()
+        msg_lower = msg_clean.lower()
 
-        raw_amt = amount_match.group(1).replace(" ", "").replace(",", ".")
-        try:
-            amt = Decimal(raw_amt)
-        except Exception:
-            return None
-
-        # Detect quantity
+        # 1. Detect Quantity
         qty = Decimal("1.00")
-        qty_match = re.search(r"(?:de\s+)?(\d+)\s+(?:sacs?|cartons?|articles?|paquets?|boites?|unités?|kilos?|litres?|bouteilles?)", msg, re.IGNORECASE)
+        qty_match = re.search(r"(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(cartons?|sacs?|paquets?|boites?|boîtes?|bouteilles?|unités?|kilos?|kg|litres?|l|articles?|pièces?|pcs?)?", msg_lower)
         if qty_match:
             try:
-                qty = Decimal(qty_match.group(1))
+                qty = Decimal(qty_match.group(1).replace(",", "."))
             except Exception:
                 pass
 
-        # Detect client name
+        # 2. Detect Unit Price or Total Price
+        unit_price_match = re.search(r"(?:à|a|au prix de)\s*(\d+(?:[\s.,]\d+)?)\s*(?:f|cfa|xof|eur|\$|francs?)?(?:\s*(?:l'un|le|la|un|une|par|chaque))?", msg_lower)
+        total_amount_match = re.search(r"(?:pour un total de|total de|montant de|pour)\s*(\d+(?:[\s.,]\d+)?)\s*(?:f|cfa|xof|eur|\$|francs?)?", msg_lower)
+
+        all_numbers = [
+            Decimal(m.group(1).replace(" ", "").replace(",", "."))
+            for m in re.finditer(r"(\d+(?:[\s.,]\d+)?)\s*(?:f|cfa|xof|eur|\$|francs?)", msg_lower)
+            if m.group(1).strip()
+        ]
+        
+        unit_price = Decimal("0.00")
+        total_amount = Decimal("0.00")
+
+        if unit_price_match:
+            raw_u = unit_price_match.group(1).replace(" ", "").replace(",", ".")
+            try:
+                unit_price = Decimal(raw_u)
+                total_amount = unit_price * qty
+            except Exception:
+                pass
+        elif total_amount_match:
+            raw_t = total_amount_match.group(1).replace(" ", "").replace(",", ".")
+            try:
+                total_amount = Decimal(raw_t)
+                unit_price = total_amount / qty if qty > 0 else total_amount
+            except Exception:
+                pass
+        elif all_numbers:
+            val = all_numbers[-1]
+            if qty > 1 and val < 50000 and "un " in msg_lower:
+                unit_price = val
+                total_amount = unit_price * qty
+            else:
+                total_amount = val
+                unit_price = total_amount / qty if qty > 0 else total_amount
+        else:
+            standalone = re.findall(r"\b(\d+)\b", msg_lower)
+            if len(standalone) >= 2:
+                try:
+                    n1 = Decimal(standalone[0])
+                    n2 = Decimal(standalone[1])
+                    if n1 == qty:
+                        unit_price = n2
+                        total_amount = n1 * n2
+                    else:
+                        total_amount = n2
+                        unit_price = total_amount / qty if qty > 0 else total_amount
+                except Exception:
+                    pass
+
+        if total_amount <= 0:
+            return None
+
+        # 3. Detect Client Name
         client_name = "Client Comptoir"
-        for marker in ["pour", "à", "au client"]:
-            if f" {marker} " in msg.lower():
-                parts = msg.split(f" {marker} ", 1)[1].split(" payé")[0].split(" par")[0].strip()
-                if len(parts) > 1:
-                    client_name = parts[:80]
+        client_patterns = [
+            r"(?:par le client|au client|pour le client|du client|client|de la part de|par|pour)\s+([A-Za-zÀ-ÿ0-9_\-\s]{2,40})?(?:\s+(?:et|payé|règlement|reglement|en|avec|sur|via|date|qui|dont))?",
+        ]
+        for cp in client_patterns:
+            cm = re.search(cp, msg_clean, re.IGNORECASE)
+            if cm and cm.group(1):
+                raw_c = cm.group(1).strip()
+                for stop_word in [" et", " payé", " paye", " regler", " avec", " via", " moov", " orange", " wave", " mtn", " espece", " espèces"]:
+                    if stop_word in raw_c.lower():
+                        raw_c = raw_c[:raw_c.lower().index(stop_word)].strip()
+                if len(raw_c) >= 2 and raw_c.lower() not in ["moi", "une", "un", "la", "le", "des", "les", "vente"]:
+                    client_name = raw_c.title()
+                    break
+
+        # 4. Detect Item Label
+        item_label = "Article / Marchandise"
+        item_match = re.search(r"(?:vente de|vente d'|vente|vendu|pour)\s+(\d+\s+)?([A-Za-zÀ-ÿ0-9_\-\s]{2,50})?\s+(?:à|a\s+\d|au prix|pour|effectu|effectué|par|payé)", msg_clean, re.IGNORECASE)
+        if item_match and item_match.group(2):
+            raw_i = item_match.group(2).strip()
+            if len(raw_i) >= 2:
+                item_label = raw_i.title()
+        else:
+            if " de " in msg_lower:
+                parts = msg_clean.split(" de ", 1)[1].split(" à ")[0].split(" a ")[0].split(" pour ")[0].strip()
+                if len(parts) >= 2:
+                    item_label = parts.title()
+
+        # 5. Detect Payment Method
+        payment_method = "Espèces"
+        methods_map = {
+            "moov money": "Moov Money",
+            "moov": "Moov Money",
+            "orange money": "Orange Money",
+            "orange": "Orange Money",
+            "mtn money": "MTN Mobile Money",
+            "mtn": "MTN Mobile Money",
+            "wave": "Wave",
+            "virement": "Virement bancaire",
+            "chèque": "Chèque",
+            "cheque": "Chèque",
+            "carte": "Carte bancaire",
+            "espèces": "Espèces",
+            "espece": "Espèces",
+            "cash": "Espèces",
+        }
+        for k, v in methods_map.items():
+            if k in msg_lower:
+                payment_method = v
                 break
 
-        # Detect label
-        item_label = "Article / Service"
-        if " de " in msg.lower():
-            after_de = msg.lower().split(" de ", 1)[1]
-            extracted = after_de.split(" à ")[0].split(" pour ")[0].strip()
-            if len(extracted) > 1:
-                item_label = extracted.capitalize()[:120]
-
-        # Detect payment method and status
-        method = "Espèces"
-        for m in ["wave", "orange money", "mtn", "moov", "virement", "chèque", "carte"]:
-            if m in msg.lower():
-                method = m.capitalize()
-                break
-
-        is_paid = "impayé" not in msg.lower() and "crédit" not in msg.lower() and "en attente" not in msg.lower()
+        # 6. Payment Status
+        is_paid = "impayé" not in msg_lower and "impaye" not in msg_lower and "crédit" not in msg_lower and "credit" not in msg_lower and "en attente" not in msg_lower and "non payé" not in msg_lower
         pay_status = PaymentStatus.PAID if is_paid else PaymentStatus.UNPAID
-        paid_amt = amt if is_paid else Decimal("0.00")
+        paid_amount = total_amount if is_paid else Decimal("0.00")
 
         sale = await self.registers_svc.create_sale(
             s,
@@ -206,13 +281,13 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
                 client_name=client_name,
                 item_label=item_label,
                 quantity=qty,
-                unit_price=amt / qty if qty > 0 else amt,
-                total_amount=amt,
-                paid_amount=paid_amt,
+                unit_price=unit_price,
+                total_amount=total_amount,
+                paid_amount=paid_amount,
                 currency=currency,
-                payment_method=method,
+                payment_method=payment_method,
                 payment_status=pay_status,
-                comment="Enregistré via Coach IA Cora",
+                comment="Enregistré via Copilote IA Cora",
                 status=RecordStatus.VALIDATED,
             ),
         )
@@ -222,24 +297,26 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
         return {
             "reply": (
                 f"✅ Vente enregistrée et comptabilisée avec succès :\n\n"
-                f"• 🧾 Réf. Facture/Reçu : {sale.reference}\n"
+                f"• 🧾 Réf. Reçu/Facture : {sale.reference}\n"
                 f"• 👤 Client : {client_name}\n"
-                f"• 📦 Article(s) : {item_label} (Quantité: {qty})\n"
-                f"• 💰 Montant Total : {amt:,.0f} {currency}\n"
-                f"• 💳 Mode de paiement : {method}\n"
+                f"• 📦 Article(s) : {item_label} (Quantité : {qty:,.0f})\n"
+                f"• 💰 Prix unitaire : {unit_price:,.0f} {currency}\n"
+                f"• 💵 Montant Total : {total_amount:,.0f} {currency}\n"
+                f"• 💳 Mode de règlement : {payment_method}\n"
                 f"• 📌 Statut : {status_text}\n\n"
-                f"Votre chiffre d'affaires et votre caisse ont été immédiatement actualisés."
+                f"Votre chiffre d'affaires et votre solde de caisse ont été immédiatement actualisés."
             ).replace(",", " "),
             "agent_name": self.name,
             "agent_badge": self.badge,
-            "thinking_summary": f"Génération du document commercial {sale.reference} et synchronisation de la caisse...",
+            "thinking_summary": f"Génération du document commercial {sale.reference} et mise à jour de la caisse...",
             "action_executed": {
                 "type": "sale_created",
                 "reference": sale.reference,
-                "amount": float(amt),
+                "amount": float(total_amount),
                 "client": client_name,
             },
             "suggested_actions": [
                 {"title": "Consulter les Ventes", "action_type": "navigate", "payload": {"path": "/espace/ventes"}},
+                {"title": "Point de trésorerie", "action_type": "send_chat", "payload": {"prompt": "Quelle est ma trésorerie réelle et mon solde de caisse ?"}},
             ],
         }

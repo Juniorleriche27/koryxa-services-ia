@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/lib/i18n";
 
 import { useState } from "react";
 import {
@@ -42,6 +43,7 @@ export function CommercialDocumentViewer({
   onRecordPayment,
   onConvert,
 }: CommercialDocumentViewerProps) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
 
   if (!open || !doc) return null;

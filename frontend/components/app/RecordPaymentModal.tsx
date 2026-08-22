@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/lib/i18n";
 
 import { useState } from "react";
 import {
@@ -27,6 +28,7 @@ export function RecordPaymentModal({
   sale,
   onPaymentRecorded,
 }: RecordPaymentModalProps) {
+  const { t } = useI18n();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [amount, setAmount] = useState<string>("");

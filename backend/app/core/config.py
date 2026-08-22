@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     email_from: str = "notifications@koryxa.fr"
     public_app_url: str = "http://localhost:3000"
     knowlia_base_url: str = "http://localhost:8093"
-    knowlia_timeout_seconds: float = 30.0
+    knowlia_timeout_seconds: float = 60.0
     knowlia_shared_storage_path: str | None = None
 
     @model_validator(mode="after")

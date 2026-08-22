@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/lib/i18n";
 
 import React, { useState } from "react";
 import { Plus, UserRound } from "lucide-react";
@@ -27,6 +28,7 @@ export function OrganizationSection({
   error: string;
   onReload: () => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [inviting, setInviting] = useState(false);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -116,7 +118,7 @@ export function OrganizationSection({
           {invitations && invitations.length > 0 && (
             <section className="app-panel">
               <div className="app-panel-head">
-                <h2>Invitations en attente</h2>
+                <h2>{t("org_tab_invites")}</h2>
                 <StatusPill>{invitations.length}</StatusPill>
               </div>
               <div className="app-list">

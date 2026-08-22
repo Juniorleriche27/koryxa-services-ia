@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/lib/i18n";
 
 import { useState, useMemo, useEffect } from "react";
 import {
@@ -59,10 +60,12 @@ const CATEGORIES = [
 ];
 
 export function ExpensesTableInteractive({
+
   expenses,
   onSelect,
   onRefresh,
 }: ExpensesTableProps) {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Toutes");
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "unpaid" | "partial">("all");
@@ -308,7 +311,7 @@ export function ExpensesTableInteractive({
               <th>Mode Paiement</th>
               <th>N° Facture</th>
               <th>Commentaire</th>
-              <th>Actions</th>
+              <th>{t("common_actions")}</th>
             </tr>
           </thead>
           <tbody>
