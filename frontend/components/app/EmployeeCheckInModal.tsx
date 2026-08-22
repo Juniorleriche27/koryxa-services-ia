@@ -39,7 +39,7 @@ export function EmployeeCheckInModal({
 }: EmployeeCheckInModalProps) {
   const { t, lang } = useI18n();
   const { user } = useUser();
-  const [tab, setTab] = useState<"scan" | "manual">("scan");
+  const [tab, setTab] = useState<"scan" | "manual">(defaultToken ? "manual" : "manual");
   const [actionType, setActionType] = useState<"check-in" | "check-out">("check-in");
   const [employeeName, setEmployeeName] = useState<string>("");
   const [kioskToken, setKioskToken] = useState<string>(defaultToken);
@@ -98,11 +98,12 @@ export function EmployeeCheckInModal({
     return () => stopCamera();
   }, [open, tab, resultData]);
 
-  // Robust Dual-Tier Geolocation (GPS High-Accuracy -> Network / Cell Fallback)
+  // Robust Geolocation with guaranteed safety timer to never block buttons
   const obtainGps = () => {
-    if (!navigator.geolocation) {
-      setGpsError("La géolocalisation n'est pas supportée par votre appareil.");
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setGpsError("La géolocalisation n'est pas supportée sur cet appareil.");
       setGpsStatus("denied");
+      setGettingGps(false);
       return;
     }
 
@@ -110,9 +111,14 @@ export function EmployeeCheckInModal({
     setGpsStatus("requesting");
     setGpsError("");
 
-    // Tier 1: Try high accuracy GPS sensor
+    // Safety timeout: Reset gettingGps within 4s max
+    const safetyTimer = setTimeout(() => {
+      setGettingGps(false);
+    }, 4000);
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        clearTimeout(safetyTimer);
         setLatitude(pos.coords.latitude);
         setLongitude(pos.coords.longitude);
         setAccuracy(Math.round(pos.coords.accuracy));
@@ -121,9 +127,10 @@ export function EmployeeCheckInModal({
         setGpsError("");
       },
       (err) => {
-        // Tier 2: Fallback to network/cell triangulation (useful indoors)
+        // Fallback to low-accuracy (wifi/cell tower)
         navigator.geolocation.getCurrentPosition(
           (fallbackPos) => {
+            clearTimeout(safetyTimer);
             setLatitude(fallbackPos.coords.latitude);
             setLongitude(fallbackPos.coords.longitude);
             setAccuracy(Math.round(fallbackPos.coords.accuracy));
@@ -132,20 +139,21 @@ export function EmployeeCheckInModal({
             setGpsError("");
           },
           (fallbackErr) => {
+            clearTimeout(safetyTimer);
             setGettingGps(false);
             setGpsStatus("denied");
             if (err.code === 1) {
-              setGpsError("Accès GPS non autorisé. Cliquez ci-dessous pour autoriser la localisation.");
+              setGpsError("Accès GPS non autorisé. Cliquez sur 'Autoriser GPS' ci-dessous.");
             } else if (err.code === 2) {
-              setGpsError("Position indisponible. Activez la localisation dans les réglages de votre smartphone.");
+              setGpsError("Position indisponible. Activez la localisation dans les réglages de votre téléphone.");
             } else {
-              setGpsError("Délai d'attente GPS dépassé. Veuillez réessayer.");
+              setGpsError("Délai d'attente GPS dépassé. Cliquez sur 'Autoriser GPS' pour réessayer.");
             }
           },
-          { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: 3500, maximumAge: 60000 }
         );
       },
-      { enableHighAccuracy: true, timeout: 7000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 3500, maximumAge: 30000 }
     );
   };
 
@@ -230,22 +238,18 @@ export function EmployeeCheckInModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg("");
+
     if (!employeeName.trim()) {
       setErrorMsg("Veuillez renseigner votre nom ou identifiant collaborateur.");
       return;
     }
     if (!kioskToken.trim()) {
-      setErrorMsg("Jeton de borne manquant. Veuillez scanner le QR Code ou saisir le code affiché.");
+      setErrorMsg("Code de borne manquant : veuillez saisir le code affiché sur la borne (ex: 2C1880BA) ou scanner le QR code.");
       return;
     }
 
-    // If GPS is not acquired yet, trigger GPS request first!
-    if (latitude === null && gpsStatus !== "granted") {
-      obtainGps();
-    }
-
     setBusy(true);
-    setErrorMsg("");
     setResultData(null);
 
     try {
@@ -266,7 +270,7 @@ export function EmployeeCheckInModal({
       setResultData(res);
       if (onSuccess) await onSuccess();
     } catch (err: any) {
-      setErrorMsg(err.message || "Échec de validation du pointage");
+      setErrorMsg(err.message || "Échec de validation du pointage. Veuillez vérifier le code de la borne.");
     } finally {
       setBusy(false);
     }
@@ -289,8 +293,13 @@ export function EmployeeCheckInModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             className="p-2 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition cursor-pointer"
+            aria-label="Fermer"
           >
             <X size={18} />
           </button>
@@ -340,8 +349,9 @@ export function EmployeeCheckInModal({
             </div>
 
             <button
+              type="button"
               onClick={onClose}
-              className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-md hover:bg-primary/90 transition cursor-pointer"
+              className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-md hover:bg-primary/90 transition cursor-pointer"
             >
               Terminer
             </button>
@@ -354,25 +364,25 @@ export function EmployeeCheckInModal({
               <button
                 type="button"
                 onClick={() => setActionType("check-in")}
-                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer min-h-[42px] ${
                   actionType === "check-in"
-                    ? "bg-card text-foreground shadow-xs"
+                    ? "bg-card text-foreground shadow-xs border border-border/60"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <UserCheck size={14} className={actionType === "check-in" ? "text-emerald-500" : ""} />
+                <UserCheck size={15} className={actionType === "check-in" ? "text-emerald-500" : ""} />
                 <span>Arrivée (Check-In)</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActionType("check-out")}
-                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer min-h-[42px] ${
                   actionType === "check-out"
-                    ? "bg-card text-foreground shadow-xs"
+                    ? "bg-card text-foreground shadow-xs border border-border/60"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <LogOut size={14} className={actionType === "check-out" ? "text-amber-500" : ""} />
+                <LogOut size={15} className={actionType === "check-out" ? "text-amber-500" : ""} />
                 <span>Départ (Check-Out)</span>
               </button>
             </div>
@@ -382,7 +392,7 @@ export function EmployeeCheckInModal({
               <button
                 type="button"
                 onClick={() => setTab("scan")}
-                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer min-h-[38px] ${
                   tab === "scan"
                     ? "bg-primary/10 text-primary border border-primary/30"
                     : "text-muted-foreground hover:bg-muted"
@@ -394,7 +404,7 @@ export function EmployeeCheckInModal({
               <button
                 type="button"
                 onClick={() => setTab("manual")}
-                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer min-h-[38px] ${
                   tab === "manual"
                     ? "bg-primary/10 text-primary border border-primary/30"
                     : "text-muted-foreground hover:bg-muted"
@@ -407,21 +417,26 @@ export function EmployeeCheckInModal({
 
             {/* Live Camera Scanner Box */}
             {tab === "scan" ? (
-              <div className="relative rounded-2xl overflow-hidden bg-black aspect-square max-h-[200px] mx-auto flex items-center justify-center border-2 border-primary/40 shadow-inner">
-                <video ref={videoRef} className="w-full h-full object-cover" />
-                <canvas ref={canvasRef} className="hidden" />
+              <div className="space-y-2">
+                <div className="relative rounded-2xl overflow-hidden bg-black aspect-square max-h-[200px] mx-auto flex items-center justify-center border-2 border-primary/40 shadow-inner">
+                  <video ref={videoRef} className="w-full h-full object-cover" />
+                  <canvas ref={canvasRef} className="hidden" />
 
-                {/* Viewfinder Target Graphic */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div className="w-32 h-32 border-2 border-emerald-400/80 rounded-2xl animate-pulse flex items-center justify-center">
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+                  {/* Viewfinder Target Graphic */}
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className="w-32 h-32 border-2 border-emerald-400/80 rounded-2xl animate-pulse flex items-center justify-center">
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-2 px-3 py-1 rounded-full bg-black/60 text-[10px] text-white font-medium backdrop-blur-xs flex items-center gap-1.5">
+                    <Camera size={12} className="text-emerald-400" />
+                    <span>Visez le QR code sur la borne</span>
                   </div>
                 </div>
-
-                <div className="absolute bottom-2 px-3 py-1 rounded-full bg-black/60 text-[10px] text-white font-medium backdrop-blur-xs flex items-center gap-1.5">
-                  <Camera size={12} className="text-emerald-400" />
-                  <span>Visez le QR code sur la borne</span>
-                </div>
+                {cameraError && (
+                  <p className="text-[11px] text-destructive text-center">{cameraError}</p>
+                )}
               </div>
             ) : (
               /* Manual Token Input */
@@ -435,10 +450,9 @@ export function EmployeeCheckInModal({
                     value={kioskToken}
                     onChange={(e) => setKioskToken(e.target.value.toUpperCase())}
                     placeholder="Ex: 2C1880BA"
-                    className="w-full p-3 pl-10 rounded-2xl border border-border bg-card font-mono text-base font-black tracking-widest text-foreground focus:ring-2 focus:ring-primary focus:outline-hidden"
-                    required
+                    className="w-full p-3.5 pl-10 rounded-2xl border border-border bg-card font-mono text-base font-black tracking-widest text-foreground focus:ring-2 focus:ring-primary focus:outline-hidden"
                   />
-                  <QrCode size={18} className="absolute left-3.5 top-3.5 text-muted-foreground pointer-events-none" />
+                  <QrCode size={18} className="absolute left-3.5 top-4 text-muted-foreground pointer-events-none" />
                 </div>
               </div>
             )}
@@ -453,20 +467,19 @@ export function EmployeeCheckInModal({
                   type="text"
                   value={employeeName}
                   onChange={(e) => setEmployeeName(e.target.value)}
-                  placeholder="Ex: Paul Koffi"
-                  className="w-full p-3 pl-10 rounded-2xl border border-border bg-card text-sm font-semibold text-foreground focus:ring-2 focus:ring-primary focus:outline-hidden"
-                  required
+                  placeholder="Ex: Yayra Junior LAMADOKOU"
+                  className="w-full p-3.5 pl-10 rounded-2xl border border-border bg-card text-sm font-semibold text-foreground focus:ring-2 focus:ring-primary focus:outline-hidden"
                 />
-                <Users size={18} className="absolute left-3.5 top-3.5 text-muted-foreground pointer-events-none" />
+                <Users size={18} className="absolute left-3.5 top-4 text-muted-foreground pointer-events-none" />
               </div>
             </div>
 
             {/* Interactive GPS Permission & Status Card */}
             <div className="p-3.5 rounded-2xl bg-muted/60 border border-border/80 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   <div
-                    className={`w-7 h-7 rounded-xl flex items-center justify-center ${
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
                       latitude
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                         : gettingGps
@@ -474,17 +487,17 @@ export function EmployeeCheckInModal({
                         : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                     }`}
                   >
-                    <MapPin size={16} />
+                    <MapPin size={17} />
                   </div>
-                  <div>
-                    <span className="font-bold text-xs text-foreground block">
+                  <div className="min-w-0">
+                    <span className="font-bold text-xs text-foreground block truncate">
                       {latitude
                         ? "Position GPS Validée"
                         : gettingGps
                         ? "Recherche de position…"
                         : "Accès GPS Requis"}
                     </span>
-                    <span className="text-[11px] text-muted-foreground block">
+                    <span className="text-[11px] text-muted-foreground block truncate">
                       {latitude
                         ? `Précision : ±${accuracy || 10} mètres`
                         : "Nécessaire pour prouver la présence"}
@@ -495,8 +508,7 @@ export function EmployeeCheckInModal({
                 <button
                   type="button"
                   onClick={obtainGps}
-                  disabled={gettingGps}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm active:scale-95 ${
                     latitude
                       ? "bg-card border border-border text-foreground hover:bg-muted"
                       : "bg-emerald-600 hover:bg-emerald-700 text-white font-black"
@@ -504,13 +516,13 @@ export function EmployeeCheckInModal({
                 >
                   {gettingGps ? (
                     <>
-                      <RefreshCw size={12} className="animate-spin" />
-                      <span>Localisation…</span>
+                      <RefreshCw size={13} className="animate-spin" />
+                      <span>Recherche…</span>
                     </>
                   ) : latitude ? (
                     <>
                       <CheckCircle2 size={13} className="text-emerald-500" />
-                      <span>Réactualiser</span>
+                      <span>Actualiser</span>
                     </>
                   ) : (
                     <>
@@ -529,7 +541,7 @@ export function EmployeeCheckInModal({
                     <button
                       type="button"
                       onClick={() => setShowGpsHelp((prev) => !prev)}
-                      className="ml-1.5 underline font-bold text-primary inline-flex items-center gap-0.5"
+                      className="ml-1.5 underline font-bold text-primary inline-flex items-center gap-0.5 cursor-pointer"
                     >
                       <HelpCircle size={11} /> Comment débloquer ?
                     </button>
@@ -538,7 +550,7 @@ export function EmployeeCheckInModal({
               )}
 
               {showGpsHelp && (
-                <div className="p-3 rounded-xl bg-card border border-border/80 text-[11px] text-muted-foreground space-y-1.5">
+                <div className="p-3 rounded-xl bg-card border border-border/80 text-[11px] text-muted-foreground space-y-1.5 animate-in fade-in duration-150">
                   <div className="font-bold text-foreground flex items-center gap-1">
                     <Lock size={12} className="text-primary" />
                     <span>Pour autoriser la localisation :</span>
@@ -553,17 +565,17 @@ export function EmployeeCheckInModal({
             </div>
 
             {errorMsg && (
-              <div className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-2">
+              <div className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-150">
                 <AlertCircle size={16} className="shrink-0" />
                 <span>{errorMsg}</span>
               </div>
             )}
 
-            {/* Submit Action Button */}
+            {/* Submit Action Button - NEVER silently disabled */}
             <button
               type="submit"
-              disabled={busy || !kioskToken.trim()}
-              className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-md hover:bg-primary/90 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              disabled={busy}
+              className="w-full py-3.5 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
             >
               {busy ? (
                 <>
