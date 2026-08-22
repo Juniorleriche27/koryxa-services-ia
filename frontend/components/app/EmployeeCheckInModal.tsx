@@ -16,6 +16,9 @@ import {
   ShieldCheck,
   Users,
   KeyRound,
+  Compass,
+  HelpCircle,
+  Lock,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { useI18n } from "@/lib/i18n";
@@ -44,7 +47,9 @@ export function EmployeeCheckInModal({
   const [longitude, setLongitude] = useState<number | null>(null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
   const [gettingGps, setGettingGps] = useState<boolean>(false);
+  const [gpsStatus, setGpsStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
   const [gpsError, setGpsError] = useState<string>("");
+  const [showGpsHelp, setShowGpsHelp] = useState<boolean>(false);
   const [busy, setBusy] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [resultData, setResultData] = useState<any | null>(null);
@@ -93,25 +98,54 @@ export function EmployeeCheckInModal({
     return () => stopCamera();
   }, [open, tab, resultData]);
 
+  // Robust Dual-Tier Geolocation (GPS High-Accuracy -> Network / Cell Fallback)
   const obtainGps = () => {
     if (!navigator.geolocation) {
-      setGpsError("La géolocalisation n'est pas supportée par votre navigateur.");
+      setGpsError("La géolocalisation n'est pas supportée par votre appareil.");
+      setGpsStatus("denied");
       return;
     }
+
     setGettingGps(true);
+    setGpsStatus("requesting");
     setGpsError("");
+
+    // Tier 1: Try high accuracy GPS sensor
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLatitude(pos.coords.latitude);
         setLongitude(pos.coords.longitude);
         setAccuracy(Math.round(pos.coords.accuracy));
+        setGpsStatus("granted");
         setGettingGps(false);
+        setGpsError("");
       },
       (err) => {
-        setGettingGps(false);
-        setGpsError("Veuillez autoriser l'accès GPS pour valider votre présence sur place.");
+        // Tier 2: Fallback to network/cell triangulation (useful indoors)
+        navigator.geolocation.getCurrentPosition(
+          (fallbackPos) => {
+            setLatitude(fallbackPos.coords.latitude);
+            setLongitude(fallbackPos.coords.longitude);
+            setAccuracy(Math.round(fallbackPos.coords.accuracy));
+            setGpsStatus("granted");
+            setGettingGps(false);
+            setGpsError("");
+          },
+          (fallbackErr) => {
+            setGettingGps(false);
+            setGpsStatus("denied");
+            if (err.code === 1) {
+              setGpsError("Accès GPS non autorisé. Cliquez ci-dessous pour autoriser la localisation.");
+            } else if (err.code === 2) {
+              setGpsError("Position indisponible. Activez la localisation dans les réglages de votre smartphone.");
+            } else {
+              setGpsError("Délai d'attente GPS dépassé. Veuillez réessayer.");
+            }
+          },
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+        );
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 7000, maximumAge: 30000 }
     );
   };
 
@@ -132,11 +166,11 @@ export function EmployeeCheckInModal({
           scanFrame();
         }
       } else {
-        setCameraError("Caméra non accessible. Veuillez saisir le code manuellement.");
+        setCameraError("Caméra non accessible. Utilisez la saisie du code.");
         setTab("manual");
       }
     } catch (err: any) {
-      setCameraError("Impossible d'activer la caméra. Utilisez la saisie manuelle.");
+      setCameraError("Impossible d'activer la caméra. Utilisez la saisie du code.");
       setTab("manual");
     }
   };
@@ -173,7 +207,6 @@ export function EmployeeCheckInModal({
       });
 
       if (code && code.data) {
-        // Parse token from either URL ?scan=TOKEN, JSON payload, or raw token string
         let extractedToken = code.data.trim();
         if (extractedToken.includes("scan=")) {
           const match = extractedToken.match(/scan=([^&]+)/);
@@ -204,6 +237,11 @@ export function EmployeeCheckInModal({
     if (!kioskToken.trim()) {
       setErrorMsg("Jeton de borne manquant. Veuillez scanner le QR Code ou saisir le code affiché.");
       return;
+    }
+
+    // If GPS is not acquired yet, trigger GPS request first!
+    if (latitude === null && gpsStatus !== "granted") {
+      obtainGps();
     }
 
     setBusy(true);
@@ -296,7 +334,7 @@ export function EmployeeCheckInModal({
                 <span className="text-muted-foreground">Sécurité :</span>
                 <span className="text-teal-600 dark:text-teal-400 font-semibold flex items-center gap-1">
                   <ShieldCheck size={12} />
-                  TOTP + GPS validés
+                  TOTP + Position validées
                 </span>
               </div>
             </div>
@@ -340,11 +378,11 @@ export function EmployeeCheckInModal({
             </div>
 
             {/* Mode Tabs: Live Scanner vs Manual Code */}
-            <div className="flex items-center justify-center gap-2 border-b border-border/80 pb-3">
+            <div className="grid grid-cols-2 gap-2 border-b border-border/80 pb-3">
               <button
                 type="button"
                 onClick={() => setTab("scan")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                   tab === "scan"
                     ? "bg-primary/10 text-primary border border-primary/30"
                     : "text-muted-foreground hover:bg-muted"
@@ -356,7 +394,7 @@ export function EmployeeCheckInModal({
               <button
                 type="button"
                 onClick={() => setTab("manual")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                   tab === "manual"
                     ? "bg-primary/10 text-primary border border-primary/30"
                     : "text-muted-foreground hover:bg-muted"
@@ -369,20 +407,20 @@ export function EmployeeCheckInModal({
 
             {/* Live Camera Scanner Box */}
             {tab === "scan" ? (
-              <div className="relative rounded-2xl overflow-hidden bg-black aspect-square max-h-[220px] mx-auto flex items-center justify-center border-2 border-primary/40 shadow-inner">
+              <div className="relative rounded-2xl overflow-hidden bg-black aspect-square max-h-[200px] mx-auto flex items-center justify-center border-2 border-primary/40 shadow-inner">
                 <video ref={videoRef} className="w-full h-full object-cover" />
                 <canvas ref={canvasRef} className="hidden" />
 
                 {/* Viewfinder Target Graphic */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div className="w-36 h-36 border-2 border-emerald-400/80 rounded-2xl animate-pulse flex items-center justify-center">
+                  <div className="w-32 h-32 border-2 border-emerald-400/80 rounded-2xl animate-pulse flex items-center justify-center">
                     <div className="w-2 h-2 bg-emerald-400 rounded-full" />
                   </div>
                 </div>
 
                 <div className="absolute bottom-2 px-3 py-1 rounded-full bg-black/60 text-[10px] text-white font-medium backdrop-blur-xs flex items-center gap-1.5">
                   <Camera size={12} className="text-emerald-400" />
-                  <span>Pointez la caméra vers l&apos;écran de la borne</span>
+                  <span>Visez le QR code sur la borne</span>
                 </div>
               </div>
             ) : (
@@ -396,7 +434,7 @@ export function EmployeeCheckInModal({
                     type="text"
                     value={kioskToken}
                     onChange={(e) => setKioskToken(e.target.value.toUpperCase())}
-                    placeholder="Ex: 8D4F-1A2B"
+                    placeholder="Ex: 2C1880BA"
                     className="w-full p-3 pl-10 rounded-2xl border border-border bg-card font-mono text-base font-black tracking-widest text-foreground focus:ring-2 focus:ring-primary focus:outline-hidden"
                     required
                   />
@@ -423,33 +461,99 @@ export function EmployeeCheckInModal({
               </div>
             </div>
 
-            {/* GPS Geofence Status Badge */}
-            <div className="p-3 rounded-2xl bg-muted/60 border border-border/80 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <MapPin size={16} className={latitude ? "text-emerald-500" : "text-amber-500"} />
-                <div>
-                  <span className="font-semibold block text-foreground">
-                    {gettingGps
-                      ? "Acquisition GPS en cours…"
-                      : latitude
-                      ? `Position GPS validée (±${accuracy}m)`
-                      : "GPS non détecté"}
-                  </span>
-                  {gpsError && <span className="text-[10px] text-destructive block">{gpsError}</span>}
+            {/* Interactive GPS Permission & Status Card */}
+            <div className="p-3.5 rounded-2xl bg-muted/60 border border-border/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-7 h-7 rounded-xl flex items-center justify-center ${
+                      latitude
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : gettingGps
+                        ? "bg-primary/10 text-primary"
+                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    }`}
+                  >
+                    <MapPin size={16} />
+                  </div>
+                  <div>
+                    <span className="font-bold text-xs text-foreground block">
+                      {latitude
+                        ? "Position GPS Validée"
+                        : gettingGps
+                        ? "Recherche de position…"
+                        : "Accès GPS Requis"}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground block">
+                      {latitude
+                        ? `Précision : ±${accuracy || 10} mètres`
+                        : "Nécessaire pour prouver la présence"}
+                    </span>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={obtainGps}
+                  disabled={gettingGps}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                    latitude
+                      ? "bg-card border border-border text-foreground hover:bg-muted"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white font-black"
+                  }`}
+                >
+                  {gettingGps ? (
+                    <>
+                      <RefreshCw size={12} className="animate-spin" />
+                      <span>Localisation…</span>
+                    </>
+                  ) : latitude ? (
+                    <>
+                      <CheckCircle2 size={13} className="text-emerald-500" />
+                      <span>Réactualiser</span>
+                    </>
+                  ) : (
+                    <>
+                      <Compass size={13} />
+                      <span>Autoriser GPS</span>
+                    </>
+                  )}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={obtainGps}
-                disabled={gettingGps}
-                className="px-2.5 py-1 rounded-xl bg-card border border-border text-[11px] font-bold hover:bg-muted transition cursor-pointer"
-              >
-                {gettingGps ? <RefreshCw size={12} className="animate-spin" /> : "Actualiser"}
-              </button>
+
+              {gpsError && (
+                <div className="pt-2 border-t border-border/60 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <span>{gpsError}</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowGpsHelp((prev) => !prev)}
+                      className="ml-1.5 underline font-bold text-primary inline-flex items-center gap-0.5"
+                    >
+                      <HelpCircle size={11} /> Comment débloquer ?
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {showGpsHelp && (
+                <div className="p-3 rounded-xl bg-card border border-border/80 text-[11px] text-muted-foreground space-y-1.5">
+                  <div className="font-bold text-foreground flex items-center gap-1">
+                    <Lock size={12} className="text-primary" />
+                    <span>Pour autoriser la localisation :</span>
+                  </div>
+                  <ol className="list-decimal list-inside space-y-1 pl-1">
+                    <li>Touchez l&apos;icône 🔒 à gauche de l&apos;adresse web</li>
+                    <li>Appuyez sur <strong>Autorisations</strong> ou <strong>Position</strong></li>
+                    <li>Sélectionnez <strong>Autoriser</strong> puis cliquez sur &quot;Autoriser GPS&quot;</li>
+                  </ol>
+                </div>
+              )}
             </div>
 
             {errorMsg && (
-              <div className="p-3 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-2">
+              <div className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-2">
                 <AlertCircle size={16} className="shrink-0" />
                 <span>{errorMsg}</span>
               </div>
@@ -458,7 +562,7 @@ export function EmployeeCheckInModal({
             {/* Submit Action Button */}
             <button
               type="submit"
-              disabled={busy || gettingGps || !kioskToken.trim()}
+              disabled={busy || !kioskToken.trim()}
               className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-md hover:bg-primary/90 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {busy ? (

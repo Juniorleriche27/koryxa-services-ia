@@ -4,8 +4,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class AttendanceCheckInRequest(BaseModel):
     token: str = Field(..., description="Dynamic TOTP token from kiosk screen")
-    latitude: float = Field(..., description="Employee smartphone GPS latitude")
-    longitude: float = Field(..., description="Employee smartphone GPS longitude")
+    latitude: float | None = Field(None, description="Employee smartphone GPS latitude")
+    longitude: float | None = Field(None, description="Employee smartphone GPS longitude")
     employee_name: str | None = None
     notes: str | None = None
 

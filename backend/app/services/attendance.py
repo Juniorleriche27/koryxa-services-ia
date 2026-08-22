@@ -96,6 +96,12 @@ class AttendanceService:
 
         # 2. Verify GPS Geofence if coordinates are set on the organization
         if org.latitude is not None and org.longitude is not None:
+            if data.latitude is None or data.longitude is None:
+                raise ApplicationError(
+                    "gps_required",
+                    "Position GPS obligatoire : Votre établissement requiert la validation de votre présence sur place. Veuillez autoriser l'accès GPS sur votre smartphone.",
+                    400,
+                )
             distance = haversine_distance_meters(
                 org.latitude, org.longitude, data.latitude, data.longitude
             )
