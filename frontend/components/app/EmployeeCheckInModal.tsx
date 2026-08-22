@@ -19,6 +19,7 @@ import {
   Compass,
   HelpCircle,
   Lock,
+  Sparkles,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { useI18n } from "@/lib/i18n";
@@ -39,7 +40,7 @@ export function EmployeeCheckInModal({
 }: EmployeeCheckInModalProps) {
   const { t, lang } = useI18n();
   const { user } = useUser();
-  const [tab, setTab] = useState<"scan" | "manual">(defaultToken ? "manual" : "manual");
+  const [tab, setTab] = useState<"scan" | "manual">("manual");
   const [actionType, setActionType] = useState<"check-in" | "check-out">("check-in");
   const [employeeName, setEmployeeName] = useState<string>("");
   const [kioskToken, setKioskToken] = useState<string>(defaultToken);
@@ -53,11 +54,13 @@ export function EmployeeCheckInModal({
   const [busy, setBusy] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [resultData, setResultData] = useState<any | null>(null);
+  const [scannedSuccess, setScannedSuccess] = useState<boolean>(false);
 
   // Camera video and canvas refs for live jsQR scanning
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [cameraActive, setCameraActive] = useState<boolean>(false);
+  const [cameraLoading, setCameraLoading] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string>("");
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -88,7 +91,7 @@ export function EmployeeCheckInModal({
     }
   }, [open]);
 
-  // Start camera when on scan tab
+  // Handle camera start / stop when tab changes
   useEffect(() => {
     if (open && tab === "scan" && !resultData) {
       startCamera();
@@ -98,7 +101,7 @@ export function EmployeeCheckInModal({
     return () => stopCamera();
   }, [open, tab, resultData]);
 
-  // Robust Geolocation with guaranteed safety timer to never block buttons
+  // Robust Geolocation
   const obtainGps = () => {
     if (typeof window === "undefined" || !navigator.geolocation) {
       setGpsError("La géolocalisation n'est pas supportée sur cet appareil.");
@@ -111,10 +114,9 @@ export function EmployeeCheckInModal({
     setGpsStatus("requesting");
     setGpsError("");
 
-    // Safety timeout: Reset gettingGps within 4s max
     const safetyTimer = setTimeout(() => {
       setGettingGps(false);
-    }, 4000);
+    }, 5000);
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -127,7 +129,6 @@ export function EmployeeCheckInModal({
         setGpsError("");
       },
       (err) => {
-        // Fallback to low-accuracy (wifi/cell tower)
         navigator.geolocation.getCurrentPosition(
           (fallbackPos) => {
             clearTimeout(safetyTimer);
@@ -143,43 +144,58 @@ export function EmployeeCheckInModal({
             setGettingGps(false);
             setGpsStatus("denied");
             if (err.code === 1) {
-              setGpsError("Accès GPS non autorisé. Cliquez sur 'Autoriser GPS' ci-dessous.");
+              setGpsError("Accès GPS refusé. Veuillez autoriser l'accès localisation.");
             } else if (err.code === 2) {
-              setGpsError("Position indisponible. Activez la localisation dans les réglages de votre téléphone.");
+              setGpsError("Position indisponible. Activez le GPS dans les réglages du smartphone.");
             } else {
-              setGpsError("Délai d'attente GPS dépassé. Cliquez sur 'Autoriser GPS' pour réessayer.");
+              setGpsError("Délai GPS dépassé. Cliquez sur 'Autoriser' pour réessayer.");
             }
           },
-          { enableHighAccuracy: false, timeout: 3500, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
         );
       },
-      { enableHighAccuracy: true, timeout: 3500, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 4000, maximumAge: 30000 }
     );
   };
 
   const startCamera = async () => {
     setCameraError("");
     setCameraActive(false);
+    setCameraLoading(true);
+
     try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError("L'accès à la caméra n'est pas supporté par ce navigateur.");
+        setCameraLoading(false);
+        return;
+      }
+
+      let stream: MediaStream;
+      try {
+        // Try rear environment camera first (ideal for mobile QR scanning)
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
         });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute("playsinline", "true");
-          await videoRef.current.play();
-          setCameraActive(true);
-          scanFrame();
-        }
-      } else {
-        setCameraError("Caméra non accessible. Utilisez la saisie du code.");
-        setTab("manual");
+      } catch {
+        // Fallback to any camera (webcam, front camera)
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+      }
+
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", "true");
+        await videoRef.current.play();
+        setCameraActive(true);
+        setCameraLoading(false);
+        scanFrame();
       }
     } catch (err: any) {
-      setCameraError("Impossible d'activer la caméra. Utilisez la saisie du code.");
-      setTab("manual");
+      console.warn("Camera init failed:", err);
+      setCameraLoading(false);
+      setCameraError("Accès caméra refusé ou non disponible. Veuillez autoriser la caméra ou utiliser la saisie du code manuel.");
     }
   };
 
@@ -193,6 +209,7 @@ export function EmployeeCheckInModal({
       streamRef.current = null;
     }
     setCameraActive(false);
+    setCameraLoading(false);
   };
 
   const scanFrame = () => {
@@ -227,8 +244,10 @@ export function EmployeeCheckInModal({
         }
 
         setKioskToken(extractedToken.toUpperCase());
+        setScannedSuccess(true);
         stopCamera();
         setTab("manual");
+        setTimeout(() => setScannedSuccess(false), 4000);
         return;
       }
     }
@@ -245,7 +264,7 @@ export function EmployeeCheckInModal({
       return;
     }
     if (!kioskToken.trim()) {
-      setErrorMsg("Code de borne manquant : veuillez saisir le code affiché sur la borne (ex: 2C1880BA) ou scanner le QR code.");
+      setErrorMsg("Code de borne manquant : veuillez renseigner le code à 8 caractères affiché sur la borne (ex: 2C1880BA) ou scanner le QR code.");
       return;
     }
 
@@ -387,7 +406,7 @@ export function EmployeeCheckInModal({
               </button>
             </div>
 
-            {/* Mode Tabs: Live Scanner vs Manual Code */}
+            {/* Mode Tabs: Scanner Caméra vs Code Manuel */}
             <div className="grid grid-cols-2 gap-2 border-b border-border/80 pb-3">
               <button
                 type="button"
@@ -415,27 +434,63 @@ export function EmployeeCheckInModal({
               </button>
             </div>
 
-            {/* Live Camera Scanner Box */}
+            {scannedSuccess && (
+              <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2 animate-in fade-in duration-150">
+                <CheckCircle2 size={16} />
+                <span>Code borne capté avec succès : {kioskToken} !</span>
+              </div>
+            )}
+
+            {/* Camera Viewfinder Screen */}
             {tab === "scan" ? (
-              <div className="space-y-2">
-                <div className="relative rounded-2xl overflow-hidden bg-black aspect-square max-h-[200px] mx-auto flex items-center justify-center border-2 border-primary/40 shadow-inner">
-                  <video ref={videoRef} className="w-full h-full object-cover" />
+              <div className="space-y-3">
+                <div className="relative rounded-2xl overflow-hidden bg-slate-950 aspect-video max-h-[220px] mx-auto flex items-center justify-center border-2 border-primary/40 shadow-inner">
+                  {cameraLoading && (
+                    <div className="flex flex-col items-center justify-center text-slate-300 gap-2">
+                      <RefreshCw size={24} className="animate-spin text-emerald-400" />
+                      <span className="text-xs font-semibold">Activation de la caméra…</span>
+                    </div>
+                  )}
+
+                  <video ref={videoRef} className={`w-full h-full object-cover ${cameraActive ? "block" : "hidden"}`} />
                   <canvas ref={canvasRef} className="hidden" />
 
-                  {/* Viewfinder Target Graphic */}
-                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className="w-32 h-32 border-2 border-emerald-400/80 rounded-2xl animate-pulse flex items-center justify-center">
-                      <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+                  {cameraActive && (
+                    <>
+                      {/* Animated Viewfinder Box */}
+                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                        <div className="w-36 h-36 border-2 border-emerald-400/90 rounded-2xl animate-pulse flex items-center justify-center shadow-lg">
+                          <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+                        </div>
+                      </div>
+                      <div className="absolute bottom-2 px-3 py-1 rounded-full bg-black/70 text-[10px] text-white font-medium backdrop-blur-xs flex items-center gap-1.5">
+                        <Sparkles size={12} className="text-emerald-400" />
+                        <span>Visez le QR code de la borne</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {cameraError && (
+                  <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs space-y-2">
+                    <p className="font-semibold">{cameraError}</p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={startCamera}
+                        className="px-3 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-bold cursor-pointer"
+                      >
+                        Réessayer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTab("manual")}
+                        className="px-3 py-1 rounded-lg bg-card border border-border text-foreground text-xs font-bold cursor-pointer"
+                      >
+                        Saisir le code
+                      </button>
                     </div>
                   </div>
-
-                  <div className="absolute bottom-2 px-3 py-1 rounded-full bg-black/60 text-[10px] text-white font-medium backdrop-blur-xs flex items-center gap-1.5">
-                    <Camera size={12} className="text-emerald-400" />
-                    <span>Visez le QR code sur la borne</span>
-                  </div>
-                </div>
-                {cameraError && (
-                  <p className="text-[11px] text-destructive text-center">{cameraError}</p>
                 )}
               </div>
             ) : (
@@ -474,33 +529,37 @@ export function EmployeeCheckInModal({
               </div>
             </div>
 
-            {/* Interactive GPS Permission & Status Card */}
-            <div className="p-3.5 rounded-2xl bg-muted/60 border border-border/80 space-y-2">
+            {/* Professional GPS Status Card */}
+            <div className={`p-3.5 rounded-2xl border transition-all ${
+              latitude
+                ? "bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-950/20"
+                : "bg-muted/60 border-border/80"
+            }`}>
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <div
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                       latitude
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
                         : gettingGps
                         ? "bg-primary/10 text-primary"
-                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
                     }`}
                   >
-                    <MapPin size={17} />
+                    <MapPin size={18} />
                   </div>
                   <div className="min-w-0">
                     <span className="font-bold text-xs text-foreground block truncate">
                       {latitude
-                        ? "Position GPS Validée"
+                        ? "Position GPS Confirmée"
                         : gettingGps
-                        ? "Recherche de position…"
-                        : "Accès GPS Requis"}
+                        ? "Détection de votre position…"
+                        : "Vérification de Présence GPS"}
                     </span>
-                    <span className="text-[11px] text-muted-foreground block truncate">
+                    <span className={`text-[11px] block truncate ${latitude ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-muted-foreground"}`}>
                       {latitude
-                        ? `Précision : ±${accuracy || 10} mètres`
-                        : "Nécessaire pour prouver la présence"}
+                        ? `Précision vérifiée (±${accuracy || 8} mètres)`
+                        : "Requis pour prouver la présence physique"}
                     </span>
                   </div>
                 </div>
@@ -508,21 +567,21 @@ export function EmployeeCheckInModal({
                 <button
                   type="button"
                   onClick={obtainGps}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm active:scale-95 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs active:scale-95 ${
                     latitude
-                      ? "bg-card border border-border text-foreground hover:bg-muted"
+                      ? "bg-card border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                       : "bg-emerald-600 hover:bg-emerald-700 text-white font-black"
                   }`}
                 >
                   {gettingGps ? (
                     <>
                       <RefreshCw size={13} className="animate-spin" />
-                      <span>Recherche…</span>
+                      <span>Détection…</span>
                     </>
                   ) : latitude ? (
                     <>
                       <CheckCircle2 size={13} className="text-emerald-500" />
-                      <span>Actualiser</span>
+                      <span>Confirmé</span>
                     </>
                   ) : (
                     <>
@@ -533,8 +592,8 @@ export function EmployeeCheckInModal({
                 </button>
               </div>
 
-              {gpsError && (
-                <div className="pt-2 border-t border-border/60 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
+              {gpsError && !latitude && (
+                <div className="mt-2 pt-2 border-t border-border/60 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
                   <AlertCircle size={14} className="shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <span>{gpsError}</span>
@@ -550,7 +609,7 @@ export function EmployeeCheckInModal({
               )}
 
               {showGpsHelp && (
-                <div className="p-3 rounded-xl bg-card border border-border/80 text-[11px] text-muted-foreground space-y-1.5 animate-in fade-in duration-150">
+                <div className="mt-2 p-3 rounded-xl bg-card border border-border/80 text-[11px] text-muted-foreground space-y-1.5 animate-in fade-in duration-150">
                   <div className="font-bold text-foreground flex items-center gap-1">
                     <Lock size={12} className="text-primary" />
                     <span>Pour autoriser la localisation :</span>
@@ -571,7 +630,7 @@ export function EmployeeCheckInModal({
               </div>
             )}
 
-            {/* Submit Action Button - NEVER silently disabled */}
+            {/* Submit Action Button */}
             <button
               type="submit"
               disabled={busy}
