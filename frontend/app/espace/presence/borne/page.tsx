@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { DynamicKioskQr } from "@/components/app/DynamicKioskQr";
 import { serviceIaFetch } from "@/lib/service-ia/api";
+import { useI18n } from "@/lib/i18n";
 import { Maximize2, Minimize2, ArrowLeft, Building2, UserCheck, Shield } from "lucide-react";
 import Link from "next/link";
 
 export default function AttendanceKioskPage() {
+  const { t } = useI18n();
   const [organization, setOrganization] = useState<{ name: string; business_category?: string }>({
     name: "KORYXA Pointage",
   });
@@ -45,7 +47,7 @@ export default function AttendanceKioskPage() {
             </div>
             <div>
               <h1 className="font-bold text-base text-slate-100">{organization.name}</h1>
-              <p className="text-xs text-slate-400">Borne de Pointage Présences</p>
+              <p className="text-xs text-slate-400">{t("attendance_kiosk_title")}</p>
             </div>
           </div>
         </div>
@@ -53,10 +55,10 @@ export default function AttendanceKioskPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={toggleFullscreen}
-            className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-800 transition flex items-center gap-2"
+            className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-800 transition flex items-center gap-2 cursor-pointer"
           >
             {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-            <span>{isFullscreen ? "Quitter Plein Écran" : "Plein Écran"}</span>
+            <span>{isFullscreen ? t("form_dialog_reduce") : t("form_dialog_fullscreen")}</span>
           </button>
         </div>
       </header>

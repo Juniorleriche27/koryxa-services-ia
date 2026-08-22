@@ -1,22 +1,24 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { AppShell } from "@/components/app/AppShell";
+import React, { useState, useEffect, use } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/app/PageHeader";
-import { StatusPill, EmptyState } from "@/components/app/Ui";
+import { StatusPill, EmptyState, TableSkeleton } from "@/components/app/Ui";
 import { EmployeeCheckInModal } from "@/components/app/EmployeeCheckInModal";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { getBusinessCategoryConfig } from "@/lib/service-ia/business-categories";
+import { useI18n } from "@/lib/i18n";
 import {
   UserCheck,
   QrCode,
   Clock,
   MapPin,
   ShieldCheck,
-  AlertTriangle,
   LogOut,
   ExternalLink,
   Users,
+  Download,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -44,11 +46,23 @@ interface AttendanceTodaySummary {
 }
 
 export default function PresencePage() {
+  const { t, lang } = useI18n();
+  const searchParams = useSearchParams();
   const [data, setData] = useState<AttendanceTodaySummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [checkInOpen, setCheckInOpen] = useState<boolean>(false);
+  const [initialToken, setInitialToken] = useState<string>("");
   const [businessCategory, setBusinessCategory] = useState<string>("retail");
+
+  // Auto open check-in modal if scanned from smartphone camera with ?scan=TOKEN
+  useEffect(() => {
+    const scanParam = searchParams.get("scan") || searchParams.get("token");
+    if (scanParam) {
+      setInitialToken(scanParam);
+      setCheckInOpen(true);
+    }
+  }, [searchParams]);
 
   const loadData = async () => {
     try {
@@ -72,35 +86,47 @@ export default function PresencePage() {
       .catch(() => {});
   }, []);
 
-  const proConfig = getBusinessCategoryConfig(businessCategory);
+  const proConfig = getBusinessCategoryConfig(businessCategory, lang);
+
+  const formatTimeStr = (iso?: string | null) => {
+    if (!iso) return "—";
+    try {
+      return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return iso;
+    }
+  };
 
   return (
     <>
       <div className="space-y-6">
         <PageHeader
-          eyebrow={proConfig.badge}
-          title={proConfig.registers.attendance.title}
-          description={proConfig.registers.attendance.subtitle}
+          eyebrow={proConfig.registers.attendance.title}
+          title={t("attendance_title")}
+          description={t("attendance_desc")}
           action={
-            <div className="kx-header-actions-row">
+            <div className="flex items-center gap-2 flex-wrap">
               <Link
                 href="/espace/presence/borne"
                 target="_blank"
                 className="app-button app-button-secondary inline-flex items-center gap-2"
-                title="Lancer l'écran borne QR Code dynamique pour tablette ou écran boutique"
+                title={t("attendance_btn_kiosk")}
               >
                 <QrCode size={16} className="text-teal-600 dark:text-teal-400" />
-                <span>Borne Écran Magasin</span>
+                <span>{t("attendance_btn_kiosk")}</span>
                 <ExternalLink size={13} className="opacity-60" />
               </Link>
 
               <button
                 type="button"
-                onClick={() => setCheckInOpen(true)}
+                onClick={() => {
+                  setInitialToken("");
+                  setCheckInOpen(true);
+                }}
                 className="app-button app-button-primary inline-flex items-center gap-2"
               >
                 <UserCheck size={16} />
-                <span>Pointer Maintenant</span>
+                <span>{t("attendance_btn_checkin")}</span>
               </button>
             </div>
           }
@@ -114,7 +140,7 @@ export default function PresencePage() {
             </div>
             <div>
               <span className="text-xs font-semibold text-muted-foreground block">
-                Présents aujourd'hui
+                {t("attendance_kpi_present")}
               </span>
               <strong className="text-2xl font-black font-mono text-foreground">
                 {data?.total_present ?? 0}
@@ -128,7 +154,7 @@ export default function PresencePage() {
             </div>
             <div>
               <span className="text-xs font-semibold text-muted-foreground block">
-                Arrivées en retard
+                {t("attendance_kpi_late")}
               </span>
               <strong className="text-2xl font-black font-mono text-foreground">
                 {data?.total_late ?? 0}
@@ -151,89 +177,82 @@ export default function PresencePage() {
           </div>
         </div>
 
-        {/* Attendance Table Panel */}
+        {/* Live Attendance Table */}
         <section className="app-panel">
-          <div className="app-panel-head flex items-center justify-between">
-            <div>
-              <h2>Pointages du Jour ({new Date().toLocaleDateString("fr-FR")})</h2>
-              <p className="text-xs text-muted-foreground">
-                Horaires d'arrivée, départs et conformité géographique GPS.
-              </p>
+          <div className="app-panel-head">
+            <div className="flex items-center gap-2">
+              <Users size={18} className="text-primary" />
+              <h2>Pointages & Émargements du Jour</h2>
             </div>
-            <button
-              onClick={() => void loadData()}
-              className="app-button app-button-secondary text-xs"
-            >
-              Actualiser
-            </button>
+            <StatusPill>{(data?.records || []).length} collaborateurs</StatusPill>
           </div>
 
-          {loading && (
-            <EmptyState title="Chargement…" detail="Récupération des présences du jour." />
-          )}
-
-          {error && <EmptyState title="Données indisponibles" detail={error} />}
+          {loading && <TableSkeleton />}
+          {error && <EmptyState title={t("common_error")} detail={error} onRetry={loadData} />}
 
           {!loading && !error && (!data?.records || data.records.length === 0) && (
             <EmptyState
               title="Aucun pointage aujourd'hui"
-              detail="Aucun collaborateur n'a encore pointé sa présence aujourd'hui."
+              detail="Lancez la borne de pointage en magasin ou invitez vos collaborateurs à scanner leur QR Code."
+              onRetry={loadData}
             />
           )}
 
-          {!loading && data?.records && data.records.length > 0 && (
-            <div className="app-table-scroll kx-rich-table-scroll">
-              <table className="app-data-table kx-rich-table">
+          {data?.records && data.records.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="app-table w-full text-left text-xs">
                 <thead>
                   <tr>
-                    <th>Employé / Collaborateur</th>
-                    <th>Arrivée (Matin)</th>
-                    <th>Départ (Soir)</th>
-                    <th>Statut</th>
-                    <th>Vérification GPS</th>
-                    <th>Sécurité</th>
+                    <th>{t("attendance_th_member")}</th>
+                    <th>{t("attendance_th_checkin")}</th>
+                    <th>{t("attendance_th_checkout")}</th>
+                    <th>{t("attendance_th_status")}</th>
+                    <th>CONTRÔLE SÉCURITÉ</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.records.map((record) => (
-                    <tr key={record.id}>
-                      <td>
-                        <strong className="text-foreground">{record.employee_name}</strong>
-                        <div className="text-xs text-muted-foreground font-mono">
-                          {record.employee_id}
+                  {data.records.map((r) => (
+                    <tr key={r.id} className="border-b border-border/60 hover:bg-muted/30 transition">
+                      <td className="py-3 px-4 font-bold text-foreground">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                            {r.employee_name ? r.employee_name[0].toUpperCase() : "E"}
+                          </div>
+                          <span>{r.employee_name}</span>
                         </div>
                       </td>
-                      <td>
-                        <span className="font-mono font-bold text-foreground">
-                          {record.check_in_time ? `🕒 ${record.check_in_time}` : "—"}
-                        </span>
+                      <td className="py-3 px-4 font-mono font-semibold text-foreground">
+                        {formatTimeStr(r.check_in_time)}
                       </td>
-                      <td>
-                        <span className="font-mono font-medium text-foreground">
-                          {record.check_out_time ? `🚪 ${record.check_out_time}` : "En poste"}
-                        </span>
+                      <td className="py-3 px-4 font-mono text-muted-foreground">
+                        {formatTimeStr(r.check_out_time)}
                       </td>
-                      <td>
+                      <td className="py-3 px-4">
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            record.status === "late"
-                              ? "bg-amber-500/10 text-amber-600 border border-amber-500/20"
-                              : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                            r.status === "present"
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              : r.status === "late"
+                              ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                              : "bg-destructive/15 text-destructive"
                           }`}
                         >
-                          {record.status === "late" ? "⚠️ En retard" : "✓ À l'heure"}
+                          {r.status === "present"
+                            ? t("attendance_badge_present")
+                            : r.status === "late"
+                            ? t("attendance_badge_late")
+                            : t("attendance_badge_absent")}
                         </span>
                       </td>
-                      <td>
-                        <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                          <MapPin size={14} />
-                          <span>Périmètre validé (&lt; 50m)</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <ShieldCheck size={14} className="text-primary" />
-                          <span>QR TOTP + GPS</span>
+                      <td className="py-3 px-4 text-muted-foreground">
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <ShieldCheck size={14} className="text-teal-500" />
+                          <span>Borne TOTP</span>
+                          {r.check_in_lat && (
+                            <span className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400">
+                              <MapPin size={11} /> GPS
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -243,16 +262,15 @@ export default function PresencePage() {
             </div>
           )}
         </section>
-
-        {/* Employee Check-in Modal */}
-        <EmployeeCheckInModal
-          open={checkInOpen}
-          onClose={() => setCheckInOpen(false)}
-          onSuccess={async () => {
-            await loadData();
-          }}
-        />
       </div>
+
+      {/* Check-In Modal */}
+      <EmployeeCheckInModal
+        open={checkInOpen}
+        onClose={() => setCheckInOpen(false)}
+        onSuccess={loadData}
+        defaultToken={initialToken}
+      />
     </>
   );
 }
