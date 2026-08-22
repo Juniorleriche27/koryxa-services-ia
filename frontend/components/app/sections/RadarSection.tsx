@@ -29,6 +29,7 @@ export function RadarSection({
   error: string;
   onReload: () => Promise<void>;
 }) {
+  const { t, lang } = useI18n();
   const [running, setRunning] = useState(false);
 
   const run = async () => {
@@ -64,24 +65,24 @@ export function RadarSection({
 
   return (
     <>
-      <PageHeader
-        eyebrow="Audit Automatique"
-        title="Radar des Anomalies"
-        description="Contrôleur de gestion virtuel : détecte automatiquement les erreurs de calcul, les impayés oubliés et les données incomplètes."
+            <PageHeader
+        eyebrow={t("radar_eyebrow")}
+        title={t("radar_title")}
+        description={t("radar_desc")}
         action={
           <button className="app-button app-button-primary" disabled={running} onClick={run}>
             <Play size={16} />
-            <span>{running ? "Analyse en cours…" : "Relancer l'audit Radar"}</span>
+            <span>{running ? t("radar_running") : t("radar_btn_scan")}</span>
           </button>
         }
       />
 
       {loading && <TableSkeleton />}
-      {error && <EmptyState title="Données indisponibles" detail={error} onRetry={onReload} />}
+      {error && <EmptyState title={t("common_error")} detail={error} onRetry={onReload} />}
       {!loading && !error && (!data || data.length === 0) && (
         <EmptyState
-          title="Aucune anomalie détectée"
-          detail="Le Radar n'a identifié aucune contradiction ou donnée manquante."
+          title={t("radar_empty_title")}
+          detail={t("radar_empty_desc")}
           onRetry={onReload}
         />
       )}
@@ -96,11 +97,11 @@ export function RadarSection({
                   <strong>{a.title}</strong>
                   <p>{a.explanation}</p>
                   <div className="app-alert-tags">
-                    <span>{formatLabel(a.dimension)}</span>
-                    <span>{formatLabel(a.status)}</span>
+                    <span>{formatLabel(a.dimension, lang)}</span>
+                    <span>{formatLabel(a.status, lang)}</span>
                   </div>
                 </div>
-                <StatusPill>{formatLabel(a.priority)}</StatusPill>
+                <StatusPill>{formatLabel(a.priority, lang)}</StatusPill>
                 <div className="app-row-actions">
                   {a.status !== "resolved" && (
                     <button

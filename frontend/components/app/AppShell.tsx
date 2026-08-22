@@ -143,22 +143,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }));
   };
 
-  const pageContext: Record<string, { eyebrow: string; description: string }> = {
-    "/espace": { eyebrow: "Mémoire opérationnelle", description: `Pilotez votre activité (${proConfig.name})` },
+    const pageContext: Record<string, { eyebrow: string; description: string }> = {
+    "/espace": { eyebrow: t("dash_eyebrow"), description: `${t("page_ctx_dashboard")} (${proConfig.name})` },
     "/espace/offres": { eyebrow: proConfig.registers.offers.title, description: proConfig.registers.offers.subtitle },
     "/espace/ventes": { eyebrow: proConfig.registers.sales.title, description: proConfig.registers.sales.subtitle },
     "/espace/depenses": { eyebrow: proConfig.registers.expenses.title, description: proConfig.registers.expenses.subtitle },
     "/espace/fournisseurs": { eyebrow: proConfig.registers.suppliers.title, description: proConfig.registers.suppliers.subtitle },
     "/espace/procedures": { eyebrow: proConfig.registers.procedures.title, description: proConfig.registers.procedures.subtitle },
     "/espace/presence": { eyebrow: proConfig.registers.attendance.title, description: proConfig.registers.attendance.subtitle },
-    "/espace/imports": { eyebrow: "Reprise de données", description: "Importez vos informations existantes en toute simplicité" },
-    "/espace/documents": { eyebrow: "Documents utiles", description: "Rassemblez les preuves et fichiers de votre activité" },
-    "/espace/radar": { eyebrow: "Qualité des informations", description: "Repérez ce qui manque, vieillit ou doit être vérifié" },
-    "/espace/validations": { eyebrow: "Contrôle humain", description: "Confirmez les corrections avant leur application" },
-    "/espace/actions": { eyebrow: "Amélioration continue", description: "Transformez les constats en actions concrètes" },
-    "/espace/whatsapp": { eyebrow: "Intégrations & Mobilité", description: "Enregistrez vos ventes directement depuis WhatsApp" },
-    "/espace/organisation": { eyebrow: "Équipe", description: "Gérez les membres et leurs responsabilités" },
-    "/espace/parametres": { eyebrow: "Configuration", description: "Adaptez les contrôles et votre catégorie professionnelle" },
+    "/espace/imports": { eyebrow: t("page_ctx_imports"), description: t("page_ctx_imports_desc") },
+    "/espace/documents": { eyebrow: t("page_ctx_documents"), description: t("page_ctx_documents_desc") },
+    "/espace/radar": { eyebrow: t("page_ctx_radar"), description: t("page_ctx_radar_desc") },
+    "/espace/validations": { eyebrow: t("page_ctx_validations"), description: t("page_ctx_validations_desc") },
+    "/espace/actions": { eyebrow: t("page_ctx_actions"), description: t("page_ctx_actions_desc") },
+    "/espace/whatsapp": { eyebrow: t("page_ctx_whatsapp"), description: t("page_ctx_whatsapp_desc") },
+    "/espace/organisation": { eyebrow: t("page_ctx_org"), description: t("page_ctx_org_desc") },
+    "/espace/parametres": { eyebrow: t("page_ctx_settings"), description: t("page_ctx_settings_desc") },
   };
 
   const context = pageContext[pathname] ?? pageContext["/espace"];

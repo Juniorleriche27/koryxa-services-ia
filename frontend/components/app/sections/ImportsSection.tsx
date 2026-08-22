@@ -7,6 +7,7 @@ import { FormError } from "../Dialog";
 import { StatusPill } from "../Ui";
 import { directUpload } from "@/lib/files/directUpload";
 import { serviceIaFetch } from "@/lib/service-ia/api";
+import { useI18n } from "@/lib/i18n";
 
 type RegisterKey = "offers" | "sales" | "depenses" | "fournisseurs" | "procedures";
 
@@ -69,6 +70,7 @@ const REGISTER_TARGET_FIELDS: Record<
 };
 
 export function ImportsSection() {
+  const { t } = useI18n();
   const [registerType, setRegisterType] = useState<RegisterKey>("sales");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ImportPreviewData | null>(null);
@@ -152,9 +154,9 @@ export function ImportsSection() {
   return (
     <>
       <PageHeader
-        eyebrow="Migration & Intégration"
-        title="Importer des données (Excel, CSV)"
-        description="Associez vos colonnes existantes, contrôlez les correspondances et intégrez vos registres."
+        eyebrow={t("imports_eyebrow")}
+        title={t("imports_title")}
+        description={t("imports_desc")}
         action={
           <button className="app-button app-button-secondary" onClick={exportCsv}>
             <Download size={16} />

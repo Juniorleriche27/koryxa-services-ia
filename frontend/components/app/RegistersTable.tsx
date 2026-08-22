@@ -138,44 +138,66 @@ export function formatDate(val: string | null | undefined, includeTime = true) {
   }
 }
 
-export function formatLabel(value: unknown) {
+export function formatLabel(value: unknown, lang: string = "fr") {
   if (!value) return "—";
-  const translations: Record<string, string> = {
-    paid: "Payé",
-    unpaid: "Non payé",
-    partial: "Partiel",
-    cancelled: "Annulé",
-    active: "Actif",
-    draft: "Brouillon",
-    archived: "Archivé",
-    validated: "Validé",
-    pending: "En attente",
-    virement: "Virement",
-    especes: "Espèces",
-    cheque: "Chèque",
-    carte: "Carte bancaire",
-    mobile_money: "Mobile Money",
-    direct: "Direct",
-    whatsapp: "WhatsApp",
-    web: "Site Web",
-    todo: "À faire",
-    in_progress: "En cours",
-    blocked: "Bloqué",
-    completed: "Terminé",
-    consistency: "Cohérence des calculs",
-    completeness: "Information manquante",
-    freshness: "Échéance dépassée",
-    traceability: "Traçabilité & Validation",
-    open: "À traiter",
-    acknowledged: "En cours de traitement",
-    resolved: "Résolu",
-    high: "Important",
-    critical: "Critique",
-    normal: "Normal",
-    low: "Faible",
-  };
   const key = String(value).toLowerCase();
-  return translations[key] ?? String(value).replaceAll("_", " ");
+
+  const labels: Record<string, Record<string, string>> = {
+    fr: {
+      paid: "Payé", unpaid: "Non payé", partial: "Partiel", cancelled: "Annulé", active: "Actif", draft: "Brouillon",
+      archived: "Archivé", validated: "Validé", pending: "En attente", virement: "Virement", especes: "Espèces",
+      cheque: "Chèque", carte: "Carte bancaire", mobile_money: "Mobile Money", direct: "Direct", whatsapp: "WhatsApp",
+      web: "Site Web", todo: "À faire", in_progress: "En cours", blocked: "Bloqué", completed: "Terminé",
+      consistency: "Cohérence des calculs", completeness: "Information manquante", freshness: "Échéance dépassée",
+      traceability: "Traçabilité & Validation", open: "À traiter", acknowledged: "En cours", resolved: "Résolu",
+      high: "Important", critical: "Critique", normal: "Normal", low: "Faible", owner: "Propriétaire",
+      manager: "Responsable", contributor: "Contributeur", viewer: "Lecteur", retail: "Commerce", services: "Services",
+    },
+    en: {
+      paid: "Paid", unpaid: "Unpaid", partial: "Partial", cancelled: "Cancelled", active: "Active", draft: "Draft",
+      archived: "Archived", validated: "Validated", pending: "Pending", virement: "Bank Transfer", especes: "Cash",
+      cheque: "Cheque", carte: "Credit Card", mobile_money: "Mobile Money", direct: "Direct", whatsapp: "WhatsApp",
+      web: "Website", todo: "To Do", in_progress: "In Progress", blocked: "Blocked", completed: "Completed",
+      consistency: "Calculation Consistency", completeness: "Missing Information", freshness: "Overdue Record",
+      traceability: "Traceability & Validation", open: "Open", acknowledged: "In Progress", resolved: "Resolved",
+      high: "Important", critical: "Critical", normal: "Normal", low: "Low", owner: "Owner",
+      manager: "Manager", contributor: "Contributor", viewer: "Viewer", retail: "Retail", services: "Services",
+    },
+    es: {
+      paid: "Pagado", unpaid: "No pagado", partial: "Parcial", cancelled: "Cancelado", active: "Activo", draft: "Borrador",
+      archived: "Archivado", validated: "Validado", pending: "Pendiente", virement: "Transferencia", especes: "Efectivo",
+      cheque: "Cheque", carte: "Tarjeta", mobile_money: "Dinero Móvil", direct: "Directo", whatsapp: "WhatsApp",
+      web: "Sitio Web", todo: "Por Hacer", in_progress: "En Curso", blocked: "Bloqueado", completed: "Completado",
+      consistency: "Coherencia de cálculos", completeness: "Información faltante", freshness: "Vencido",
+      traceability: "Trazabilidad y validación", open: "Por tratar", acknowledged: "En curso", resolved: "Resuelto",
+      high: "Importante", critical: "Crítico", normal: "Normal", low: "Bajo", owner: "Propietario",
+      manager: "Responsable", contributor: "Colaborador", viewer: "Lector", retail: "Comercio", services: "Servicios",
+    },
+    pt: {
+      paid: "Pago", unpaid: "Não pago", partial: "Parcial", cancelled: "Cancelado", active: "Ativo", draft: "Rascunho",
+      archived: "Arquivado", validated: "Validado", pending: "Pendente", virement: "Transferência", especes: "Dinheiro",
+      cheque: "Cheque", carte: "Cartão", mobile_money: "Mobile Money", direct: "Direto", whatsapp: "WhatsApp",
+      web: "Website", todo: "A Fazer", in_progress: "Em Curso", blocked: "Bloqueado", completed: "Concluído",
+      consistency: "Coerência de cálculos", completeness: "Informação em falta", freshness: "Prazo ultrapassado",
+      traceability: "Rastreabilidade e validação", open: "Por tratar", acknowledged: "Em curso", resolved: "Resolvido",
+      high: "Importante", critical: "Crítico", normal: "Normal", low: "Baixo", owner: "Proprietário",
+      manager: "Responsável", contributor: "Colaborador", viewer: "Leitor", retail: "Comércio", services: "Serviços",
+    },
+    ar: {
+      paid: "مدفوع", unpaid: "غير مدفوع", partial: "جزئي", cancelled: "ملغي", active: "نشط", draft: "مسودة",
+      archived: "مؤرشف", validated: "معتمد", pending: "معلق", virement: "تحويل بنكي", especes: "نقداً",
+      cheque: "شيك", carte: "بطاقة بنكية", mobile_money: "محفظة إلكترونية", direct: "مباشر", whatsapp: "واتساب",
+      web: "الموقع", todo: "قيد الانتظار", in_progress: "قيد التنفيذ", blocked: "معطل", completed: "مكتمل",
+      consistency: "تناسق الحسابات", completeness: "معلومات ناقصة", freshness: "تجاوز الاستحقاق",
+      traceability: "التتبع والاعتماد", open: "قيد المعالجة", acknowledged: "قيد التنفيذ", resolved: "تم الحل",
+      high: "مهم", critical: "حرج", normal: "عادي", low: "منخفض", owner: "المالك",
+      manager: "المدير", contributor: "مساهم", viewer: "مشاهد", retail: "تجارة", services: "خدمات",
+    }
+  };
+
+  const currentLang = typeof window !== "undefined" ? (window.localStorage.getItem("koryxa:language") || lang) : lang;
+  const langLabels = labels[currentLang] || labels.fr;
+  return langLabels[key] || labels.fr[key] || String(value).replaceAll("_", " ");
 }
 
 export function getDocumentTypeMeta(docType?: string) {

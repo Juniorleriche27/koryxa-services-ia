@@ -47,6 +47,7 @@ export function SettingsSection({
   error: string;
   onReload: () => Promise<void>;
 }) {
+  const { t } = useI18n();
   const updateRule = async (rule: RadarRule, patch: Record<string, unknown>) => {
     await serviceIaFetch(`/radar/rules/${rule.rule_code}`, {
       method: "PUT",
@@ -66,9 +67,9 @@ export function SettingsSection({
       <AutomationsHubView />
 
       <PageHeader
-        eyebrow="Contrôle & Qualité"
-        title="Règles de Sentinelle Radar"
-        description="Activez les contrôles automatisés pour protéger vos marges, votre trésorerie et vos stocks."
+        eyebrow={t("settings_eyebrow")}
+        title={t("settings_title")}
+        description={t("settings_desc")}
       />
 
       {loading && <EmptyState title="Chargement…" detail="Récupération des règles Radar." />}

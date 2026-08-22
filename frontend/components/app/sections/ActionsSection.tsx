@@ -30,6 +30,7 @@ export function ActionsSection({
   error: string;
   onReload: () => Promise<void>;
 }) {
+  const { t, lang } = useI18n();
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -69,24 +70,24 @@ export function ActionsSection({
 
   return (
     <>
-      <PageHeader
-        eyebrow="Plan d'Action & Suivi"
-        title="Actions & Tâches Correctives"
-        description="Tableau de suivi des résolutions issues de Radar ou créées manuellement pour régulariser l'activité."
+            <PageHeader
+        eyebrow={t("actions_eyebrow")}
+        title={t("actions_title_page")}
+        description={t("actions_desc_page")}
         action={
           <button className="app-button app-button-primary" onClick={() => setCreating(true)}>
             <Plus size={16} />
-            <span>Nouvelle tâche</span>
+            <span>{t("actions_btn_new")}</span>
           </button>
         }
       />
 
       {loading && <TableSkeleton />}
-      {error && <EmptyState title="Données indisponibles" detail={error} onRetry={onReload} />}
+      {error && <EmptyState title={t("common_error")} detail={error} onRetry={onReload} />}
       {!loading && !error && (!data || data.length === 0) && (
         <EmptyState
-          title="Aucune action"
-          detail="Aucune action corrective n'est en cours pour le moment."
+          title={t("actions_empty_title")}
+          detail={t("actions_empty_desc")}
           onRetry={onReload}
         />
       )}
@@ -96,7 +97,7 @@ export function ActionsSection({
           {["todo", "in_progress", "blocked", "completed"].map((status) => (
             <div className="app-kanban-column" key={status}>
               <div className="app-kanban-head">
-                <strong>{formatLabel(status)}</strong>
+                <strong>{formatLabel(status, lang)}</strong>
                 <span>{data.filter((a) => a.status === status).length}</span>
               </div>
               {data

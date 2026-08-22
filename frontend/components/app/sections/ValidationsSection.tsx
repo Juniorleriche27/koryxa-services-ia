@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/lib/i18n";
 
 import React, { useState } from "react";
 import { Check, X } from "lucide-react";
@@ -28,6 +29,7 @@ export function ValidationsSection({
   error: string;
   onReload: () => Promise<void>;
 }) {
+  const { t, lang } = useI18n();
   const [decidingId, setDecidingId] = useState<string | null>(null);
 
   const decide = async (id: string, decision: "accepted" | "rejected") => {
@@ -45,18 +47,18 @@ export function ValidationsSection({
 
   return (
     <>
-      <PageHeader
-        eyebrow="Contrôle humain"
-        title="Validations"
-        description="Propositions et corrections automatiques en attente de décision humaine."
+            <PageHeader
+        eyebrow={t("validations_eyebrow")}
+        title={t("validations_title")}
+        description={t("validations_desc")}
       />
 
-      {loading && <EmptyState title="Chargement…" detail="Récupération des validations en attente." />}
-      {error && <EmptyState title="Données indisponibles" detail={error} />}
+      {loading && <EmptyState title={t("common_loading")} detail={t("common_loading")} />}
+      {error && <EmptyState title={t("common_error")} detail={error} />}
       {!loading && !error && (!data || data.length === 0) && (
         <EmptyState
-          title="Toutes les données sont validées"
-          detail="Aucune proposition ou correction n'est en attente pour le moment."
+          title={t("validations_empty_title")}
+          detail={t("validations_empty_desc")}
         />
       )}
 
@@ -68,18 +70,18 @@ export function ValidationsSection({
                 <div className="app-validation-head">
                   <div>
                     <strong>{v.field_name}</strong>
-                    <span>Source : {formatLabel(v.source_type)}</span>
+                    <span>{t("validations_source")} : {formatLabel(v.source_type, lang)}</span>
                   </div>
-                  <StatusPill>{Math.round(v.confidence * 100)}% de confiance</StatusPill>
+                  <StatusPill>{Math.round(v.confidence * 100)}% {t("validations_confidence")}</StatusPill>
                 </div>
                 <div className="app-change">
                   <div>
-                    <small>Valeur actuelle</small>
+                    <small>{t("validations_current_val")}</small>
                     <strong>{formatLabel(v.old_value)}</strong>
                   </div>
                   <span>→</span>
                   <div>
-                    <small>Valeur proposée</small>
+                    <small>{t("validations_proposed_val")}</small>
                     <strong>{formatLabel(v.proposed_value)}</strong>
                   </div>
                 </div>
