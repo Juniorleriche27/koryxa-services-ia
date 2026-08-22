@@ -31,7 +31,8 @@ export function RegisterCreateDialog({
 }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const labels = { offers: "une offre", sales: "une vente / devis / facture", procedures: "une procédure" };
+  const { t, lang } = useI18n();
+  const labels = { offers: t("form_offer_singular"), sales: t("form_sale_singular"), procedures: t("form_proc_singular") };
   const editing = Boolean(record?.id);
 
   // Sales interactive fields (strings so inputs can be cleared without stubborn zeroes)
@@ -188,23 +189,23 @@ export function RegisterCreateDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title={`${editing ? "Modifier" : "Ajouter"} ${labels[kind]}`}
-      description="Les champs marqués * sont obligatoires. Les références sont auto-générées automatiquement."
+      title={`${editing ? t("form_edit_prefix") : t("form_add_prefix")} ${labels[kind]}`}
+      description={t("form_required_help")}
     >
       <form onSubmit={submit}>
         <div className="app-form-grid">
           {kind === "offers" ? (
             <>
               <label>
-                Nom de l&apos;offre / article *
+                {t("form_offer_name")}
                 <input name="name" required minLength={2} defaultValue={record?.name || ""} />
               </label>
               <label>
-                Catégorie
+                {t("form_category")}
                 <input name="category" defaultValue={record?.category || ""} />
               </label>
               <label>
-                Prix de vente
+                {t("form_selling_price")}
                 <input
                   name="price"
                   type="number"
@@ -216,7 +217,7 @@ export function RegisterCreateDialog({
                 />
               </label>
               <label>
-                Prix de revient (Coût)
+                {t("form_cost_price")}
                 <input
                   name="cost_price"
                   type="number"
@@ -228,14 +229,14 @@ export function RegisterCreateDialog({
                 />
               </label>
               <label>
-                Devise
+                {t("form_currency")}
                 <input name="currency" defaultValue={record?.currency || "XOF"} minLength={3} maxLength={3} />
               </label>
               <label>
-                Unité de facturation
+                {t("form_billing_unit")}
                 <input
                   name="billing_unit"
-                  placeholder="carton, sac, unité, heure…"
+                  placeholder={t("form_billing_unit_ph")}
                   defaultValue={record?.billing_unit || ""}
                 />
               </label>
@@ -250,11 +251,11 @@ export function RegisterCreateDialog({
                   style={{ width: "auto" }}
                 />
                 <span>
-                  📦 <strong>Activer le suivi du stock physique</strong> (décrémentation automatique lors des ventes)
+                  📦 <strong>{t("form_track_stock")}</strong> {t("form_track_stock_sub")}
                 </span>
               </label>
               <label>
-                Quantité en stock
+                {t("form_stock_qty")}
                 <input
                   name="stock_quantity"
                   type="number"
@@ -265,7 +266,7 @@ export function RegisterCreateDialog({
                 />
               </label>
               <label>
-                Seuil d&apos;alerte stock faible
+                {t("form_stock_alert")}
                 <input
                   name="min_stock_alert"
                   type="number"
@@ -277,27 +278,27 @@ export function RegisterCreateDialog({
               </label>
               <StatusField value={record?.status} />
               <label>
-                Date d’effet
+                {t("form_effective_from")}
                 <input name="effective_from" type="date" defaultValue={record?.effective_from || ""} />
               </label>
               <label>
-                Date d’expiration
+                {t("form_expires_at")}
                 <input name="expires_at" type="date" defaultValue={record?.expires_at || ""} />
               </label>
               <label className="app-form-span">
-                Description
+                {t("form_description")}
                 <textarea name="description" defaultValue={record?.description || ""} />
               </label>
               <label className="app-form-span">
-                Conditions
+                {t("form_conditions")}
                 <textarea name="conditions" defaultValue={record?.conditions || ""} />
               </label>
               <label>
-                Inclusions (séparées par virgule)
+                {t("form_inclusions")}
                 <textarea name="inclusions" defaultValue={(record?.inclusions || []).join(", ")} />
               </label>
               <label>
-                Exclusions
+                {t("form_exclusions")}
                 <textarea name="exclusions" defaultValue={(record?.exclusions || []).join(", ")} />
               </label>
             </>
@@ -308,7 +309,7 @@ export function RegisterCreateDialog({
               {/* Document Type Selector (Quote, Proforma, Invoice, Receipt) */}
               <div className="app-form-span">
                 <label className="text-xs font-bold text-foreground block mb-1">
-                  Type de document commercial :
+                  {t("form_doc_type")} :
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
@@ -459,7 +460,7 @@ export function RegisterCreateDialog({
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <label className="m-0">
                     <span className="text-[11px] font-medium text-muted-foreground block mb-0.5">
-                      Montant encaissé (Acompte) :
+                      {t("form_paid_amount")} (Acompte) :
                     </span>
                     <input
                       type="number"
@@ -524,7 +525,7 @@ export function RegisterCreateDialog({
               </label>
 
               <label>
-                Mode de règlement
+                {t("form_payment_method")}
                 <input
                   name="payment_method"
                   defaultValue={record?.payment_method || "Espèces / Mobile Money"}
@@ -533,7 +534,7 @@ export function RegisterCreateDialog({
               </label>
 
               <label>
-                Canal de vente
+                {t("form_sales_channel")}
                 <input name="sales_channel" defaultValue={record?.sales_channel || "Comptoir"} placeholder="Comptoir, WhatsApp, Direct..." />
               </label>
 
@@ -606,7 +607,7 @@ export function RegisterCreateDialog({
             Annuler
           </button>
           <button className="app-button app-button-primary" disabled={saving}>
-            {saving ? "Enregistrement…" : "Enregistrer"}
+            {saving ? t("common_loading") : t("form_btn_save")}
           </button>
         </div>
       </form>
@@ -615,14 +616,15 @@ export function RegisterCreateDialog({
 }
 
 function StatusField({ value }: { value?: string }) {
+  const { t } = useI18n();
   return (
     <label>
-      Statut de validation
+      {t("form_status_field")}
       <select name="status" defaultValue={value || "validated"}>
-        <option value="validated">Validé</option>
-        <option value="draft">Brouillon</option>
-        <option value="to_verify">À vérifier</option>
-        <option value="obsolete">Obsolète</option>
+        <option value="validated">{t("common_active")}</option>
+        <option value="draft">{t("sales_badge_unpaid")}</option>
+        <option value="to_verify">{t("common_filter")}</option>
+        <option value="obsolete">{t("common_inactive")}</option>
       </select>
     </label>
   );

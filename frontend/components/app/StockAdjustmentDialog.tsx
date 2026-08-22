@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/lib/i18n";
 
 import React, { useState } from "react";
 import { Package, Plus, Minus, Check, RefreshCw, X, AlertCircle } from "lucide-react";
@@ -16,6 +17,7 @@ export function StockAdjustmentDialog({
   onClose,
   onSuccess,
 }: StockAdjustmentDialogProps) {
+  const { t } = useI18n();
   const currentStock = Number(offer.stock_quantity ?? 0);
   const [mode, setMode] = useState<"add" | "set" | "subtract">("add");
   const [quantity, setQuantity] = useState<string>("10");

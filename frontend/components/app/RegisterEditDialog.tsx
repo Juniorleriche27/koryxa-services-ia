@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/lib/i18n";
 
 import React, { useState } from "react";
 import { Dialog, FormError } from "./Dialog";
@@ -20,6 +21,7 @@ export function RegisterEditDialog({
   onClose,
   onSaved,
 }: RegisterEditDialogProps) {
+  const { t } = useI18n();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -156,7 +158,7 @@ export function RegisterEditDialog({
   return (
     <Dialog
       open={open}
-      title={`Modifier ${kind === "sales" ? "la vente" : kind === "offers" ? "l'offre" : "la procédure"}`}
+      title={`${t("form_edit_prefix")} ${kind === "sales" ? t("form_sale_singular") : kind === "offers" ? t("form_offer_singular") : t("form_proc_singular")}`}
       description="Mettez à jour les informations enregistrées. Les modifications sont historisées."
       onClose={onClose}
     >
@@ -516,14 +518,14 @@ export function RegisterEditDialog({
             onClick={onClose}
             disabled={submitting}
           >
-            Annuler
+            {t("common_cancel")}
           </button>
           <button
             type="submit"
             className="app-button app-button-primary"
             disabled={submitting}
           >
-            {submitting ? "Enregistrement…" : "Enregistrer les modifications"}
+            {submitting ? t("common_loading") : t("form_btn_save")}
           </button>
         </div>
       </form>
