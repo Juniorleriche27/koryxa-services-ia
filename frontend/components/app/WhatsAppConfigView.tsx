@@ -143,6 +143,17 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
     };
   }, []);
 
+  const [resetting, setResetting] = useState(false);
+
+  const handleResetQr = async () => {
+    setResetting(true);
+    setQrCodeDataUrl("");
+    try {
+      await serviceIaFetch("/integrations/whatsapp/session-reset", { method: "POST" });
+    } catch (_) {}
+    setTimeout(() => setResetting(false), 2000);
+  };
+
   const handleDisconnect = async () => {
     setDisconnecting(true);
     try {
@@ -397,10 +408,21 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                         </span>
                       </div>
                     )}
-                    <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-400 mt-2 flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      Session Baileys temps réel
-                    </span>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-400 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        Session Multi-Device sécurisée
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleResetQr}
+                      disabled={resetting}
+                      className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-muted hover:bg-muted/80 text-foreground transition cursor-pointer border border-border"
+                    >
+                      <RefreshCw size={13} className={resetting ? "animate-spin" : ""} />
+                      <span>{resetting ? "Régénération en cours…" : "Régénérer / Réinitialiser le QR Code"}</span>
+                    </button>
                   </div>
 
                   {/* Instructions Pas-à-Pas Claires */}
@@ -408,7 +430,7 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                     <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs space-y-1">
                       <div className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-400">
                         <ShieldCheck size={16} />
-                        <span>Appairage Officiel & Chiffré</span>
+                        <span>Appairage Direct & Chiffré</span>
                       </div>
                       <p className="text-[11.5px] text-muted-foreground leading-relaxed">
                         Scannez ce QR Code avec votre téléphone pour connecter le numéro WhatsApp de votre entreprise à KORYXA.
@@ -423,15 +445,22 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                         Ouvrez <strong>WhatsApp</strong> sur votre smartphone.
                       </li>
                       <li>
-                        Touchez les <strong>trois points en haut à droite (ou Réglages)</strong> ➔ <strong>Appareils connectés</strong> ➔ <strong>Connecter un appareil</strong>.
+                        Touchez <strong>Appareils connectés</strong> ➔ <strong>Connecter un appareil</strong>.
                       </li>
                       <li>
                         Pointez la caméra de votre smartphone vers le <strong>QR Code ci-dessus</strong>.
                       </li>
-                      <li>
-                        Dès le scan validé, vous pouvez envoyer des messages écrits ou des <strong>notes vocales</strong> pour enregistrer vos ventes !
-                      </li>
                     </ol>
+
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11.5px] text-amber-950 dark:text-amber-200 space-y-1">
+                      <strong className="font-bold text-amber-800 dark:text-amber-300 block">
+                        💡 Si votre téléphone indique « Impossible de se connecter maintenant » :
+                      </strong>
+                      <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                        <li>Le QR Code WhatsApp change toutes les 20 secondes. Cliquez sur <strong>« Régénérer le QR Code »</strong> pour avoir un code tout neuf et scannez-le aussitôt.</li>
+                        <li>Vérifiez dans WhatsApp ➔ <em>Appareils connectés</em> que vous n'avez pas atteint la limite maximale de 4 appareils (si oui, déconnectez une ancienne session Web inactive).</li>
+                      </ul>
+                    </div>
                   </div>
                 </>
               )}

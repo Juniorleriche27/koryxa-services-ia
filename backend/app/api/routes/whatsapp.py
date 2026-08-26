@@ -126,3 +126,23 @@ async def disconnect_whatsapp_session(o: OrgDep, _: ManageDep):
             pass
     return {"ok": True, "status": "disconnected"}
 
+
+@router.post("/session-reset")
+async def reset_whatsapp_session(o: OrgDep, _: ManageDep):
+    """Réinitialise complètement la session et regénère un QR Code neuf."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.post(f"http://koryxa-whatsapp-bridge:8097/v1/session/reset?org_id={o.id}")
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.post(f"http://127.0.0.1:8097/v1/session/reset?org_id={o.id}")
+                if resp.status_code == 200:
+                    return resp.json()
+        except Exception:
+            pass
+    return {"ok": True, "status": "scanning"}
+
