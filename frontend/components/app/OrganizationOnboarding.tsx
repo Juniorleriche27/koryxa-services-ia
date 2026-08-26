@@ -188,9 +188,10 @@ export function OrganizationOnboarding({
   const router = useRouter();
   const [step, setStep] = useState(1);
 
-  // Step 1: Identité
   const [name, setName] = useState(
-    organization.name && !organization.name.includes("Organisation") ? organization.name : ""
+    organization.name && organization.name !== "Organisation à configurer" && organization.name !== "Nouvelle Organisation"
+      ? organization.name
+      : ""
   );
   const [responsibleName, setResponsibleName] = useState(organization.responsible_name || "");
   const [responsibleRole, setResponsibleRole] = useState(organization.responsible_role || "Gérant / Dirigeant");

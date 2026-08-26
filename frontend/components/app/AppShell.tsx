@@ -238,9 +238,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const onboardingRequired =
     organizationLoaded &&
-    (!organization.onboarding_completed_at ||
-      organization.name === "Organisation KORYXA" ||
-      organization.name === "Organisation à configurer");
+    !organization.onboarding_completed_at &&
+    (organization.name === "Organisation à configurer" || organization.name === "Nouvelle Organisation");
 
   if (pathname === "/espace/presence/borne") {
     return <main className="min-h-screen w-full bg-slate-950">{children}</main>;
