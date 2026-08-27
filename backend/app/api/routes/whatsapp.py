@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import hmac
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query, Request, Response
@@ -232,7 +235,6 @@ async def reset_whatsapp_session(o: OrgDep, _: ManageDep):
 @router.post("/session-alert")
 async def report_whatsapp_session_alert(request: Request, s: SessionDep):
     """Enregistre et propage une alerte de statut de session WhatsApp."""
-    import hmac
     import structlog
 
     headers = request.headers
