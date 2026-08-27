@@ -5,7 +5,7 @@ set -euo pipefail
 # SCRIPT DE SAUVEGARDE AUTOMATISÉE SUPABASE (KORYXA PRODUCTION)
 # ==============================================================================
 
-BACKUP_DIR="${BACKUP_DIR:-/var/backups/koryxa-supabase}"
+BACKUP_DIR="${BACKUP_DIR:-/opt/backups/koryxa-supabase}"
 RETENTION_DAYS="${RETENTION_DAYS:-7}"
 TIMESTAMP=$(date -u +"%Y%m%d_%H%M%SZ")
 BACKUP_FILENAME="koryxa_supabase_backup_${TIMESTAMP}.sql.gz"
