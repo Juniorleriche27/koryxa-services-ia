@@ -10,12 +10,11 @@ from app.services.whatsapp import normalize_e164
 
 def create_org_and_get_id(client: TestClient, tenant_id: str, user_id: str, name: str = "Test Org") -> tuple[dict[str, str], str]:
     headers = {
-        "X-Koryxa-Tenant-Id": tenant_id,
-        "X-Koryxa-User-Id": user_id,
-        "X-Koryxa-User-Role": "OWNER",
-        "X-Koryxa-User-Email": f"{user_id}@test.com",
+        "X-Tenant-ID": tenant_id,
+        "X-User-ID": user_id,
     }
-    client.post("/api/v1/organizations", headers=headers, json={"name": name})
+    create_res = client.post("/api/v1/organizations", headers=headers, json={"name": name, "slug": tenant_id})
+    assert create_res.status_code == 201
     org_res = client.get("/api/v1/organizations/current", headers=headers)
     assert org_res.status_code == 200
     return headers, org_res.json()["id"]
