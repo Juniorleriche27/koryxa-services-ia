@@ -10,7 +10,7 @@ from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
-from app.core.middleware import RequestContextMiddleware
+from app.core.middleware import RateLimitMiddleware, RequestContextMiddleware
 from app.core.security import SecurityHeadersMiddleware
 from app.db.base import Base
 from app.db.session import dispose_engine, engine
@@ -37,6 +37,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(
         CORSMiddleware,

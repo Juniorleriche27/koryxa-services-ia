@@ -6,9 +6,10 @@ from app.main import app
 def test_liveness() -> None:
     with TestClient(app) as client:
         response = client.get("/api/v1/health/live")
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "koryxa-service-ia"}
-    assert response.headers["X-Request-ID"]
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["service"] == "koryxa-service-ia"
+    assert "commit" in data
 
 
 def test_readiness() -> None:

@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import ApplicationError
 from app.core.identity import KoryxaIdentity, require_koryxa_identity
 from app.core.permissions import get_current_organization, require_permission
 from app.db.session import get_session
@@ -24,14 +25,35 @@ ManageDep = Annotated[OrganizationMember, Depends(require_permission("registers:
 
 service = VoiceService()
 
+MAX_VOICE_AUDIO_BYTES = 15 * 1024 * 1024  # 15 MB
+
 
 @router.post("/transcribe", response_model=VoiceTranscriptionResponse)
 async def transcribe_audio_file(
     _: IdentityDep,
     file: UploadFile = File(...),
 ):
-    """Transcrit fidèlement un fichier audio micro en texte via Whisper AI HD."""
-    content = await file.read()
+    """Transcrit fidèlement un fichier audio micro en texte via Whisper AI HD avec contrôle de taille strict."""
+    chunks: list[bytes] = []
+    total_bytes = 0
+    while chunk := await file.read(64 * 1024):  # 64 KB chunks
+        total_bytes += len(chunk)
+        if total_bytes > MAX_VOICE_AUDIO_BYTES:
+            raise ApplicationError(
+                "file_too_large",
+                "Le fichier audio dépasse la taille maximale autorisée (15 Mo)",
+                413,
+            )
+        chunks.append(chunk)
+
+    content = b"".join(chunks)
+    if not content:
+        raise ApplicationError(
+            "empty_audio",
+            "Fichier audio vide ou invalide",
+            400,
+        )
+
     return await service.transcribe_audio(
         content,
         filename=file.filename or "audio.webm",
