@@ -2,11 +2,11 @@ FROM node:20-alpine AS base
 
 WORKDIR /app
 
-RUN apk add --no-cache ffmpeg ca-certificates
+RUN apk add --no-cache ffmpeg ca-certificates git python3 make g++
 
 COPY package.json package-lock.json* ./
 
-RUN npm ci --omit=dev --ignore-scripts || npm install --omit=dev
+RUN npm ci --omit=dev --ignore-scripts || npm install --omit=dev --ignore-scripts
 
 COPY src/ ./src/
 
