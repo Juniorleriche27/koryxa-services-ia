@@ -14,6 +14,38 @@ from app.core.errors import ApplicationError
 
 
 class EmailService:
+    async def send_operations_alert(
+        self,
+        recipient: str,
+        alert_event: str,
+        organization_id: str | None,
+        details: dict[str, object],
+    ) -> None:
+        settings = get_settings()
+        if not settings.smtp_host or not settings.smtp_username or not settings.smtp_password:
+            raise ApplicationError("email_unavailable", "L’envoi d’e-mail n’est pas configuré", 503)
+
+        message = EmailMessage()
+        message["Subject"] = f"[KORYXA] Alerte production — {alert_event}"
+        message["From"] = f"KORYXA Notifications <{settings.email_from}>"
+        message["To"] = recipient
+        safe_details = "\n".join(f"- {key}: {value}" for key, value in details.items())
+        message.set_content(
+            "Une alerte opérationnelle a été détectée.\n\n"
+            f"Événement : {alert_event}\n"
+            f"Organisation : {organization_id or 'système'}\n"
+            f"Détails :\n{safe_details or '- aucun'}\n\n"
+            "Consultez les journaux et le runbook de production KORYXA."
+        )
+        try:
+            await asyncio.to_thread(self._send, message)
+        except (OSError, smtplib.SMTPException) as exc:
+            raise ApplicationError(
+                "operations_alert_delivery_failed",
+                "L’alerte opérationnelle n’a pas pu être envoyée",
+                502,
+            ) from exc
+
     async def send_invitation(self, recipient: str, organization_name: str, link: str) -> None:
         settings = get_settings()
         if not settings.smtp_host or not settings.smtp_username or not settings.smtp_password:

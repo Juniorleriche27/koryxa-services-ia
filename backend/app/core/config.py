@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     smtp_password: SecretStr | None = None
     smtp_use_ssl: bool = True
     email_from: str = "notifications@koryxa.fr"
+    operations_alert_email: str | None = None
     public_app_url: str = "http://localhost:3000"
     knowlia_base_url: str = "http://localhost:8093"
     knowlia_timeout_seconds: float = 60.0

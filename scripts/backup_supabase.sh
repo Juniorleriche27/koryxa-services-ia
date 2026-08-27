@@ -39,7 +39,11 @@ alert_failure() {
   local msg="$1"
   echo "[-] ERREUR SAUVEGARDE : ${msg}" >&2
   if [[ -n "${BACKUP_ALERT_WEBHOOK_URL:-}" ]]; then
-    curl -s -X POST -H "Content-Type: application/json" -d "{\"text\":\"[ALERTE KORYXA] Échec sauvegarde Supabase : ${msg}\"}" "${BACKUP_ALERT_WEBHOOK_URL}" || true
+    curl --fail --silent --show-error -X POST \
+      -H "Content-Type: application/json" \
+      -H "X-Koryxa-Proxy-Secret: ${SERVICE_IA_PROXY_SECRET:-}" \
+      -d "{\"organization_id\":null,\"event\":\"supabase_backup_failed\",\"details\":{\"message\":\"${msg}\"}}" \
+      "${BACKUP_ALERT_WEBHOOK_URL}" || true
   fi
 }
 

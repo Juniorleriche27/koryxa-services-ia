@@ -3,7 +3,7 @@ from __future__ import annotations
 import hmac
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -20,6 +20,7 @@ from app.schemas.whatsapp import (
     WhatsAppConfig,
     WhatsAppConfigUpdate,
 )
+from app.services.email import EmailService
 from app.services.whatsapp import WhatsAppService
 
 router = APIRouter()
@@ -236,7 +237,9 @@ async def reset_whatsapp_session(o: OrgDep, _: ManageDep):
 
 
 @router.post("/session-alert")
-async def report_whatsapp_session_alert(request: Request, s: SessionDep):
+async def report_whatsapp_session_alert(
+    request: Request, background_tasks: BackgroundTasks, s: SessionDep
+):
     """Enregistre et propage une alerte de statut de session WhatsApp."""
     import structlog
 
@@ -264,5 +267,12 @@ async def report_whatsapp_session_alert(request: Request, s: SessionDep):
         alert_event=event_type,
         details=details,
     )
+    if settings.operations_alert_email:
+        background_tasks.add_task(
+            EmailService().send_operations_alert,
+            settings.operations_alert_email,
+            event_type,
+            org_id,
+            details,
+        )
     return {"status": "recorded", "alert_event": event_type, "organization_id": org_id}
-
