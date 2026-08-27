@@ -29,19 +29,27 @@ export GIT_COMMIT="$(git rev-parse --short HEAD)"
 docker compose config --quiet
 docker compose build backend
 
-# 4. Sauvegarde avant migration
+# 4. Sauvegarde de la base PostgreSQL administrée avant migration
 echo "💾 Sauvegarde PostgreSQL avant migration..."
+service_env_file="${SERVICE_IA_ENV_FILE:-/opt/env/koryxa-services-ia-backend.env}"
+[ -f "$service_env_file" ] || { echo "❌ Fichier d'environnement absent: $service_env_file"; exit 1; }
+set -a
+. "$service_env_file"
+set +a
+: "${SERVICE_IA_DATABASE_URL:?SERVICE_IA_DATABASE_URL is required}"
+dump_database_url="${SERVICE_IA_DATABASE_URL/postgresql+asyncpg:/postgresql:}"
 mkdir -p backups
 backup_file="backups/service_ia_$(date -u +%Y%m%dT%H%M%SZ).dump"
-docker compose exec -T postgres pg_dump -U service_ia -d service_ia -Fc > "$backup_file"
+docker run --rm -e TARGET_DATABASE_URL="$dump_database_url" postgres:17-alpine \
+    sh -c 'pg_dump "$TARGET_DATABASE_URL" -Fc' > "$backup_file"
 test -s "$backup_file"
 
 # 5. Migration et redémarrage contrôlé
 echo "🗄️ Validation et application des migrations Alembic..."
 docker compose run --rm backend alembic upgrade head
-docker compose run --rm backend alembic check
+docker compose run --rm backend alembic current | grep -q '20260819_0011 (head)'
 echo "🔄 Redémarrage des conteneurs en production..."
-docker compose up -d --no-build postgres backend
+docker compose up -d --no-build backend
 
 # 6. Vérification de l'état de santé (Healthchecks)
 echo "🩺 Vérification de l'état de santé des services..."

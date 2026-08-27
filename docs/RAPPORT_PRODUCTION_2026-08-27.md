@@ -24,8 +24,12 @@ Le service IA est validé pour le périmètre déployé après correction des bl
 
 ## Procédure de retour arrière
 
-Conserver le volume PostgreSQL et la sauvegarde générée dans `backups/`. Restaurer l'image immuable précédente, vérifier la compatibilité de sa révision Alembic, puis contrôler `/api/v1/health/live` et `/api/v1/health/ready`. Une restauration de données doit toujours être testée sur une base séparée avant remplacement de la base active.
+Conserver la sauvegarde Supabase générée dans `backups/`. Restaurer l'image immuable précédente, vérifier la compatibilité de sa révision Alembic, puis contrôler `/api/v1/health/live` et `/api/v1/health/ready`. Une restauration de données doit toujours être testée dans un projet ou une branche Supabase séparée avant remplacement de la base active.
 
 ## Réserves d'exploitation
 
 Le statut vert atteste le code, le schéma, le conteneur et l'accès public au moment de la livraison. La supervision externe, la rotation périodique des secrets et les exercices de restauration restent des activités continues d'exploitation, et non un état définitivement acquis.
+
+## Addendum — base de production
+
+La base de données de référence est le projet Supabase `ljsthtxbvhebnlivlgrn`, joint par son pooler PostgreSQL européen. PostgreSQL local a été retiré de la configuration Compose afin d'empêcher la création accidentelle de deux sources de vérité. Le déploiement sauvegarde désormais la base administrée avant migration et vérifie explicitement que sa révision Alembic correspond à `head`.

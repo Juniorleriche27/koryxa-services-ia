@@ -1,22 +1,4 @@
 services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: koryxa-services-ia-backend-postgres-1
-    environment:
-      POSTGRES_DB: service_ia
-      POSTGRES_USER: service_ia
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-    volumes:
-      - service_ia_postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U service_ia -d service_ia"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-    networks:
-      - internal
-    restart: unless-stopped
-
   backend:
     build:
       context: ./backend
@@ -24,9 +6,10 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
     image: koryxa-services-ia-backend:${GIT_COMMIT:-latest}
     container_name: prod_koryxa_services_ia_api
+    env_file:
+      - ${SERVICE_IA_ENV_FILE:-/opt/env/koryxa-services-ia-backend.env}
     environment:
       SERVICE_IA_ENVIRONMENT: production
-      SERVICE_IA_DATABASE_URL: postgresql+asyncpg://service_ia:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/service_ia
       SERVICE_IA_PROXY_SECRET: ${SERVICE_IA_PROXY_SECRET:?SERVICE_IA_PROXY_SECRET is required}
       SERVICE_IA_ENCRYPTION_KEY: ${SERVICE_IA_ENCRYPTION_KEY:?SERVICE_IA_ENCRYPTION_KEY is required}
       SERVICE_IA_CORS_ORIGINS: '["${FRONTEND_ORIGIN:-https://service-ia.koryxa.fr}"]'
@@ -40,9 +23,6 @@ services:
       options:
         max-size: "50m"
         max-file: "5"
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/v1/health/ready')"]
       interval: 10s
@@ -67,7 +47,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  service_ia_postgres:
   service_ia_files:
 
 networks:
