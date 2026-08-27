@@ -30,3 +30,14 @@ backend/storage/
 *.log
 .DS_Store
 Thumbs.db
+
+# Rclone, Backups & Secrets
+rclone.conf
+*.conf
+*.enc
+*.sha256
+*.secret
+backups/
+/opt/backups/
+/var/backups/
+

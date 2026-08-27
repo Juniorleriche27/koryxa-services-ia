@@ -78,10 +78,29 @@ echo "[+] Empreinte SHA-256 enregistrée : $(cat "${CHECKSUM_FILE}")"
 # Copie hors serveur obligatoire si configurée
 if [[ -n "${OFFSITE_BACKUP_DEST:-}" ]]; then
   echo "[+] Synchronisation hors site vers ${OFFSITE_BACKUP_DEST}..."
-  rsync -avz "${FINAL_FILE}" "${CHECKSUM_FILE}" "${OFFSITE_BACKUP_DEST}" || {
-    alert_failure "Échec de la synchronisation distante vers ${OFFSITE_BACKUP_DEST}"
-    exit 1
-  }
+  RCLONE_BIN=""
+  if command -v rclone >/dev/null 2>&1; then
+    RCLONE_BIN="rclone"
+  elif [[ -x "/home/deploy/bin/rclone" ]]; then
+    RCLONE_BIN="/home/deploy/bin/rclone"
+  fi
+
+  if [[ -n "${RCLONE_BIN}" && "${OFFSITE_BACKUP_DEST}" == *:* ]]; then
+    ${RCLONE_BIN} copy "${FINAL_FILE}" "${OFFSITE_BACKUP_DEST}" || {
+      alert_failure "Échec rclone vers ${OFFSITE_BACKUP_DEST}"
+      exit 1
+    }
+    ${RCLONE_BIN} copy "${CHECKSUM_FILE}" "${OFFSITE_BACKUP_DEST}" || {
+      alert_failure "Échec rclone checksum vers ${OFFSITE_BACKUP_DEST}"
+      exit 1
+    }
+  else
+    rsync -avz "${FINAL_FILE}" "${CHECKSUM_FILE}" "${OFFSITE_BACKUP_DEST}" || {
+      alert_failure "Échec de la synchronisation distante vers ${OFFSITE_BACKUP_DEST}"
+      exit 1
+    }
+  fi
+  echo "[✓] Synchronisation hors site terminée avec succès !"
 fi
 
 # Nettoyage selon politique de rétention
