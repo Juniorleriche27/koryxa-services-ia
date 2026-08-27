@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+from decimal import Decimal
 from typing import Any
 from uuid import uuid4
 
@@ -9,10 +10,11 @@ import httpx
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.errors import ApplicationError
 from app.models.integrations import OrganizationIntegrationConfig, WhatsAppWebhookEvent
 from app.models.organization import Organization
-from app.models.registers import Offer, PaymentStatus, RecordSource, Sale
+from app.models.registers import Expense, Offer, PaymentStatus, RecordSource, Sale
 from app.schemas.voice import VoiceConfirmRequest, VoiceParseRequest
 from app.schemas.whatsapp import WhatsAppConfig, WhatsAppConfigUpdate
 from app.services.integration_config import IntegrationConfigService
@@ -139,9 +141,6 @@ class WhatsAppService:
             raise ApplicationError(
                 "invalid_verify_token", "Token de vérification WhatsApp invalide", 403
             )
-        if token == "koryxa_secret_webhook_token":
-            return challenge or ""
-
         configs = (
             await s.scalars(
                 select(OrganizationIntegrationConfig).where(
@@ -164,10 +163,6 @@ class WhatsAppService:
         self, s: AsyncSession, org_id: str, query: str
     ) -> str:
         """Interroge la base de connaissances et les registres pour formuler une réponse WhatsApp."""
-        from app.models.expense import Expense
-        from app.models.sale import Sale
-        from app.models.offer import Offer
-
         lower = query.lower()
 
         # 1. Questions sur le solde de caisse / trésorerie
@@ -243,7 +238,12 @@ class WhatsAppService:
         )
 
     async def process_inbound_payload(
-        self, s: AsyncSession, raw_body: bytes, signature: str | None, payload: dict[str, Any]
+        self,
+        s: AsyncSession,
+        raw_body: bytes,
+        signature: str | None,
+        payload: dict[str, Any],
+        internal_secret: str | None = None,
     ) -> dict[str, Any]:
         cfg = None
         if "entry" in payload:
@@ -260,10 +260,21 @@ class WhatsAppService:
                     "whatsapp_tenant_not_found", "Numéro WhatsApp non configuré", 404
                 )
             app_secret = self.configs.decrypt(cfg.whatsapp_app_secret_encrypted)
-            if app_secret and signature and signature.startswith("sha256="):
-                expected = hmac.new(app_secret.encode(), raw_body, hashlib.sha256).hexdigest()
-                if not hmac.compare_digest(signature[7:], expected):
-                    raise ApplicationError("invalid_whatsapp_signature", "Signature WhatsApp invalide", 401)
+            if not app_secret:
+                raise ApplicationError(
+                    "whatsapp_app_secret_missing",
+                    "Secret applicatif WhatsApp non configuré",
+                    503,
+                )
+            if not signature or not signature.startswith("sha256="):
+                raise ApplicationError(
+                    "missing_whatsapp_signature", "Signature WhatsApp manquante", 401
+                )
+            expected = hmac.new(app_secret.encode(), raw_body, hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(signature[7:], expected):
+                raise ApplicationError(
+                    "invalid_whatsapp_signature", "Signature WhatsApp invalide", 401
+                )
             messages = value.get("messages") or []
             if not messages:
                 return {"status": "no_messages"}
@@ -281,6 +292,20 @@ class WhatsAppService:
             text = str((msg.get("text") or {}).get("body") or "").strip()
             org_id = cfg.organization_id
         elif "text" in payload or "message" in payload:
+            settings = get_settings()
+            configured_secret = settings.proxy_secret
+            if not configured_secret and settings.environment != "production":
+                configured_secret = "service-ia-development-only-proxy-secret"
+            if (
+                not configured_secret
+                or not internal_secret
+                or not hmac.compare_digest(internal_secret, configured_secret)
+            ):
+                raise ApplicationError(
+                    "invalid_internal_webhook_secret",
+                    "Authentification du webhook interne invalide",
+                    401,
+                )
             text = str(payload.get("text") or payload.get("message") or "").strip()
             from_phone = str(payload.get("from") or "")
             message_id = str(payload.get("message_id") or uuid4())
@@ -294,10 +319,6 @@ class WhatsAppService:
                         | (Organization.slug == org_identifier)
                     )
                 )
-            if not org_obj:
-                org_obj = await s.scalar(select(Organization).where(Organization.name == "KORYXA"))
-            if not org_obj:
-                org_obj = await s.scalar(select(Organization).limit(1))
             if not org_obj:
                 raise ApplicationError("whatsapp_tenant_not_found", "Organisation introuvable", 404)
             org_id = org_obj.id

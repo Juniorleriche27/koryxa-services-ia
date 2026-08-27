@@ -19,7 +19,6 @@ from app.models.radar import (
     RadarRun,
 )
 from app.models.registers import (
-
     Expense,
     Offer,
     PaymentStatus,

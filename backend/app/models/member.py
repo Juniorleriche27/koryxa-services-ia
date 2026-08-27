@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import uuid4
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -31,9 +31,9 @@ class OrganizationMember(Base):
         ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
     )
     user_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
-    role: Mapped[MemberRole] = mapped_column(Enum(MemberRole, native_enum=False), nullable=False)
+    role: Mapped[MemberRole] = mapped_column(String(20), nullable=False)
     status: Mapped[MemberStatus] = mapped_column(
-        Enum(MemberStatus, native_enum=False), default=MemberStatus.ACTIVE, nullable=False
+        String(20), default=MemberStatus.ACTIVE, nullable=False
     )
     invited_by_user_id: Mapped[str | None] = mapped_column(String(128))
     joined_at: Mapped[datetime] = mapped_column(

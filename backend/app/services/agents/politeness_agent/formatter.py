@@ -1,8 +1,8 @@
 """Post-processing and response formatter enforcing tone, politeness, and empathetic fallbacks."""
 
 import re
-from typing import Optional
-from .config import PolitenessConfig, Tone, Language, PolishedResponse
+
+from .config import Language, PolishedResponse, PolitenessConfig, Tone
 
 
 class ResponsePolisher:
@@ -99,7 +99,7 @@ class ResponsePolisher:
     def polish(
         self,
         raw_rag_response: str,
-        query: Optional[str] = None,
+        query: str | None = None,
         context_found: bool = True,
         user_greeted: bool = False,
     ) -> PolishedResponse:

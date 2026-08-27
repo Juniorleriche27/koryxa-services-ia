@@ -42,11 +42,13 @@ def upgrade() -> None:
         sa.Column(
             "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
         ),
-        sa.UniqueConstraint("organization_id"),
         sa.UniqueConstraint("whatsapp_phone_number_id"),
     )
     op.create_index(
-        "ix_integration_config_org", "organization_integration_configs", ["organization_id"]
+        "ix_organization_integration_configs_organization_id",
+        "organization_integration_configs",
+        ["organization_id"],
+        unique=True,
     )
     op.create_table(
         "whatsapp_webhook_events",
@@ -63,7 +65,11 @@ def upgrade() -> None:
         ),
         sa.UniqueConstraint("message_id", name="uq_whatsapp_webhook_message_id"),
     )
-    op.create_index("ix_whatsapp_event_org", "whatsapp_webhook_events", ["organization_id"])
+    op.create_index(
+        "ix_whatsapp_webhook_events_organization_id",
+        "whatsapp_webhook_events",
+        ["organization_id"],
+    )
 
 
 def downgrade() -> None:

@@ -43,7 +43,7 @@ export function StockAdjustmentDialog({
     setError("");
 
     try {
-      let body: Record<string, unknown> = { reason: reason.trim() };
+      const body: Record<string, unknown> = { reason: reason.trim() };
       if (mode === "add") {
         body.quantity_delta = parsedQty;
       } else if (mode === "subtract") {

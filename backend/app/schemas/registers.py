@@ -89,7 +89,7 @@ class OfferRead(OfferBase):
 
 
 class SaleBase(BaseModel):
-    reference: str = Field(default="", max_length=100)
+    reference: str | None = Field(default=None, max_length=100)
     document_type: DocumentType = DocumentType.INVOICE
     sale_date: date
     client_name: str | None = None
@@ -97,9 +97,9 @@ class SaleBase(BaseModel):
     client_email: str | None = None
     offer_id: str | None = None
     item_label: str = Field(min_length=1, max_length=180)
-    quantity: Decimal = Field(default=1, gt=0)
-    unit_price: Decimal = Field(default=0, ge=0)
-    discount: Decimal = Field(default=0, ge=0)
+    quantity: Decimal = Field(default=Decimal("1"), gt=0)
+    unit_price: Decimal = Field(default=Decimal("0"), ge=0)
+    discount: Decimal = Field(default=Decimal("0"), ge=0)
     total_amount: Decimal | None = Field(default=None, ge=0)
     paid_amount: Decimal = Field(default=Decimal("0.00"), ge=0)
     due_date: date | None = None
@@ -313,7 +313,7 @@ class RegistersSummary(BaseModel):
 
 
 class ExpenseBase(BaseModel):
-    reference: str = Field(default="", max_length=100)
+    reference: str | None = Field(default=None, max_length=100)
     document_type: ExpenseDocumentType = ExpenseDocumentType.EXPENSE_RECEIPT
     expense_date: date
     category: str = Field(default="Divers", max_length=80)

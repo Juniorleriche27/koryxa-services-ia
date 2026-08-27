@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: service_ia
       POSTGRES_USER: service_ia
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replace-with-a-strong-password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - service_ia_postgres:/var/lib/postgresql/data
     healthcheck:
@@ -14,7 +14,7 @@ services:
       timeout: 5s
       retries: 12
     networks:
-      - default
+      - internal
     restart: unless-stopped
 
   backend:
@@ -26,9 +26,9 @@ services:
     container_name: prod_koryxa_services_ia_api
     environment:
       SERVICE_IA_ENVIRONMENT: production
-      SERVICE_IA_DATABASE_URL: postgresql+asyncpg://service_ia:${POSTGRES_PASSWORD:-replace-with-a-strong-password}@postgres:5432/service_ia
-      SERVICE_IA_PROXY_SECRET: ${SERVICE_IA_PROXY_SECRET:-secret_proxy_prod_koryxa_ia_2026}
-      SERVICE_IA_ENCRYPTION_KEY: ${SERVICE_IA_ENCRYPTION_KEY:-${SERVICE_IA_PROXY_SECRET:-secret_proxy_prod_koryxa_ia_2026}}
+      SERVICE_IA_DATABASE_URL: postgresql+asyncpg://service_ia:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/service_ia
+      SERVICE_IA_PROXY_SECRET: ${SERVICE_IA_PROXY_SECRET:?SERVICE_IA_PROXY_SECRET is required}
+      SERVICE_IA_ENCRYPTION_KEY: ${SERVICE_IA_ENCRYPTION_KEY:?SERVICE_IA_ENCRYPTION_KEY is required}
       SERVICE_IA_CORS_ORIGINS: '["${FRONTEND_ORIGIN:-https://service-ia.koryxa.fr}"]'
       SERVICE_IA_TRUSTED_PROXY_SOURCES: '["koryxa-gateway","koryxa-admin","koryxa-services-ia"]'
       SERVICE_IA_KNOWLIA_BASE_URL: ${KNOWLIA_BASE_URL:-http://prod_knowlia:8080}
@@ -44,7 +44,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/v1/health/live')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/v1/health/ready')"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -53,8 +53,17 @@ services:
         limits:
           cpus: '1.5'
           memory: 1024M
+          pids: 256
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     networks:
-      - default
+      - internal
+      - public
     restart: unless-stopped
 
 volumes:
@@ -62,6 +71,9 @@ volumes:
   service_ia_files:
 
 networks:
-  default:
+  internal:
     name: prod_internal
+    external: true
+  public:
+    name: prod_public
     external: true

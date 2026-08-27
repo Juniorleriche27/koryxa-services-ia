@@ -4,16 +4,15 @@ import hashlib
 import hmac
 import math
 import time
-from datetime import date, datetime, timezone
-from decimal import Decimal
+from datetime import UTC, date, datetime
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.errors import ApplicationError
 from app.models.attendance import AttendanceRecord
-from app.models.member import OrganizationMember, MemberStatus
+from app.models.member import MemberStatus, OrganizationMember
 from app.models.organization import Organization
 from app.schemas.attendance import (
     AttendanceCheckInRequest,
@@ -45,7 +44,7 @@ class AttendanceService:
 
     def _get_org_secret(self, org_id: str) -> bytes:
         proxy_secret = get_settings().proxy_secret or "koryxa-attendance-default-key"
-        return f"{org_id}:{proxy_secret}".encode("utf-8")
+        return f"{org_id}:{proxy_secret}".encode()
 
     def _generate_totp(self, org_id: str, time_step: int) -> str:
         secret = self._get_org_secret(org_id)
@@ -57,7 +56,7 @@ class AttendanceService:
         current_time = int(time.time())
         current_step = current_time // self.STEP_SECONDS
         token = self._generate_totp(org.id, current_step)
-        valid_until = datetime.fromtimestamp((current_step + 1) * self.STEP_SECONDS, tz=timezone.utc)
+        valid_until = datetime.fromtimestamp((current_step + 1) * self.STEP_SECONDS, tz=UTC)
         expires_in = (current_step + 1) * self.STEP_SECONDS - current_time
 
         qr_payload = f"koryxa:checkin:{org.id}:{token}:{int(valid_until.timestamp())}"
@@ -124,7 +123,7 @@ class AttendanceService:
             )
         )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if existing:
             # Update check-in or re-confirm
             existing.check_in_lat = data.latitude
@@ -181,7 +180,7 @@ class AttendanceService:
                 404,
             )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         record.check_out_time = now
         if data.latitude is not None:
             record.check_out_lat = data.latitude

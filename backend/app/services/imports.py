@@ -140,7 +140,7 @@ class ImportService:
                     "excel_parse_error",
                     f"Erreur de lecture du fichier Excel : {str(e)}",
                     422,
-                )
+                ) from e
 
         raise ApplicationError(
             "unsupported_file",
@@ -464,4 +464,3 @@ class ImportService:
         if any(w in normalized for w in ["partiel", "partial", "acompte"]):
             return PaymentStatus.PARTIAL
         return PaymentStatus.PAID
-

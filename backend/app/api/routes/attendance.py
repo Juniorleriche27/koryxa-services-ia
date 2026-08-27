@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import and_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.identity import KoryxaIdentity, require_koryxa_identity
@@ -42,10 +42,9 @@ async def check_in(
     s: SessionDep,
     i: IdentityDep,
     o: OrgDep,
-    member: ReadDep,
+    _: ReadDep,
 ):
     """Employee check-in validating the dynamic QR token and GPS coordinates within geofence."""
-    emp_name = data.employee_name or getattr(member, "full_name", None) or i.email
     return await svc.check_in(s, o, i.user_id, data)
 
 

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 from decimal import Decimal
 from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.registers import ExpenseCreate, ExpenseDocumentType, PaymentStatus
+from app.schemas.registers import ExpenseCreate, PaymentStatus
 from app.services.agents.base import BaseSpecializedAgent
 from app.services.registers import RegisterService
 
@@ -61,8 +63,6 @@ class FinanceAgent(BaseSpecializedAgent):
         total_expenses_paid = float(context.get("total_expenses_paid", 0))
         total_sales_unpaid = float(context.get("total_sales_unpaid", 0))
         net_cash = total_sales_paid - total_expenses_paid
-        total_stock_value = float(context.get("total_stock_value", 0))
-
         recouvrement_rate = (
             round((total_sales_paid / total_sales_amount) * 100)
             if total_sales_amount > 0
@@ -162,6 +162,7 @@ class FinanceAgent(BaseSpecializedAgent):
             org,
             user,
             ExpenseCreate(
+                expense_date=date.today(),
                 category=category,
                 beneficiary=beneficiary,
                 amount=amt,

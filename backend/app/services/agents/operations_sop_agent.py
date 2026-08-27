@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.agents.base import BaseSpecializedAgent

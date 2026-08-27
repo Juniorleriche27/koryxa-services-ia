@@ -1,5 +1,6 @@
 from datetime import date
 from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,8 +11,8 @@ from app.models.member import OrganizationMember
 from app.models.organization import Organization
 from app.schemas.automations import (
     DailyDigestResponse,
-    UnpaidRemindersResponse,
     SendAutomationResult,
+    UnpaidRemindersResponse,
 )
 from app.services.automations import AutomationService
 

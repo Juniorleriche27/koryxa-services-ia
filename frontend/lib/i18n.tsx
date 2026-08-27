@@ -329,8 +329,12 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
 
     // Radar & Quality Module
     radar_title: "Radar Sentinelle Opérationnelle",
+    radar_eyebrow: "Contrôle & Qualité",
     radar_desc: "Détection préventive des risques financiers, ruptures de stock et anomalies",
     radar_btn_scan: "Lancer un Scan Complet",
+    radar_running: "Analyse en cours…",
+    radar_empty_title: "Aucune anomalie détectée",
+    radar_empty_desc: "Lancez une analyse pour contrôler vos données opérationnelles.",
     radar_kpi_score: "INDICE DE SANTÉ GLOBALE",
     radar_kpi_healthy: "Santé Opérationnelle Optimale",
     radar_kpi_open: "ANOMALIES OUVERTES",
@@ -345,14 +349,31 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
 
     // Actions & Kanban Module
     actions_title_page: "Plan d'Actions Correctives",
+    actions_eyebrow: "Pilotage",
     actions_desc_page: "Suivez la mise en œuvre des décisions managériales et des tâches prioritaires",
     actions_btn_new: "+ Nouvelle Tâche",
+    actions_empty_title: "Aucune action",
+    actions_empty_desc: "Créez une action corrective pour commencer le suivi.",
     actions_col_todo: "À Faire",
     actions_col_in_progress: "En Cours",
     actions_col_done: "Terminé",
     actions_prio_high: "Priorité Haute",
     actions_prio_medium: "Priorité Normale",
     actions_prio_low: "Priorité Basse",
+
+    // Validation & Imports modules
+    validations_eyebrow: "Contrôle humain",
+    validations_title: "Validations",
+    validations_desc: "Validez les propositions issues des automatisations et de l'IA.",
+    validations_empty_title: "Aucune validation en attente",
+    validations_empty_desc: "Les nouvelles propositions apparaîtront ici.",
+    validations_source: "Source",
+    validations_confidence: "Confiance",
+    validations_current_val: "Valeur actuelle",
+    validations_proposed_val: "Valeur proposée",
+    imports_eyebrow: "Données",
+    imports_title: "Importer des données (Excel, CSV)",
+    imports_desc: "Chargez et contrôlez vos données avant leur intégration.",
 
     // Organization & Settings Module
     org_title: "Organisation & Gestion d'Équipe",

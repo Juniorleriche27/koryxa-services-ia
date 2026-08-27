@@ -1,13 +1,13 @@
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 
 from app.core.errors import ApplicationError
 from app.core.identity import KoryxaIdentity
 from app.core.permissions import (
-    get_current_organization,
     get_current_member,
+    get_current_organization,
     require_permission,
-    ROLE_PERMISSIONS,
 )
 from app.models.member import MemberRole, MemberStatus, OrganizationMember
 from app.models.organization import Organization
@@ -74,6 +74,35 @@ async def test_non_member_cannot_access_organization():
     with pytest.raises(ApplicationError) as exc_info:
         await get_current_member(identity, session)
     assert exc_info.value.code == "forbidden_member"
+
+
+@pytest.mark.asyncio
+async def test_creator_without_membership_is_not_auto_promoted():
+    identity = KoryxaIdentity(
+        tenant_id="tenant-alpha",
+        user_id="user-creator",
+        email="creator@koryxa.com",
+        source=None,
+        auth_provider=None,
+        role=None,
+        permissions=frozenset(),
+    )
+    org = Organization(
+        id="org-123",
+        tenant_id="tenant-alpha",
+        name="Org Alpha",
+        slug="org-alpha",
+        created_by_user_id="user-creator",
+    )
+    session = AsyncMock()
+    session.scalar.side_effect = [org, None]
+
+    with pytest.raises(ApplicationError) as exc_info:
+        await get_current_member(identity, session)
+
+    assert exc_info.value.code == "forbidden_member"
+    session.add.assert_not_called()
+    session.commit.assert_not_awaited()
 
 
 @pytest.mark.asyncio

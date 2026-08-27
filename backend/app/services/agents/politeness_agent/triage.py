@@ -1,14 +1,14 @@
 """Fast triage and classification engine for incoming user queries."""
 
-import re
 import random
-from typing import Dict, List, Tuple
+import re
+
 from .config import (
+    Language,
     PolitenessConfig,
+    Tone,
     TriageCategory,
     TriageResult,
-    Tone,
-    Language,
 )
 
 
@@ -144,7 +144,7 @@ class FastTriageEngine:
 
     def _init_responses(self) -> None:
         """Initialize polite response templates tailored to each tone and language."""
-        self.responses: Dict[Tuple[Language, Tone, TriageCategory], List[str]] = {
+        self.responses: dict[tuple[Language, Tone, TriageCategory], list[str]] = {
             # FRENCH - FORMAL (Vouvoiement strict)
             (Language.FR, Tone.FORMAL, TriageCategory.GREETING): [
                 "Bonjour {user_name}. En quoi puis-je vous être utile aujourd'hui ?",

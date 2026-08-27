@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.agents.base import BaseSpecializedAgent
@@ -36,7 +37,6 @@ class RadarSentinelAgent(BaseSpecializedAgent):
         sector_label = domain.get("sector_label", "Entreprise")
         agent_role = domain.get("role_radar", self.role_title)
         open_alerts_count = context.get("open_alerts_count", 0)
-        critical_alerts = context.get("critical_alerts", [])
         low_stock_count = context.get("low_stock_count", 0)
 
         llm_prompt = (

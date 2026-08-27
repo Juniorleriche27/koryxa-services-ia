@@ -1,14 +1,14 @@
 """Politeness Agent - Reusable tone, guardrail, and politeness gateway for RAG pipelines."""
 
+from .agent import PolitenessAgent
 from .config import (
+    Language,
+    PolishedResponse,
     PolitenessConfig,
     Tone,
-    Language,
     TriageCategory,
     TriageResult,
-    PolishedResponse,
 )
-from .agent import PolitenessAgent
 
 __version__ = "1.0.0"
 

@@ -4,6 +4,7 @@ import re
 from datetime import date
 from decimal import Decimal
 from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.registers import DocumentType, PaymentStatus, RecordStatus, SaleCreate
@@ -84,8 +85,6 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
 
         if not reply:
             client_word = "l'élève / parent" if is_education else "le client"
-            sale_word = "l'écolage" if is_education else "la facture"
-
             if any(w in msg_lower for w in ["chiffre d'affaire", "chiffre d'affaires", "ca", "chiffre daffaire", "recette", "recettes", "total vente", "total des ventes", "combien j'ai vendu", "combien on a vendu", "revenu"]):
                 total_ca = total_sales_amount
                 ca_encaisse = total_sales_paid

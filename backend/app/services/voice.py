@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, date, datetime
+from datetime import date
 from decimal import Decimal
 from typing import Any
 from uuid import uuid4
@@ -9,8 +9,8 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApplicationError
-from app.models.registers import PaymentStatus, RecordSource
-from app.schemas.registers import ExpenseCreate, OfferCreate, ProcedureCreate, SaleCreate, StepInput
+from app.models.registers import PaymentStatus
+from app.schemas.registers import ExpenseCreate, OfferCreate, ProcedureCreate, SaleCreate
 from app.schemas.voice import (
     VoiceConfirmRequest,
     VoiceExpenseCandidate,
@@ -20,6 +20,7 @@ from app.schemas.voice import (
     VoiceParseResponse,
     VoiceProcedureCandidate,
     VoiceSaleCandidate,
+    VoiceTranscriptionResponse,
 )
 from app.services.registers import RegisterService
 
@@ -499,31 +500,33 @@ class VoiceService:
             if isinstance(payload, list):
                 created_sales = []
                 for item in payload:
-                    data = SaleCreate.model_validate(item)
+                    sale_data = SaleCreate.model_validate(item)
                     sale = await self.register_service.create_sale(
-                        s, org_id, user_id, data
+                        s, org_id, user_id, sale_data
                     )
                     created_sales.append(sale.id)
                 return {"type": "sales_batch", "count": len(created_sales), "ids": created_sales}
             else:
-                data = SaleCreate.model_validate(payload)
+                sale_data = SaleCreate.model_validate(payload)
                 sale = await self.register_service.create_sale(
-                    s, org_id, user_id, data
+                    s, org_id, user_id, sale_data
                 )
                 return {"type": "sale", "id": sale.id, "reference": sale.reference, "item_label": sale.item_label}
         elif request.intent == VoiceIntent.EXPENSE:
-            data = ExpenseCreate.model_validate(request.payload)
+            expense_data = ExpenseCreate.model_validate(request.payload)
             expense = await self.register_service.create_expense(
-                s, org_id, user_id, data
+                s, org_id, user_id, expense_data
             )
             return {"type": "expense", "id": expense.id, "reference": expense.reference}
         elif request.intent == VoiceIntent.OFFER:
-            data = OfferCreate.model_validate(request.payload)
-            offer = await self.register_service.create_offer(s, org_id, user_id, data)
+            offer_data = OfferCreate.model_validate(request.payload)
+            offer = await self.register_service.create_offer(s, org_id, user_id, offer_data)
             return {"type": "offer", "id": offer.id, "name": offer.name}
         elif request.intent == VoiceIntent.PROCEDURE:
-            data = ProcedureCreate.model_validate(request.payload)
-            created = await self.register_service.create_procedure(s, org_id, user_id, data)
+            procedure_data = ProcedureCreate.model_validate(request.payload)
+            created = await self.register_service.create_procedure(
+                s, org_id, user_id, procedure_data
+            )
             return {"type": "procedure", "id": created.id, "title": created.title}
         else:
             raise ApplicationError("invalid_intent", "Type de registre non supporté", 400)
@@ -535,8 +538,6 @@ class VoiceService:
         content_type: str = "audio/webm",
     ) -> VoiceTranscriptionResponse:
         from app.core.config import get_settings
-        from app.schemas.voice import VoiceTranscriptionResponse
-
         settings = get_settings()
 
         if not audio_bytes or len(audio_bytes) < 10:

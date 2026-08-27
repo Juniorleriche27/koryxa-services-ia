@@ -1,33 +1,31 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from typing import Any
-import uuid
 
-from sqlalchemy import select, and_
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.organization import Organization
-from app.models.registers import Sale, Offer, PaymentStatus, Expense
 from app.models.attendance import AttendanceRecord
+from app.models.organization import Organization
+from app.models.registers import Expense, Offer, PaymentStatus, Sale
 from app.schemas.automations import (
+    DailyDigestAttendanceSummary,
+    DailyDigestExpensesSummary,
     DailyDigestResponse,
     DailyDigestSalesSummary,
-    DailyDigestExpensesSummary,
-    DailyDigestAttendanceSummary,
     LowStockItem,
-    UnpaidRemindersResponse,
-    UnpaidReminderItem,
     SendAutomationResult,
+    UnpaidReminderItem,
+    UnpaidRemindersResponse,
 )
 
 
 class AutomationService:
     async def get_daily_digest(
-        self, s: AsyncSession, org_id: uuid.UUID, target_date: date | None = None
+        self, s: AsyncSession, org_id: str, target_date: date | None = None
     ) -> DailyDigestResponse:
-        today = target_date or datetime.now(timezone.utc).date()
+        today = target_date or datetime.now(UTC).date()
 
         # 1. Fetch organization
         org = await s.get(Organization, org_id)
@@ -178,7 +176,7 @@ class AutomationService:
         )
 
     async def send_daily_digest(
-        self, s: AsyncSession, org_id: uuid.UUID, target_date: date | None = None
+        self, s: AsyncSession, org_id: str, target_date: date | None = None
     ) -> SendAutomationResult:
         digest = await self.get_daily_digest(s, org_id, target_date)
         # Attempt to deliver via WhatsApp / webhook
@@ -190,9 +188,9 @@ class AutomationService:
         )
 
     async def get_unpaid_reminders(
-        self, s: AsyncSession, org_id: uuid.UUID, min_days: int = 1
+        self, s: AsyncSession, org_id: str, min_days: int = 1
     ) -> UnpaidRemindersResponse:
-        today = datetime.now(timezone.utc).date()
+        today = datetime.now(UTC).date()
         cutoff_date = today - timedelta(days=min_days)
 
         stmt = select(Sale).where(
@@ -248,7 +246,7 @@ class AutomationService:
         )
 
     async def send_unpaid_reminders(
-        self, s: AsyncSession, org_id: uuid.UUID, min_days: int = 1
+        self, s: AsyncSession, org_id: str, min_days: int = 1
     ) -> SendAutomationResult:
         data = await self.get_unpaid_reminders(s, org_id, min_days)
         return SendAutomationResult(

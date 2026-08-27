@@ -1,7 +1,6 @@
 """Query sanitizer to clean conversational pleasantries before vector retrieval."""
 
 import re
-from typing import List
 
 
 class QuerySanitizer:
@@ -10,7 +9,7 @@ class QuerySanitizer:
     and trailing questions, delivering clean semantic text for Vector DB search.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Prefixes to strip (French)
         self.fr_prefixes = [
             r"^(bonjour|bonsoir|salut|coucou|hello|hi|hey)(\s+(monsieur|madame|l'équipe|à tous))?[\s,\.\!\?:\-]+",

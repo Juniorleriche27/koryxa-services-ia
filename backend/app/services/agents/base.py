@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import json
 from abc import ABC, abstractmethod
 from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.identity import KoryxaIdentity

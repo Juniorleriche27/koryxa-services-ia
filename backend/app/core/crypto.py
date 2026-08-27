@@ -10,7 +10,7 @@ from app.core.errors import ApplicationError
 class SecretCipher:
     def __init__(self) -> None:
         settings = get_settings()
-        secret = settings.encryption_key or settings.proxy_secret
+        secret = settings.encryption_key
         if not secret and settings.environment != "production":
             secret = "service-ia-development-only-encryption-key"
         if not secret:

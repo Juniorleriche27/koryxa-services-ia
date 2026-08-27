@@ -1,25 +1,25 @@
 """FastAPI microservice offering HTTP endpoints for the Politeness Gateway."""
 
-from typing import Optional, Dict, Any
+from typing import Any
+
 from pydantic import BaseModel, Field
-from .config import (
-    PolitenessConfig,
-    Tone,
-    Language,
-    TriageResult,
-    PolishedResponse,
-)
+
 from .agent import PolitenessAgent
+from .config import (
+    PolishedResponse,
+    PolitenessConfig,
+    TriageResult,
+)
 
 try:
-    from fastapi import FastAPI, HTTPException
+    from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
 
 
-def create_app(config: Optional[PolitenessConfig] = None) -> Any:
+def create_app(config: PolitenessConfig | None = None) -> Any:
     """Factory creating the FastAPI instance."""
     if not FASTAPI_AVAILABLE:
         raise ImportError(
@@ -45,17 +45,17 @@ def create_app(config: Optional[PolitenessConfig] = None) -> Any:
 
     class TriageRequest(BaseModel):
         query: str = Field(..., description="User input message")
-        config_override: Optional[PolitenessConfig] = None
+        config_override: PolitenessConfig | None = None
 
     class SanitizeRequest(BaseModel):
         query: str = Field(..., description="Raw query with pleasantries")
 
     class PolishRequest(BaseModel):
         raw_response: str = Field(..., description="Raw response produced by RAG LLM")
-        query: Optional[str] = Field(None, description="Original user query")
+        query: str | None = Field(None, description="Original user query")
         context_found: bool = Field(True, description="Whether matching documents were retrieved")
         user_greeted: bool = Field(False, description="Whether user started with a greeting")
-        config_override: Optional[PolitenessConfig] = None
+        config_override: PolitenessConfig | None = None
 
     @app.get("/health")
     def health():

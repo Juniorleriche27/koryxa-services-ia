@@ -12,7 +12,6 @@ from app.models.member import OrganizationMember
 from app.models.organization import Organization
 from app.models.registers import (
     DocumentType,
-    ExpenseDocumentType,
     PaymentStatus,
     RecordStatus,
 )

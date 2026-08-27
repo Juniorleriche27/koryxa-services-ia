@@ -5,11 +5,11 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.errors import ApplicationError
 from app.core.identity import KoryxaIdentity
 from app.models.member import MemberRole, OrganizationMember
 from app.models.organization import Organization
-from app.core.config import get_settings
 from app.schemas.organizations import OrganizationCreate, OrganizationOnboarding, OrganizationUpdate
 from app.storage.local import LocalFileStorage
 
@@ -89,7 +89,13 @@ class OrganizationService:
         organization: Organization,
         data: OrganizationOnboarding,
     ) -> Organization:
-        from app.models.registers import DocumentType, PaymentStatus, RecordSource, RecordStatus, Sale
+        from app.models.registers import (
+            DocumentType,
+            PaymentStatus,
+            RecordSource,
+            RecordStatus,
+            Sale,
+        )
 
         organization.name = data.name.strip()
         if data.business_category:

@@ -59,12 +59,14 @@ class VoiceOfferCandidate(BaseModel):
     currency: str = "XOF"
     billing_unit: str | None = None
     conditions: str | None = None
+    description: str | None = None
 
 
 class VoiceProcedureCandidate(BaseModel):
     title: str
     department: str | None = None
     objective: str | None = None
+    category: str | None = None
     steps: list[dict[str, Any]] = Field(default_factory=list)
 
 

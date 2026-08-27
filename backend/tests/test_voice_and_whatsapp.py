@@ -1,4 +1,5 @@
 from decimal import Decimal
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -73,9 +74,18 @@ def test_whatsapp_webhook_handshake_and_inbound_message() -> None:
         org_res = client.get("/api/v1/organizations/current", headers=owner)
         org_id = org_res.json()["id"]
 
+        config_res = client.put(
+            "/api/v1/integrations/whatsapp/config",
+            headers=owner,
+            json={"verify_token": "test-verify-token", "is_active": True},
+        )
+        assert config_res.status_code == 200
+
         # 1. Test Meta webhook verification challenge
         challenge_res = client.get(
-            "/api/v1/integrations/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=koryxa_secret_webhook_token&hub.challenge=test_challenge_12345"
+            "/api/v1/integrations/whatsapp/webhook"
+            "?hub.mode=subscribe&hub.verify_token=test-verify-token"
+            "&hub.challenge=test_challenge_12345"
         )
         assert challenge_res.status_code == 200
         assert challenge_res.text == "test_challenge_12345"
@@ -83,6 +93,9 @@ def test_whatsapp_webhook_handshake_and_inbound_message() -> None:
         # 2. Test inbound message simulation
         inbound_res = client.post(
             "/api/v1/integrations/whatsapp/webhook",
+            headers={
+                "X-Koryxa-Proxy-Secret": "service-ia-development-only-proxy-secret"
+            },
             json={
                 "from": "+2250708091011",
                 "text": "Vente de prestation conseil 500000 FCFA client Société Alpha payé par virement",
@@ -99,6 +112,36 @@ def test_whatsapp_webhook_handshake_and_inbound_message() -> None:
         assert sales.status_code == 200
         assert sales.json()["total"] == 1
         assert Decimal(str(sales.json()["items"][0]["total_amount"])) == Decimal("500000")
+
+
+def test_whatsapp_internal_webhook_rejects_missing_secret_and_unknown_tenant() -> None:
+    with TestClient(app) as client:
+        owner = create_org(client, "tenant-wa-secure", "user-wa-secure")
+        org_id = client.get("/api/v1/organizations/current", headers=owner).json()["id"]
+        payload = {
+            "from": "+2250700000000",
+            "text": "Vente test 1000 FCFA",
+            "organization_id": org_id,
+        }
+
+        unauthenticated = client.post(
+            "/api/v1/integrations/whatsapp/webhook",
+            json=payload,
+        )
+        assert unauthenticated.status_code == 401
+
+        unknown_tenant = client.post(
+            "/api/v1/integrations/whatsapp/webhook",
+            headers={
+                "X-Koryxa-Proxy-Secret": "service-ia-development-only-proxy-secret"
+            },
+            json={**payload, "organization_id": "unknown-tenant"},
+        )
+        assert unknown_tenant.status_code == 404
+
+        sales = client.get("/api/v1/registers/sales", headers=owner)
+        assert sales.status_code == 200
+        assert sales.json()["total"] == 0
 
 
 def test_voice_multi_sales_and_currencies() -> None:
@@ -156,4 +199,3 @@ def test_voice_multi_sales_and_currencies() -> None:
         assert Decimal(sylvie_data["sale"]["quantity"]) == Decimal("3")
         assert Decimal(sylvie_data["sale"]["unit_price"]) == Decimal("200000")
         assert Decimal(sylvie_data["sale"]["total_amount"]) == Decimal("600000")
-

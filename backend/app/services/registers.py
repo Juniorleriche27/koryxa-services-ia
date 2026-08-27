@@ -39,7 +39,6 @@ from app.services.reference_generator import (
 )
 
 
-
 def serialize_val(v: object) -> object:
     if isinstance(v, (date, Decimal)):
         return str(v)
@@ -243,7 +242,9 @@ class RegisterService:
         obj.payment_history = current_history
         obj.updated_by_user_id = user
 
-        await self._history(s, org, "sale", rid, "payment_recorded", user, history_entry)
+        await self._history(
+            s, org, "sale", rid, "payment_recorded", user, dict(history_entry)
+        )
         await s.commit()
         await s.refresh(obj)
         return obj
@@ -880,6 +881,5 @@ class RegisterService:
             "primary_currency": primary_currency,
             "recent_expenses": expenses[:10],
         }
-
 
 

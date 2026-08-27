@@ -23,37 +23,50 @@ echo "📦 Mise à jour du code source..."
 git fetch origin
 git pull origin main --ff-only
 
-# 3. Construction des conteneurs Docker (Backend Python + Frontend Next.js)
+# 3. Construction de l'image immuable du backend
 echo "🔨 Construction des images Docker..."
-docker compose build --parallel
+export GIT_COMMIT="$(git rev-parse --short HEAD)"
+docker compose config --quiet
+docker compose build backend
 
-# 4. Exécution des migrations de base de données Alembic
-echo "🗄️ Application des migrations Alembic (Phase 1 : Stocks, GPS & Présences)..."
+# 4. Sauvegarde avant migration
+echo "💾 Sauvegarde PostgreSQL avant migration..."
+mkdir -p backups
+backup_file="backups/service_ia_$(date -u +%Y%m%dT%H%M%SZ).dump"
+docker compose exec -T postgres pg_dump -U service_ia -d service_ia -Fc > "$backup_file"
+test -s "$backup_file"
+
+# 5. Migration et redémarrage contrôlé
+echo "🗄️ Validation et application des migrations Alembic..."
 docker compose run --rm backend alembic upgrade head
-
-# 5. Redémarrage propre des services
+docker compose run --rm backend alembic check
 echo "🔄 Redémarrage des conteneurs en production..."
-docker compose up -d postgres backend frontend
+docker compose up -d --no-build postgres backend
 
 # 6. Vérification de l'état de santé (Healthchecks)
 echo "🩺 Vérification de l'état de santé des services..."
-sleep 5
-
-docker compose ps
+for _ in $(seq 1 24); do
+    status="$(docker inspect -f '{{.State.Health.Status}}' prod_koryxa_services_ia_api 2>/dev/null || true)"
+    [ "$status" = "healthy" ] && break
+    sleep 5
+done
+[ "${status:-}" = "healthy" ] || { docker compose logs --tail=100 backend; exit 1; }
 
 echo "Vérification Backend API Live..."
-curl -f http://localhost:8080/api/v1/health/live || { echo "❌ Échec du healthcheck Live"; exit 1; }
+docker compose exec -T backend python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/v1/health/live')"
 
 echo "Vérification Backend API Ready..."
-curl -f http://localhost:8080/api/v1/health/ready || { echo "❌ Échec du healthcheck Ready"; exit 1; }
+docker compose exec -T backend python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/v1/health/ready')"
+
+echo "Vérification API publique..."
+curl --fail --silent --show-error "${PUBLIC_API_URL%/}/health/live" >/dev/null
 
 echo ""
 echo "================================================================="
 echo "✅ DÉPLOIEMENT TERMINÉ AVEC SUCCÈS SUR LE SERVEUR !"
 echo "================================================================="
-echo "• Backend API : http://localhost:8080/api/v1"
-echo "• Frontend Cockpit : http://localhost:3000/espace"
-echo "• Caisse Express POS : http://localhost:3000/espace/caisse"
-echo "• Borne de Pointage : http://localhost:3000/espace/presence/borne"
+echo "• Backend API : ${PUBLIC_API_URL}"
+echo "• Image : koryxa-services-ia-backend:${GIT_COMMIT}"
+echo "• Sauvegarde : ${backup_file}"
 echo "• N8N Workflows : backend/app/integrations/n8n_workflows/"
 echo "================================================================="

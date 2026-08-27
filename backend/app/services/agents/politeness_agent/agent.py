@@ -1,16 +1,16 @@
 """Main PolitenessAgent orchestrator providing unified methods for RAG pipelines."""
 
-from typing import Callable, Optional, Dict, Any
+from collections.abc import Callable
+from typing import Any
+
 from .config import (
+    PolishedResponse,
     PolitenessConfig,
     TriageResult,
-    PolishedResponse,
-    Tone,
-    Language,
 )
-from .triage import FastTriageEngine
-from .sanitizer import QuerySanitizer
 from .formatter import ResponsePolisher
+from .sanitizer import QuerySanitizer
+from .triage import FastTriageEngine
 
 
 class PolitenessAgent:
@@ -20,7 +20,7 @@ class PolitenessAgent:
     Provides pre-RAG triage, query sanitization, and post-RAG tone harmonization.
     """
 
-    def __init__(self, config: Optional[PolitenessConfig] = None):
+    def __init__(self, config: PolitenessConfig | None = None):
         self.config = config or PolitenessConfig()
         self.triage_engine = FastTriageEngine(self.config)
         self.sanitizer = QuerySanitizer()
@@ -56,7 +56,7 @@ class PolitenessAgent:
     def polish(
         self,
         raw_rag_response: str,
-        query: Optional[str] = None,
+        query: str | None = None,
         context_found: bool = True,
         user_greeted: bool = False,
     ) -> PolishedResponse:

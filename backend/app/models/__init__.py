@@ -1,7 +1,7 @@
 from app.models.attendance import AttendanceRecord
 from app.models.imports import Attachment, ImportJob, ImportStatus
-from app.models.invitation import InvitationStatus, OrganizationInvitation
 from app.models.integrations import OrganizationIntegrationConfig, WhatsAppWebhookEvent
+from app.models.invitation import InvitationStatus, OrganizationInvitation
 from app.models.knowlia import KnowliaSyncJob, KnowliaSyncStatus
 from app.models.member import MemberRole, MemberStatus, OrganizationMember
 from app.models.organization import Organization

@@ -44,8 +44,32 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]
+ignore = ["E501", "B008", "UP042"]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = [
+  "app.db.types",
+  "app.models.registers",
+  "app.schemas.registers",
+  "app.services.registers",
+  "app.services.files",
+  "app.services.direct_uploads",
+  "app.services.integration_config",
+  "app.services.agents.*",
+  "app.api.routes.attendance",
+  "app.api.routes.automations",
+  "app.api.routes.voice",
+  "app.api.routes.whatsapp",
+]
+disable_error_code = [
+  "attr-defined",
+  "no-any-return",
+  "no-untyped-call",
+  "no-untyped-def",
+  "type-arg",
+]

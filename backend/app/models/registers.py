@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -10,7 +11,6 @@ from sqlalchemy import (
     Boolean,
     Date,
     DateTime,
-    Enum,
     ForeignKey,
     Integer,
     Numeric,
@@ -273,4 +273,3 @@ class Supplier(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-

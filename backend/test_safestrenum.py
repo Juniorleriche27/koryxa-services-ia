@@ -1,7 +1,9 @@
 from enum import StrEnum
+
 import sqlalchemy as sa
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
-from sqlalchemy.types import TypeDecorator, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy.types import String, TypeDecorator
+
 
 class PaymentStatus(StrEnum):
     UNPAID = "unpaid"

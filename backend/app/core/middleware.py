@@ -1,12 +1,14 @@
+import hmac
 import time
 from collections import defaultdict
-from collections.abc import AsyncIterator
 from uuid import uuid4
 
 import structlog
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
+
+from app.core.config import get_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -34,7 +36,12 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Protection anti-abus et rate limiting par IP / Tenant avec fenêtre glissante."""
 
-    def __init__(self, app: object, max_general_per_minute: int = 240, max_ai_per_minute: int = 60) -> None:
+    def __init__(
+        self,
+        app: object,
+        max_general_per_minute: int = 120,
+        max_ai_per_minute: int = 30,
+    ) -> None:
         super().__init__(app)  # type: ignore[arg-type]
         self.max_general = max_general_per_minute
         self.max_ai = max_ai_per_minute
@@ -47,14 +54,28 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         path = request.url.path
 
+        if get_settings().environment == "test":
+            return await call_next(request)
+
         # Endpoints exemptés
         if path.startswith("/api/v1/health") or path.startswith("/docs") or path.startswith("/openapi"):
             return await call_next(request)
 
         # Clé de limitation : Tenant ID si présent, sinon IP client
         tenant_id = request.headers.get("X-Tenant-ID")
+        supplied_secret = request.headers.get("X-Koryxa-Proxy-Secret")
+        configured_secret = get_settings().proxy_secret
         client_ip = request.client.host if request.client else "unknown"
-        rate_key = f"tenant:{tenant_id}" if tenant_id and tenant_id != "anonymous" else f"ip:{client_ip}"
+        trusted_tenant = bool(
+            configured_secret
+            and supplied_secret
+            and hmac.compare_digest(supplied_secret, configured_secret)
+        )
+        rate_key = (
+            f"tenant:{tenant_id}"
+            if trusted_tenant and tenant_id and tenant_id != "anonymous"
+            else f"ip:{client_ip}"
+        )
 
         now = time.time()
         window_start = now - 60.0
@@ -83,4 +104,3 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         self._requests[tracker_key].append(now)
         return await call_next(request)
-

@@ -1,7 +1,8 @@
 """Configuration models for the Politeness Agent."""
 
 from enum import Enum
-from typing import Optional, List, Dict, Any
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -36,9 +37,9 @@ class PolitenessConfig(BaseModel):
     """Global configuration settings for politeness and tone handling."""
     tone: Tone = Field(default=Tone.WARM, description="Tone style to apply")
     language: Language = Field(default=Language.FR, description="Primary language")
-    assistant_name: Optional[str] = Field(default=None, description="Name of the AI assistant")
-    company_name: Optional[str] = Field(default=None, description="Company/brand name for custom phrasing")
-    user_name: Optional[str] = Field(default=None, description="User or leader name for personalized phrasing")
+    assistant_name: str | None = Field(default=None, description="Name of the AI assistant")
+    company_name: str | None = Field(default=None, description="Company/brand name for custom phrasing")
+    user_name: str | None = Field(default=None, description="User or leader name for personalized phrasing")
     
     # Behavior switches
     auto_greet: bool = Field(default=True, description="Add initial greeting if user greeted or first interaction")
@@ -47,11 +48,11 @@ class PolitenessConfig(BaseModel):
     sanitize_rag_queries: bool = Field(default=True, description="Strip conversational noise before vector search")
     
     # Custom templates
-    custom_fallback_message: Optional[str] = Field(
+    custom_fallback_message: str | None = Field(
         default=None, 
         description="Custom message when the RAG system finds no information"
     )
-    custom_greeting_template: Optional[str] = Field(
+    custom_greeting_template: str | None = Field(
         default=None, 
         description="Custom greeting message template"
     )
@@ -71,8 +72,8 @@ class TriageResult(BaseModel):
     is_rag_query: bool = Field(description="True if the message should proceed to vector DB retrieval")
     category: TriageCategory = Field(description="Identified category")
     confidence: float = Field(default=1.0, ge=0.0, le=1.0, description="Confidence score")
-    direct_response: Optional[str] = Field(default=None, description="Immediate polite response if is_rag_query is False")
-    sanitized_query: Optional[str] = Field(default=None, description="Query cleaned of conversational fluff for vector search")
+    direct_response: str | None = Field(default=None, description="Immediate polite response if is_rag_query is False")
+    sanitized_query: str | None = Field(default=None, description="Query cleaned of conversational fluff for vector search")
     detected_user_greeting: bool = Field(default=False, description="Whether the user included a greeting in the message")
 
 
@@ -81,4 +82,4 @@ class PolishedResponse(BaseModel):
     final_text: str = Field(description="Polite, tone-aligned final response")
     tone_applied: Tone = Field(description="The tone applied")
     was_softened: bool = Field(default=False, description="Whether a no-context response was softened")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional debug/analytics metadata")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional debug/analytics metadata")

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import Any
-from sqlalchemy import select
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.organization import Organization
@@ -11,7 +11,7 @@ from app.services.agents.base import BaseSpecializedAgent
 from app.services.agents.domain_expertise import get_domain_expertise
 from app.services.agents.finance_agent import FinanceAgent
 from app.services.agents.operations_sop_agent import OperationsSOPAgent
-from app.services.agents.politeness_agent import PolitenessAgent, PolitenessConfig, Tone, Language
+from app.services.agents.politeness_agent import Language, PolitenessAgent, PolitenessConfig, Tone
 from app.services.agents.radar_sentinel_agent import RadarSentinelAgent
 from app.services.agents.sales_recovery_agent import SalesRecoveryAgent
 from app.services.registers import RegisterService

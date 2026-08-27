@@ -31,11 +31,9 @@ def upgrade() -> None:
         sa.Column(
             "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
-        sa.UniqueConstraint("tenant_id"),
-        sa.UniqueConstraint("slug"),
     )
-    op.create_index("ix_organizations_tenant_id", "organizations", ["tenant_id"])
-    op.create_index("ix_organizations_slug", "organizations", ["slug"])
+    op.create_index("ix_organizations_tenant_id", "organizations", ["tenant_id"], unique=True)
+    op.create_index("ix_organizations_slug", "organizations", ["slug"], unique=True)
     op.create_table(
         "organization_members",
         sa.Column("id", sa.String(36), primary_key=True),
@@ -73,7 +71,7 @@ def upgrade() -> None:
         sa.Column("email", sa.String(320), nullable=False),
         sa.Column("role", sa.String(20), nullable=False),
         sa.Column("status", sa.String(20), nullable=False),
-        sa.Column("token_hash", sa.String(64), nullable=False, unique=True),
+        sa.Column("token_hash", sa.String(64), nullable=False),
         sa.Column("invited_by_user_id", sa.String(128), nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("accepted_by_user_id", sa.String(128)),
@@ -91,7 +89,10 @@ def upgrade() -> None:
     )
     op.create_index("ix_organization_invitations_email", "organization_invitations", ["email"])
     op.create_index(
-        "ix_organization_invitations_token_hash", "organization_invitations", ["token_hash"]
+        "ix_organization_invitations_token_hash",
+        "organization_invitations",
+        ["token_hash"],
+        unique=True,
     )
 
 

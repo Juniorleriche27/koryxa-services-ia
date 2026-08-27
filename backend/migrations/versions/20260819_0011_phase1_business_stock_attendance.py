@@ -28,20 +28,31 @@ def upgrade() -> None:
     )
 
     # 2. Update offers table for inventory / stock tracking
-    op.add_column(
-        "offers",
-        sa.Column("track_stock", sa.Boolean(), nullable=False, server_default=sa.false()),
-    )
-    op.create_index("ix_offers_track_stock", "offers", ["track_stock"])
-    op.add_column(
-        "offers",
-        sa.Column("stock_quantity", sa.Numeric(12, 2), nullable=False, server_default="0.00"),
-    )
-    op.add_column(
-        "offers",
-        sa.Column("min_stock_alert", sa.Numeric(12, 2), nullable=False, server_default="5.00"),
-    )
-    op.add_column("offers", sa.Column("cost_price", sa.Numeric(14, 2), nullable=True))
+    # Older revisions created this table from the then-current ORM model. Some
+    # installations therefore already have these columns; make this historical
+    # migration safe for both schema shapes.
+    inspector = sa.inspect(op.get_bind())
+    offer_columns = {column["name"] for column in inspector.get_columns("offers")}
+    if "track_stock" not in offer_columns:
+        op.add_column(
+            "offers",
+            sa.Column("track_stock", sa.Boolean(), nullable=False, server_default=sa.false()),
+        )
+    offer_indexes = {index["name"] for index in inspector.get_indexes("offers")}
+    if "ix_offers_track_stock" not in offer_indexes:
+        op.create_index("ix_offers_track_stock", "offers", ["track_stock"])
+    if "stock_quantity" not in offer_columns:
+        op.add_column(
+            "offers",
+            sa.Column("stock_quantity", sa.Numeric(12, 2), nullable=False, server_default="0.00"),
+        )
+    if "min_stock_alert" not in offer_columns:
+        op.add_column(
+            "offers",
+            sa.Column("min_stock_alert", sa.Numeric(12, 2), nullable=False, server_default="5.00"),
+        )
+    if "cost_price" not in offer_columns:
+        op.add_column("offers", sa.Column("cost_price", sa.Numeric(14, 2), nullable=True))
 
     # 3. Create attendance_records table
     op.create_table(
@@ -72,16 +83,10 @@ def upgrade() -> None:
             "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
         ),
     )
-    op.create_index(
-        "ix_attendance_records_org_date",
-        "attendance_records",
-        ["organization_id", "date"],
-    )
-    op.create_index(
-        "ix_attendance_records_emp",
-        "attendance_records",
-        ["employee_id"],
-    )
+    op.create_index("ix_attendance_records_organization_id", "attendance_records", ["organization_id"])
+    op.create_index("ix_attendance_records_employee_id", "attendance_records", ["employee_id"])
+    op.create_index("ix_attendance_records_date", "attendance_records", ["date"])
+    op.create_index("ix_attendance_records_status", "attendance_records", ["status"])
 
 
 def downgrade() -> None:

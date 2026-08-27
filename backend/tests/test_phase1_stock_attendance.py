@@ -1,21 +1,11 @@
-import pytest
-from datetime import date
 from decimal import Decimal
-from unittest.mock import MagicMock
 
 from app.models.organization import Organization
-from app.schemas.attendance import (
-    AttendanceCheckInRequest,
-    AttendanceCheckOutRequest,
-)
 from app.schemas.registers import (
     OfferCreate,
-    SaleCreate,
     StockAdjustmentRequest,
 )
 from app.services.attendance import AttendanceService, haversine_distance_meters
-from app.services.organizations import OrganizationService
-from app.services.registers import RegisterService
 
 
 def test_haversine_distance():

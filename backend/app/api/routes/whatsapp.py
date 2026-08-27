@@ -43,7 +43,11 @@ async def handle_inbound_whatsapp(request: Request, s: SessionDep):
 
         raise ApplicationError("invalid_whatsapp_payload", "JSON WhatsApp invalide", 400) from None
     return await service.process_inbound_payload(
-        s, raw_body, request.headers.get("X-Hub-Signature-256"), payload
+        s,
+        raw_body,
+        request.headers.get("X-Hub-Signature-256"),
+        payload,
+        request.headers.get("X-Koryxa-Proxy-Secret"),
     )
 
 
@@ -145,4 +149,3 @@ async def reset_whatsapp_session(o: OrgDep, _: ManageDep):
         except Exception:
             pass
     return {"ok": True, "status": "scanning"}
-

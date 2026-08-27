@@ -4,10 +4,14 @@ import { ActionsSection } from "@/components/app/sections/ActionsSection";
 import { RadarSection } from "@/components/app/sections/RadarSection";
 import { ValidationsSection } from "@/components/app/sections/ValidationsSection";
 import { ImportsSection } from "@/components/app/sections/ImportsSection";
+import { I18nProvider } from "@/lib/i18n";
+
+const renderWithI18n = (component: React.ReactNode) =>
+  render(<I18nProvider>{component}</I18nProvider>);
 
 describe("Modular App Sections", () => {
   it("renders ActionsSection with empty state and creates button", () => {
-    render(
+    renderWithI18n(
       <ActionsSection
         data={[]}
         loading={false}
@@ -15,8 +19,8 @@ describe("Modular App Sections", () => {
         onReload={async () => {}}
       />
     );
-    expect(screen.getByText("Actions correctives")).toBeTruthy();
-    expect(screen.getByText("Nouvelle action")).toBeTruthy();
+    expect(screen.getByText("Plan d'Actions Correctives")).toBeTruthy();
+    expect(screen.getByText("+ Nouvelle Tâche")).toBeTruthy();
     expect(screen.getByText("Aucune action")).toBeTruthy();
   });
 
@@ -32,7 +36,7 @@ describe("Modular App Sections", () => {
         confidence: 0.95,
       },
     ];
-    render(
+    renderWithI18n(
       <RadarSection
         data={mockAlerts}
         loading={false}
@@ -40,9 +44,9 @@ describe("Modular App Sections", () => {
         onReload={async () => {}}
       />
     );
-    expect(screen.getByText("Knowlia Radar")).toBeTruthy();
+    expect(screen.getByText("Radar Sentinelle Opérationnelle")).toBeTruthy();
     expect(screen.getByText("Vente sans client")).toBeTruthy();
-    expect(screen.getByText("Lancer l'audit Radar")).toBeTruthy();
+    expect(screen.getByText("Lancer un Scan Complet")).toBeTruthy();
   });
 
   it("renders ValidationsSection with pending items", () => {
@@ -57,7 +61,7 @@ describe("Modular App Sections", () => {
         status: "pending",
       },
     ];
-    render(
+    renderWithI18n(
       <ValidationsSection
         data={mockValidations}
         loading={false}
@@ -72,7 +76,7 @@ describe("Modular App Sections", () => {
   });
 
   it("renders ImportsSection with register selector", () => {
-    render(<ImportsSection />);
+    renderWithI18n(<ImportsSection />);
     expect(screen.getByText("Importer des données (Excel, CSV)")).toBeTruthy();
     expect(screen.getByText("Registre de destination")).toBeTruthy();
   });

@@ -99,19 +99,6 @@ async def get_current_member(identity: IdentityDep, session: SessionDep) -> Orga
     )
 
     if member is None:
-        # Si l'utilisateur est le créateur enregistré de l'organisation mais que l'adhésion manque
-        if organization.created_by_user_id == identity.user_id:
-            member = OrganizationMember(
-                organization_id=organization.id,
-                user_id=identity.user_id,
-                role=MemberRole.OWNER,
-                status=MemberStatus.ACTIVE,
-            )
-            session.add(member)
-            await session.commit()
-            await session.refresh(member)
-            return member
-
         raise ApplicationError(
             "forbidden_member",
             "Vous n'avez pas d'adhésion active dans cette organisation",
@@ -137,7 +124,7 @@ def require_permission(permission: str) -> Callable[..., object]:
 
         raise ApplicationError(
             "permission_denied",
-            f"Permission '{permission}' refusée pour le rôle {member.role.value}",
+            f"Permission '{permission}' refusée pour le rôle {member.role}",
             403,
         )
 
