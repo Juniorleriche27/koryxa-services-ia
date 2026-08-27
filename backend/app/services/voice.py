@@ -107,11 +107,11 @@ class VoiceService:
             "deux millions": "2000000",
         }
         for w, num_str in word_numbers.items():
-            t = re.sub(rf"\\b{w}\\b", num_str, t)
+            t = re.sub(rf"\b{w}\b", num_str, t)
 
-        t = re.sub(r"\\b(\\d+)\\s*(?:mille|k)\\b", lambda m: str(int(m.group(1)) * 1000), t)
-        normalized = re.sub(r"(?i)\\b(fcfa|cfa|francs?|f|euros?|€|dollars?|\\$)\\b", "", t)
-        matches = re.findall(r"\\b\\d+(?:[\\s\\.]\\d{3})*(?:,\\d+)?\\b|\\b\\d+(?:,\\d+)?\\b", normalized)
+        t = re.sub(r"\b(\d+)\s*(?:mille|k)\b", lambda m: str(int(m.group(1)) * 1000), t)
+        normalized = re.sub(r"(?i)\b(fcfa|cfa|francs?|f|euros?|€|dollars?|\$)\b", "", t)
+        matches = re.findall(r"\b\d+(?:[\s\.]\d{3})*(?:,\d+)?\b|\b\d+(?:,\d+)?\b", normalized)
         results: list[Decimal] = []
         for m in matches:
             clean_str = m.replace(" ", "").replace(".", "").replace(",", ".")
@@ -124,35 +124,35 @@ class VoiceService:
         return results
 
     def _extract_currency(self, text: str, default_currency: str = "XOF") -> str:
-        if re.search(r"(?i)\\b(?:euros?|eur|€)\\b", text):
+        if re.search(r"(?i)\b(?:euros?|eur|€)\b", text):
             return "EUR"
-        if re.search(r"(?i)\\b(?:dollars?|usd|\\$|cad)\\b", text):
+        if re.search(r"(?i)\b(?:dollars?|usd|\$|cad)\b", text):
             return "USD"
-        if re.search(r"(?i)\\b(?:livres?|gbp|£)\\b", text):
+        if re.search(r"(?i)\b(?:livres?|gbp|£)\b", text):
             return "GBP"
-        if re.search(r"(?i)\\b(?:dirhams?|mad|dhs?)\\b", text):
+        if re.search(r"(?i)\b(?:dirhams?|mad|dhs?)\b", text):
             return "MAD"
-        if re.search(r"(?i)\\b(?:dinars?|tnd|dzd)\\b", text):
+        if re.search(r"(?i)\b(?:dinars?|tnd|dzd)\b", text):
             return "TND"
-        if re.search(r"(?i)\\b(?:nairas?|ngn|₦)\\b", text):
+        if re.search(r"(?i)\b(?:nairas?|ngn|₦)\b", text):
             return "NGN"
-        if re.search(r"(?i)\\b(?:cedis?|ghs|₵)\\b", text):
+        if re.search(r"(?i)\b(?:cedis?|ghs|₵)\b", text):
             return "GHS"
-        if re.search(r"(?i)\\b(?:shillings?|kes)\\b", text):
+        if re.search(r"(?i)\b(?:shillings?|kes)\b", text):
             return "KES"
-        if re.search(r"(?i)\\b(?:guinéens?|guineens?|gnf)\\b", text):
+        if re.search(r"(?i)\b(?:guinéens?|guineens?|gnf)\b", text):
             return "GNF"
-        if re.search(r"(?i)\\b(?:congolais|cdf)\\b", text):
+        if re.search(r"(?i)\b(?:congolais|cdf)\b", text):
             return "CDF"
-        if re.search(r"(?i)\\b(?:rwandais|rwf)\\b", text):
+        if re.search(r"(?i)\b(?:rwandais|rwf)\b", text):
             return "RWF"
-        if re.search(r"(?i)\\b(?:ariary|mga)\\b", text):
+        if re.search(r"(?i)\b(?:ariary|mga)\b", text):
             return "MGA"
-        if re.search(r"(?i)\\b(?:cemac|xaf)\\b", text):
+        if re.search(r"(?i)\b(?:cemac|xaf)\b", text):
             return "XAF"
-        if re.search(r"(?i)\\b(?:cfa|fcfa|f cfa|uemoa|xof)\\b", text):
+        if re.search(r"(?i)\b(?:cfa|fcfa|f cfa|uemoa|xof)\b", text):
             return "XOF"
-        if re.search(r"(?i)\\b(?:francs?|f)\\b", text):
+        if re.search(r"(?i)\b(?:francs?|f)\b", text):
             return default_currency
         return default_currency
 
@@ -174,7 +174,7 @@ class VoiceService:
 
         detected_method: str | None = None
         for name, aliases in methods:
-            if any(re.search(rf"\\b{re.escape(alias)}\\b", lower) for alias in aliases):
+            if any(re.search(rf"\b{re.escape(alias)}\b", lower) for alias in aliases):
                 detected_method = name
                 break
 
