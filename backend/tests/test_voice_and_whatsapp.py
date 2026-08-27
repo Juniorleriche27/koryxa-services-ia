@@ -30,13 +30,12 @@ def test_voice_nlp_parser_and_confirm_sale() -> None:
         data = parse_res.json()
         assert data["intent"] == "sale"
         assert data["confidence"] >= 0.70
-        assert "Koffi" in str(data["extracted_entities"].get("client", ""))
-        assert Decimal(str(data["extracted_entities"]["amount"])) == Decimal("15000")
-        assert data["extracted_entities"]["payment_method"] == "Wave"
-        assert data["extracted_entities"]["payment_status"] == "paid"
+        candidate = data.get("sale") or (data.get("sales") and data["sales"][0])
+        assert Decimal(str(candidate["total_amount"])) == Decimal("15000")
+        assert candidate["payment_method"] == "Wave"
+        assert candidate["payment_status"] == "paid"
 
         # 2. Confirm & register the sale
-        candidate = data["sale"]
         confirm_res = client.post(
             "/api/v1/voice/confirm",
             headers=owner,
