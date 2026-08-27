@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -9,7 +11,11 @@ router = APIRouter()
 
 @router.get("/health/live")
 async def liveness() -> dict[str, str]:
-    return {"status": "ok", "service": "koryxa-service-ia"}
+    return {
+        "status": "ok",
+        "service": "koryxa-service-ia",
+        "commit": os.getenv("GIT_COMMIT", "dev"),
+    }
 
 
 @router.get("/health/ready")

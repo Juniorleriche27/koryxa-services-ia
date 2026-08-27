@@ -1,5 +1,7 @@
 FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ARG GIT_COMMIT=unknown
+ENV GIT_COMMIT=${GIT_COMMIT}
 WORKDIR /app
 RUN addgroup --system app && adduser --system --ingroup app app
 COPY pyproject.toml ./
