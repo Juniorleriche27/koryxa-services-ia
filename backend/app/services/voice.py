@@ -486,14 +486,6 @@ class VoiceService:
         user_id: str,
         request: VoiceConfirmRequest,
     ) -> dict[str, Any]:
-        from app.models.organization import Organization
-        from app.models.user import User
-
-        org = await s.get(Organization, org_id)
-        user = await s.get(User, user_id)
-        if not org or not user:
-            raise ApplicationError("not_found", "Organisation ou utilisateur introuvable", 404)
-
         if request.intent == VoiceIntent.SALE:
             payload = request.payload
             if isinstance(payload, list):
@@ -501,29 +493,29 @@ class VoiceService:
                 for item in payload:
                     data = SaleCreate.model_validate(item)
                     sale = await self.register_service.create_sale(
-                        s, org, user, data, source=RecordSource.VOICE
+                        s, org_id, user_id, data, source=RecordSource.VOICE
                     )
                     created_sales.append(sale.id)
-                return {"type": "sales", "count": len(created_sales), "ids": created_sales}
+                return {"type": "sales_batch", "count": len(created_sales), "ids": created_sales}
             else:
                 data = SaleCreate.model_validate(payload)
                 sale = await self.register_service.create_sale(
-                    s, org, user, data, source=RecordSource.VOICE
+                    s, org_id, user_id, data, source=RecordSource.VOICE
                 )
-                return {"type": "sale", "id": sale.id, "reference": sale.reference}
+                return {"type": "sale", "id": sale.id, "reference": sale.reference, "item_label": sale.item_label}
         elif request.intent == VoiceIntent.EXPENSE:
             data = ExpenseCreate.model_validate(request.payload)
             expense = await self.register_service.create_expense(
-                s, org, user, data, source=RecordSource.VOICE
+                s, org_id, user_id, data, source=RecordSource.VOICE
             )
             return {"type": "expense", "id": expense.id, "reference": expense.reference}
         elif request.intent == VoiceIntent.OFFER:
             data = OfferCreate.model_validate(request.payload)
-            offer = await self.register_service.create_offer(s, org, user, data)
+            offer = await self.register_service.create_offer(s, org_id, user_id, data)
             return {"type": "offer", "id": offer.id, "name": offer.name}
         elif request.intent == VoiceIntent.PROCEDURE:
             data = ProcedureCreate.model_validate(request.payload)
-            created = await self.register_service.create_procedure(s, org, user, data)
+            created = await self.register_service.create_procedure(s, org_id, user_id, data)
             return {"type": "procedure", "id": created.id, "title": created.title}
         else:
             raise ApplicationError("invalid_intent", "Type de registre non supporté", 400)
