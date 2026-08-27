@@ -10,6 +10,7 @@ services:
       - ${SERVICE_IA_ENV_FILE:-/opt/env/koryxa-services-ia-backend.env}
     environment:
       SERVICE_IA_ENVIRONMENT: production
+      SERVICE_IA_GIT_COMMIT: ${GIT_COMMIT:-unknown}
       SERVICE_IA_CORS_ORIGINS: '["${FRONTEND_ORIGIN:-https://service-ia.koryxa.fr}"]'
       SERVICE_IA_TRUSTED_PROXY_SOURCES: '["koryxa-gateway","koryxa-admin","koryxa-services-ia"]'
       SERVICE_IA_KNOWLIA_BASE_URL: ${KNOWLIA_BASE_URL:-http://prod_knowlia:8080}
@@ -55,6 +56,7 @@ services:
       - ${SERVICE_IA_ENV_FILE:-/opt/env/koryxa-services-ia-backend.env}
     environment:
       NODE_ENV: production
+      GIT_COMMIT: ${GIT_COMMIT:-unknown}
       PORT: 8097
       BACKEND_URL: http://prod_koryxa_services_ia_api:8080
       AUDIO_ENGINE_URL: http://koryxa-audio-engine:8099
