@@ -26,6 +26,12 @@ ROLE_PERMISSIONS: dict[MemberRole, frozenset[str]] = {
             "invitations:manage",
             "registers:read",
             "registers:manage",
+            "workflow:read",
+            "workflow:manage",
+            "radar:read",
+            "radar:manage",
+            "documents:read",
+            "documents:manage",
         }
     ),
     MemberRole.MANAGER: frozenset(
@@ -37,74 +43,53 @@ ROLE_PERMISSIONS: dict[MemberRole, frozenset[str]] = {
             "invitations:manage",
             "registers:read",
             "registers:manage",
+            "workflow:read",
+            "workflow:manage",
+            "radar:read",
+            "documents:read",
+            "documents:manage",
         }
     ),
     MemberRole.CONTRIBUTOR: frozenset(
         {
             "organization:read",
-            "organization:manage",
             "members:read",
             "registers:read",
-            "registers:manage",
+            "workflow:read",
+            "radar:read",
+            "documents:read",
         }
     ),
 }
 
 
 async def get_current_organization(identity: IdentityDep, session: SessionDep) -> Organization:
-    # 1. Active membership
+    """Résout l'organisation courante en garantissant une isolation multi-tenant stricte."""
+    if not identity.tenant_id or identity.tenant_id == "anonymous":
+        raise ApplicationError(
+            "unauthorized_tenant", "Contexte de tenant manquant ou invalide", 401
+        )
+
+    # 1. Résolution STRICTE par le tenant_id de l'identité
     organization = await session.scalar(
-        select(Organization)
-        .join(OrganizationMember, OrganizationMember.organization_id == Organization.id)
-        .where(
-            OrganizationMember.user_id == identity.user_id,
-            OrganizationMember.status == MemberStatus.ACTIVE,
+        select(Organization).where(
+            Organization.tenant_id == identity.tenant_id,
             Organization.is_active.is_(True),
         )
-        .order_by(OrganizationMember.joined_at.desc())
     )
-    if organization is not None:
-        return organization
 
-    # 2. Fallback: Search by tenant_id and auto-attach owner membership
-    if identity.tenant_id and identity.tenant_id != "anonymous":
-        org_by_tenant = await session.scalar(
-            select(Organization)
-            .where(
-                Organization.tenant_id == identity.tenant_id,
-                Organization.is_active.is_(True),
-            )
-            .order_by(Organization.created_at.desc())
+    if organization is None:
+        raise ApplicationError(
+            "organization_not_found", "Aucune organisation active pour ce tenant", 404
         )
-        if org_by_tenant is not None:
-            existing_member = await session.scalar(
-                select(OrganizationMember).where(
-                    OrganizationMember.organization_id == org_by_tenant.id,
-                    OrganizationMember.user_id == identity.user_id,
-                )
-            )
-            if existing_member:
-                existing_member.status = MemberStatus.ACTIVE
-                existing_member.role = MemberRole.OWNER
-            else:
-                session.add(
-                    OrganizationMember(
-                        organization_id=org_by_tenant.id,
-                        user_id=identity.user_id,
-                        role=MemberRole.OWNER,
-                        status=MemberStatus.ACTIVE,
-                    )
-                )
-            await session.commit()
-            return org_by_tenant
 
-    raise ApplicationError(
-        "organization_not_found", "Aucune organisation Service IA n'est liée à ce tenant", 404
-    )
+    return organization
 
 
 async def get_current_member(identity: IdentityDep, session: SessionDep) -> OrganizationMember:
+    """Vérifie que l'utilisateur est bien un membre actif de l'organisation courante sans auto-promotion."""
     organization = await get_current_organization(identity, session)
+
     member = await session.scalar(
         select(OrganizationMember).where(
             OrganizationMember.organization_id == organization.id,
@@ -112,36 +97,48 @@ async def get_current_member(identity: IdentityDep, session: SessionDep) -> Orga
             OrganizationMember.status == MemberStatus.ACTIVE,
         )
     )
+
     if member is None:
-        # Auto-create active OWNER membership if missing
-        member = OrganizationMember(
-            organization_id=organization.id,
-            user_id=identity.user_id,
-            role=MemberRole.OWNER,
-            status=MemberStatus.ACTIVE,
+        # Si l'utilisateur est le créateur enregistré de l'organisation mais que l'adhésion manque
+        if organization.created_by_user_id == identity.user_id:
+            member = OrganizationMember(
+                organization_id=organization.id,
+                user_id=identity.user_id,
+                role=MemberRole.OWNER,
+                status=MemberStatus.ACTIVE,
+            )
+            session.add(member)
+            await session.commit()
+            await session.refresh(member)
+            return member
+
+        raise ApplicationError(
+            "forbidden_member",
+            "Vous n'avez pas d'adhésion active dans cette organisation",
+            403,
         )
-        session.add(member)
-        await session.commit()
-        await session.refresh(member)
+
     return member
 
 
 def require_permission(permission: str) -> Callable[..., object]:
+    """Contrôle d'accès basé sur les rôles stricts (RBAC) au niveau de l'organisation."""
     async def dependency(identity: IdentityDep, session: SessionDep) -> OrganizationMember:
         member = await get_current_member(identity, session)
-        local_permissions = ROLE_PERMISSIONS.get(member.role, frozenset())
-        upstream_permissions = identity.permissions
 
-        if (
-            member.role in (MemberRole.OWNER, MemberRole.MANAGER)
-            or (identity.role and identity.role.lower() in ("admin", "owner", "superadmin", "gerant", "directeur"))
-            or permission in local_permissions
-            or permission in upstream_permissions
-            or "service-ia:*" in upstream_permissions
-            or "*:*" in upstream_permissions
-        ):
+        # L'OWNER possède tous les droits sur son organisation
+        if member.role == MemberRole.OWNER:
             return member
 
-        raise ApplicationError("permission_denied", "Permission insuffisante", 403)
+        local_permissions = ROLE_PERMISSIONS.get(member.role, frozenset())
+
+        if permission in local_permissions:
+            return member
+
+        raise ApplicationError(
+            "permission_denied",
+            f"Permission '{permission}' refusée pour le rôle {member.role.value}",
+            403,
+        )
 
     return dependency

@@ -23,6 +23,7 @@ class Organization(Base):
     sector: Mapped[str | None] = mapped_column(String(120))
     country: Mapped[str | None] = mapped_column(String(120))
     responsible_name: Mapped[str | None] = mapped_column(String(180))
+    responsible_role: Mapped[str | None] = mapped_column(String(120))
     primary_goal: Mapped[str | None] = mapped_column(String(50))
     business_category: Mapped[str] = mapped_column(
         String(40), default="retail", index=True, nullable=False
