@@ -53,6 +53,15 @@ interface SessionQrResponse {
   user_name: string | null;
 }
 
+interface AuthorizedSenderItem {
+  id: string;
+  organization_id: string;
+  phone_number: string;
+  label?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
   const { lang } = useI18n();
   const [activeTab, setActiveTab] = useState<"qrcode" | "meta">("qrcode");
@@ -68,6 +77,13 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
     has_access_token: false,
   });
 
+  // Structured Authorized Senders State
+  const [authorizedSenders, setAuthorizedSenders] = useState<AuthorizedSenderItem[]>([]);
+  const [newSenderPhone, setNewSenderPhone] = useState("");
+  const [newSenderLabel, setNewSenderLabel] = useState("");
+  const [addingSender, setAddingSender] = useState(false);
+  const [senderError, setSenderError] = useState<string | null>(null);
+
   // Live Baileys Multi-Device Session State
   const [sessionStatus, setSessionStatus] = useState<"disconnected" | "scanning" | "connecting" | "connected">("scanning");
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
@@ -79,7 +95,6 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
   const [appSecretInput, setAppSecretInput] = useState("");
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
-  const [newNumber, setNewNumber] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -104,13 +119,26 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
       ? `${window.location.origin}/api/service-ia/integrations/whatsapp/webhook?org_id=${orgSlug}`
       : `https://koryxa.com/api/service-ia/integrations/whatsapp/webhook?org_id=${orgSlug}`;
 
-  // 1. Fetch Config
+  // 1. Fetch Config and Authorized Senders
+  const loadSenders = () => {
+    serviceIaFetch<{ items: AuthorizedSenderItem[]; total: number }>(
+      "/integrations/whatsapp/authorized-numbers"
+    )
+      .then((res) => {
+        if (res && res.items) {
+          setAuthorizedSenders(res.items);
+        }
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     serviceIaFetch<WhatsAppConfigData>("/integrations/whatsapp/config")
       .then((data) => {
         setConfig(data);
       })
       .catch(() => {});
+    loadSenders();
   }, [orgSlug]);
 
   // 2. Poll Live Baileys QR Code / Connection Status
@@ -179,23 +207,46 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
     }
   };
 
-  const handleAddNumber = () => {
-    if (!newNumber.trim()) return;
-    const formatted = newNumber.trim();
-    if (!config.authorized_sender_numbers.includes(formatted)) {
-      setConfig((prev) => ({
-        ...prev,
-        authorized_sender_numbers: [...prev.authorized_sender_numbers, formatted],
-      }));
-      setNewNumber("");
+  const handleAddSender = async () => {
+    if (!newSenderPhone.trim()) return;
+    setAddingSender(true);
+    setSenderError(null);
+    try {
+      await serviceIaFetch("/integrations/whatsapp/authorized-numbers", {
+        method: "POST",
+        body: JSON.stringify({
+          phone_number: newSenderPhone.trim(),
+          label: newSenderLabel.trim() || undefined,
+          is_active: true,
+        }),
+      });
+      setNewSenderPhone("");
+      setNewSenderLabel("");
+      loadSenders();
+    } catch (err: unknown) {
+      setSenderError(err instanceof Error ? err.message : "Erreur ajout numéro");
+    } finally {
+      setAddingSender(false);
     }
   };
 
-  const handleRemoveNumber = (num: string) => {
-    setConfig((prev) => ({
-      ...prev,
-      authorized_sender_numbers: prev.authorized_sender_numbers.filter((n) => n !== num),
-    }));
+  const handleToggleSender = async (sender: AuthorizedSenderItem) => {
+    try {
+      await serviceIaFetch(`/integrations/whatsapp/authorized-numbers/${sender.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: !sender.is_active }),
+      });
+      loadSenders();
+    } catch (_) {}
+  };
+
+  const handleDeleteSender = async (id: string) => {
+    try {
+      await serviceIaFetch(`/integrations/whatsapp/authorized-numbers/${id}`, {
+        method: "DELETE",
+      });
+      loadSenders();
+    } catch (_) {}
   };
 
   const handleSaveConfig = async () => {
@@ -452,6 +503,15 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                       </li>
                     </ol>
 
+                    <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11.5px] text-blue-950 dark:text-blue-200 space-y-1">
+                      <strong className="font-bold text-blue-800 dark:text-blue-300 block">
+                        ℹ️ Information importante sur Baileys QR Code :
+                      </strong>
+                      <p className="text-muted-foreground">
+                        Baileys est une solution alternative non officielle basée sur WhatsApp Web. Des déconnexions ponctuelles peuvent survenir selon l'état du réseau de votre smartphone. Pour une stabilité garantie 24/7 sans smartphone requis, utilisez l'onglet <strong>Meta Cloud API</strong>.
+                      </p>
+                    </div>
+
                     <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11.5px] text-amber-950 dark:text-amber-200 space-y-1">
                       <strong className="font-bold text-amber-800 dark:text-amber-300 block">
                         💡 Si votre téléphone indique « Impossible de se connecter maintenant » :
@@ -465,50 +525,92 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
                 </>
               )}
 
-              {/* Authorized Numbers Manager */}
-              <div className="w-full pt-4 border-t border-border/60">
-                <label className="text-xs font-bold text-foreground block text-left mb-1.5">
-                  Numéros des commerciaux et gérants autorisés à poster :
-                </label>
-                <div className="kx-copy-input-row">
+              {/* Authorized Numbers Manager (Chantier 1) */}
+              <div className="w-full pt-4 border-t border-border/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground block text-left">
+                    Numéros WhatsApp Autorisés (Format International E.164) :
+                  </label>
+                  <span className="text-[11px] text-muted-foreground">
+                    {authorizedSenders.length} configuré(s)
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
                   <input
-                    placeholder="Ex : +2250708091011 ou +221770001122"
-                    value={newNumber}
-                    onChange={(e) => setNewNumber(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddNumber();
-                      }
-                    }}
+                    placeholder="Numéro (ex: +2250708091011)"
+                    value={newSenderPhone}
+                    onChange={(e) => setNewSenderPhone(e.target.value)}
+                    className="flex-1 text-xs"
+                  />
+                  <input
+                    placeholder="Nom / Rôle (ex: Koffi Vendeur)"
+                    value={newSenderLabel}
+                    onChange={(e) => setNewSenderLabel(e.target.value)}
+                    className="flex-1 text-xs"
                   />
                   <button
                     type="button"
-                    className="app-button app-button-secondary"
-                    onClick={handleAddNumber}
+                    className="app-button app-button-secondary text-xs px-3"
+                    disabled={addingSender || !newSenderPhone.trim()}
+                    onClick={handleAddSender}
                   >
-                    <Plus size={15} />
-                    <span>Ajouter</span>
+                    <Plus size={14} />
+                    <span>{addingSender ? "…" : "Autoriser"}</span>
                   </button>
                 </div>
 
-                <div className="kx-tags-cloud" style={{ marginTop: 8 }}>
-                  {config.authorized_sender_numbers.length === 0 ? (
-                    <span className="text-xs text-muted-foreground">
-                      Tous les membres de votre équipe peuvent envoyer des ordres de vente.
-                    </span>
+                {senderError && (
+                  <p className="text-xs text-destructive font-medium">{senderError}</p>
+                )}
+
+                <div className="space-y-1.5 mt-2">
+                  {authorizedSenders.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic text-left">
+                      Aucun numéro restreint : tous les collaborateurs peuvent enregistrer des opérations.
+                    </p>
                   ) : (
-                    config.authorized_sender_numbers.map((num) => (
-                      <span key={num} className="kx-phone-tag">
-                        <span>{num}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveNumber(num)}
-                          aria-label={`Supprimer ${num}`}
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </span>
+                    authorizedSenders.map((sender) => (
+                      <div
+                        key={sender.id}
+                        className="flex items-center justify-between p-2 rounded-xl bg-muted/60 border border-border text-xs"
+                      >
+                        <div className="flex items-center gap-2 text-left">
+                          <span className="font-mono font-bold text-foreground">
+                            {sender.phone_number}
+                          </span>
+                          {sender.label && (
+                            <span className="text-muted-foreground">({sender.label})</span>
+                          )}
+                          <span
+                            className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              sender.is_active
+                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {sender.is_active ? "Actif" : "Désactivé"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSender(sender)}
+                            className="text-[11px] px-2 py-0.5 rounded border border-border hover:bg-muted font-medium"
+                          >
+                            {sender.is_active ? "Désactiver" : "Activer"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSender(sender.id)}
+                            className="p-1 rounded text-destructive hover:bg-destructive/10"
+                            aria-label={`Supprimer ${sender.phone_number}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
                     ))
                   )}
                 </div>

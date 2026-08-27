@@ -12,13 +12,38 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.errors import ApplicationError
-from app.models.integrations import OrganizationIntegrationConfig, WhatsAppWebhookEvent
+from app.models.integrations import (
+    OrganizationIntegrationConfig,
+    WhatsAppAuthorizedSender,
+    WhatsAppWebhookEvent,
+)
 from app.models.organization import Organization
 from app.models.registers import Expense, Offer, PaymentStatus, RecordSource, Sale
 from app.schemas.voice import VoiceConfirmRequest, VoiceParseRequest
-from app.schemas.whatsapp import WhatsAppConfig, WhatsAppConfigUpdate
+from app.schemas.whatsapp import (
+    WhatsAppAuthorizedSenderCreate,
+    WhatsAppAuthorizedSenderRead,
+    WhatsAppAuthorizedSenderUpdate,
+    WhatsAppConfig,
+    WhatsAppConfigUpdate,
+)
 from app.services.integration_config import IntegrationConfigService
 from app.services.voice import VoiceService
+
+
+def normalize_e164(raw_phone: str) -> str:
+    """Normalise un numéro de téléphone au standard international E.164 (+2250708091011)."""
+    if not raw_phone:
+        return ""
+    cleaned = str(raw_phone).strip()
+    for suffix in ("@s.whatsapp.net", "@c.us", "@lid", "@broadcast", "@newsletter"):
+        cleaned = cleaned.replace(suffix, "")
+    digits = "".join(c for c in cleaned if c.isdigit() or c == "+")
+    if digits.startswith("00"):
+        digits = "+" + digits[2:]
+    elif not digits.startswith("+") and digits:
+        digits = "+" + digits
+    return digits
 
 
 class WhatsAppService:
@@ -26,11 +51,33 @@ class WhatsAppService:
         self.voice_service = voice_service or VoiceService()
         self.configs = IntegrationConfigService()
 
-    def public_config(self, cfg: OrganizationIntegrationConfig) -> WhatsAppConfig:
+    def public_config(
+        self,
+        cfg: OrganizationIntegrationConfig,
+        senders: list[WhatsAppAuthorizedSender] | None = None,
+    ) -> WhatsAppConfig:
+        sender_reads = [
+            WhatsAppAuthorizedSenderRead(
+                id=s.id,
+                organization_id=s.organization_id,
+                phone_number=s.phone_number,
+                label=s.label,
+                is_active=s.is_active,
+                created_by_user_id=s.created_by_user_id,
+                created_at=s.created_at,
+                updated_at=s.updated_at,
+            )
+            for s in (senders or [])
+        ]
         return WhatsAppConfig(
             phone_number_id=cfg.whatsapp_phone_number_id,
+            connection_mode=cfg.whatsapp_connection_mode or "meta_api",
+            business_account_id=cfg.whatsapp_business_account_id,
+            api_version=cfg.whatsapp_api_version or "v21.0",
+            unauthorized_reply=cfg.whatsapp_unauthorized_reply,
             is_active=cfg.whatsapp_active,
             authorized_sender_numbers=cfg.whatsapp_authorized_senders or [],
+            authorized_senders=sender_reads,
             auto_reply_enabled=cfg.whatsapp_auto_reply,
             has_verify_token=bool(cfg.whatsapp_verify_token_encrypted),
             has_app_secret=bool(cfg.whatsapp_app_secret_encrypted),
@@ -38,7 +85,9 @@ class WhatsAppService:
         )
 
     async def get_config(self, s: AsyncSession, org_id: str) -> WhatsAppConfig:
-        return self.public_config(await self.configs.get(s, org_id))
+        cfg = await self.configs.get(s, org_id)
+        senders = await self.list_authorized_senders(s, org_id)
+        return self.public_config(cfg, senders)
 
     async def update_config(
         self, s: AsyncSession, org_id: str, data: WhatsAppConfigUpdate
@@ -56,6 +105,10 @@ class WhatsAppService:
                     setattr(cfg, target, self.configs.encrypt(str(raw_val).strip()))
         mapping = {
             "phone_number_id": "whatsapp_phone_number_id",
+            "connection_mode": "whatsapp_connection_mode",
+            "business_account_id": "whatsapp_business_account_id",
+            "api_version": "whatsapp_api_version",
+            "unauthorized_reply": "whatsapp_unauthorized_reply",
             "is_active": "whatsapp_active",
             "authorized_sender_numbers": "whatsapp_authorized_senders",
             "auto_reply_enabled": "whatsapp_auto_reply",
@@ -64,7 +117,143 @@ class WhatsAppService:
             if field in mapping and value is not None:
                 setattr(cfg, mapping[field], value)
         await s.commit()
-        return self.public_config(cfg)
+        senders = await self.list_authorized_senders(s, org_id)
+        return self.public_config(cfg, senders)
+
+    async def list_authorized_senders(
+        self, s: AsyncSession, org_id: str
+    ) -> list[WhatsAppAuthorizedSender]:
+        return list(
+            (
+                await s.scalars(
+                    select(WhatsAppAuthorizedSender)
+                    .where(WhatsAppAuthorizedSender.organization_id == org_id)
+                    .order_by(WhatsAppAuthorizedSender.created_at.desc())
+                )
+            ).all()
+        )
+
+    async def add_authorized_sender(
+        self,
+        s: AsyncSession,
+        org_id: str,
+        user_id: str,
+        data: WhatsAppAuthorizedSenderCreate,
+    ) -> WhatsAppAuthorizedSender:
+        phone_norm = normalize_e164(data.phone_number)
+        if not phone_norm or len(phone_norm) < 7:
+            raise ApplicationError(
+                "invalid_phone_number",
+                "Numéro de téléphone invalide (format international E.164 requis ex: +2250708091011)",
+                400,
+            )
+
+        existing = await s.scalar(
+            select(WhatsAppAuthorizedSender).where(
+                WhatsAppAuthorizedSender.organization_id == org_id,
+                WhatsAppAuthorizedSender.phone_number == phone_norm,
+            )
+        )
+        if existing:
+            raise ApplicationError(
+                "duplicate_phone_number",
+                "Ce numéro est déjà configuré pour cette organisation.",
+                409,
+            )
+
+        sender = WhatsAppAuthorizedSender(
+            organization_id=org_id,
+            phone_number=phone_norm,
+            label=data.label,
+            is_active=data.is_active,
+            created_by_user_id=user_id,
+        )
+        s.add(sender)
+        await s.commit()
+        await s.refresh(sender)
+        return sender
+
+    async def update_authorized_sender(
+        self,
+        s: AsyncSession,
+        org_id: str,
+        sender_id: str,
+        data: WhatsAppAuthorizedSenderUpdate,
+    ) -> WhatsAppAuthorizedSender:
+        sender = await s.scalar(
+            select(WhatsAppAuthorizedSender).where(
+                WhatsAppAuthorizedSender.id == sender_id,
+                WhatsAppAuthorizedSender.organization_id == org_id,
+            )
+        )
+        if not sender:
+            raise ApplicationError(
+                "authorized_sender_not_found", "Numéro autorisé introuvable", 404
+            )
+        if data.label is not None:
+            sender.label = data.label
+        if data.is_active is not None:
+            sender.is_active = data.is_active
+        await s.commit()
+        await s.refresh(sender)
+        return sender
+
+    async def delete_authorized_sender(
+        self, s: AsyncSession, org_id: str, sender_id: str
+    ) -> bool:
+        sender = await s.scalar(
+            select(WhatsAppAuthorizedSender).where(
+                WhatsAppAuthorizedSender.id == sender_id,
+                WhatsAppAuthorizedSender.organization_id == org_id,
+            )
+        )
+        if not sender:
+            raise ApplicationError(
+                "authorized_sender_not_found", "Numéro autorisé introuvable", 404
+            )
+        await s.delete(sender)
+        await s.commit()
+        return True
+
+    async def is_sender_authorized(
+        self,
+        s: AsyncSession,
+        org_id: str,
+        raw_phone: str,
+        cfg: OrganizationIntegrationConfig | None = None,
+    ) -> bool:
+        clean_phone = normalize_e164(raw_phone)
+        if not clean_phone:
+            return False
+
+        # 1. Vérifier la table dédiée des numéros autorisés
+        authorized_row = await s.scalar(
+            select(WhatsAppAuthorizedSender).where(
+                WhatsAppAuthorizedSender.organization_id == org_id,
+                WhatsAppAuthorizedSender.phone_number == clean_phone,
+                WhatsAppAuthorizedSender.is_active.is_(True),
+            )
+        )
+        if authorized_row is not None:
+            return True
+
+        # 2. Rétro-compatibilité : liste JSON historique dans la configuration
+        if cfg and cfg.whatsapp_authorized_senders:
+            for legacy_num in cfg.whatsapp_authorized_senders:
+                if normalize_e164(legacy_num) == clean_phone:
+                    return True
+
+        # Si aucun numéro n'est configuré du tout dans l'organisation, mode ouvert par défaut ou fermé selon config
+        total_configured = await s.scalar(
+            select(func.count(WhatsAppAuthorizedSender.id)).where(
+                WhatsAppAuthorizedSender.organization_id == org_id
+            )
+        ) or 0
+        if total_configured == 0 and not (cfg and cfg.whatsapp_authorized_senders):
+            # Aucun filtrage configuré pour cette org
+            return True
+
+        return False
 
     async def test_connection(self, s: AsyncSession, org_id: str) -> dict[str, Any]:
         """Vérifie la validité des identifiants auprès de l'API Meta Cloud."""
@@ -79,7 +268,8 @@ class WhatsAppService:
                 400,
             )
 
-        url = f"https://graph.facebook.com/v20.0/{phone_id}"
+        api_ver = cfg.whatsapp_api_version or "v21.0"
+        url = f"https://graph.facebook.com/{api_ver}/{phone_id}"
         headers = {"Authorization": f"Bearer {access_token}"}
 
         try:
@@ -109,13 +299,13 @@ class WhatsAppService:
             }
 
     async def send_reply(
-        self, phone_id: str, access_token: str, to_phone: str, message: str
+        self, phone_id: str, access_token: str, to_phone: str, message: str, api_version: str = "v21.0"
     ) -> bool:
         """Envoie un message sortant via l'API Meta WhatsApp Cloud."""
         if not phone_id or not access_token or not to_phone or not message:
             return False
         clean_to = to_phone.replace("+", "").replace(" ", "").strip()
-        url = f"https://graph.facebook.com/v20.0/{phone_id}/messages"
+        url = f"https://graph.facebook.com/{api_version}/{phone_id}/messages"
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
@@ -210,7 +400,7 @@ class WhatsAppService:
                 f"Pour déclarer une nouvelle vente, envoyez simplement : 'Vente [produit] [montant] client [nom]'"
             )
 
-        # Questions sur les offres / tarifs
+        # 3. Questions sur les offres / tarifs
         if any(w in lower for w in ["tarif", "prix", "offre", "catalogue"]):
             offers = list(
                 (
@@ -285,10 +475,6 @@ class WhatsAppService:
                     "invalid_whatsapp_payload", "Identifiant de message manquant", 400
                 )
             from_phone = str(msg.get("from") or "")
-            if cfg.whatsapp_authorized_senders and from_phone not in cfg.whatsapp_authorized_senders:
-                raise ApplicationError(
-                    "whatsapp_sender_forbidden", "Expéditeur WhatsApp non autorisé", 403
-                )
             text = str((msg.get("text") or {}).get("body") or "").strip()
             org_id = cfg.organization_id
         elif "text" in payload or "message" in payload:
@@ -325,6 +511,7 @@ class WhatsAppService:
         else:
             raise ApplicationError("invalid_whatsapp_payload", "Payload WhatsApp invalide", 400)
 
+        # Déduplication
         if await s.scalar(
             select(WhatsAppWebhookEvent).where(WhatsAppWebhookEvent.message_id == message_id)
         ):
@@ -338,7 +525,28 @@ class WhatsAppService:
         if cfg is None:
             cfg = await self.configs.get(s, org_id)
 
-        # 1. Parse intent
+        clean_from_phone = normalize_e164(from_phone)
+
+        # -------------------------------------------------------------
+        # CONTRÔLE STRICT DES EXPÉDITEURS AUTORISÉS (Chantier 1)
+        # -------------------------------------------------------------
+        is_authorized = await self.is_sender_authorized(s, org_id, clean_from_phone, cfg)
+        if not is_authorized:
+            await s.commit()
+            neutral_reply = (
+                cfg.whatsapp_unauthorized_reply
+                or "Bonjour. Ce numéro n'est pas autorisé à enregistrer des opérations sur KORYXA. Contactez l'administrateur de votre entreprise."
+            )
+            return {
+                "status": "unauthorized_sender",
+                "from_phone": clean_from_phone,
+                "organization_id": org_id,
+                "reply_message": neutral_reply,
+            }
+
+        # -------------------------------------------------------------
+        # TRAITEMENT DES OPÉRATIONS POUR LES EXPÉDITEURS AUTORISÉS
+        # -------------------------------------------------------------
         parsed = self.voice_service.parse_transcript(VoiceParseRequest(transcript=text))
         created = None
         reply_text = ""
@@ -347,7 +555,7 @@ class WhatsAppService:
             created = await self.voice_service.confirm_record(
                 s,
                 org_id,
-                f"whatsapp:{from_phone}",
+                f"whatsapp:{clean_from_phone}",
                 VoiceConfirmRequest(
                     intent=parsed.intent,
                     payload=parsed.sale.model_dump(),
@@ -369,7 +577,7 @@ class WhatsAppService:
             created = await self.voice_service.confirm_record(
                 s,
                 org_id,
-                f"whatsapp:{from_phone}",
+                f"whatsapp:{clean_from_phone}",
                 VoiceConfirmRequest(
                     intent=parsed.intent,
                     payload=parsed.expense.model_dump(),
@@ -389,7 +597,7 @@ class WhatsAppService:
                 f"• Rubrique : Frais d'exploitation"
             )
         else:
-            # Traitement d'une question conversationnelle
+            # Traitement d'une question conversationnelle (solde, tarifs, activité)
             reply_text = await self._handle_conversational_query(s, org_id, text)
 
         await s.commit()
@@ -398,13 +606,15 @@ class WhatsAppService:
         if cfg and cfg.whatsapp_phone_number_id:
             access_token = self.configs.decrypt(cfg.whatsapp_access_token_encrypted)
             if cfg.whatsapp_auto_reply and access_token:
-                await self.send_reply(cfg.whatsapp_phone_number_id, access_token, from_phone, reply_text)
+                api_ver = cfg.whatsapp_api_version or "v21.0"
+                await self.send_reply(cfg.whatsapp_phone_number_id, access_token, from_phone, reply_text, api_version=api_ver)
 
         return {
             "status": "processed",
-            "from_phone": from_phone,
+            "from_phone": clean_from_phone,
             "organization_id": org_id,
             "parsed_intent": parsed.intent,
             "record": created,
             "reply_message": reply_text,
         }
+

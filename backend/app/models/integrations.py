@@ -39,8 +39,36 @@ class OrganizationIntegrationConfig(Base):
     whatsapp_authorized_senders: Mapped[list[str]] = mapped_column(
         JSON, default=list, nullable=False
     )
+    whatsapp_connection_mode: Mapped[str] = mapped_column(
+        String(30), default="meta_api", nullable=False
+    )
+    whatsapp_business_account_id: Mapped[str | None] = mapped_column(String(120))
+    whatsapp_api_version: Mapped[str] = mapped_column(String(20), default="v21.0", nullable=False)
+    whatsapp_unauthorized_reply: Mapped[str | None] = mapped_column(Text)
     whatsapp_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     whatsapp_auto_reply: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class WhatsAppAuthorizedSender(Base):
+    __tablename__ = "whatsapp_authorized_senders"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "phone_number", name="uq_org_authorized_phone"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    phone_number: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    label: Mapped[str | None] = mapped_column(String(100))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_by_user_id: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -61,3 +89,4 @@ class WhatsAppWebhookEvent(Base):
     received_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
