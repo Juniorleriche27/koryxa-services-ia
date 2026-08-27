@@ -145,46 +145,39 @@ export async function startSessionForOrg(orgId) {
     if (connection === "close") {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+      logger.warn({ orgId: validOrgId, statusCode, shouldReconnect }, "Connexion WhatsApp fermée");
 
-      logger.warn({ orgId: validOrgId, statusCode, shouldReconnect }, "Connexion WhatsApp fermée.");
+      // Notification d'alerte au backend KORYXA
+      try {
+        axios.post(
+          `${BACKEND_URL}/api/v1/integrations/whatsapp/session-alert`,
+          {
+            organization_id: validOrgId,
+            event: shouldReconnect ? "whatsapp_session_reconnecting" : "whatsapp_session_logged_out",
+            details: { statusCode, reason: lastDisconnect?.error?.message || "connection_closed" },
+          },
+          {
+            timeout: 5000,
+            headers: { "X-Koryxa-Proxy-Secret": SERVICE_IA_PROXY_SECRET },
+          }
+        ).catch(() => {});
+      } catch (_) {}
 
       sess.starting = false;
-      if (connection === "close") {
-        const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-        logger.warn({ orgId: validOrgId, statusCode, shouldReconnect }, "Connexion WhatsApp fermée");
-
-        // Notification d'alerte au backend KORYXA
+      if (shouldReconnect) {
+        sess.status = "connecting";
+        setTimeout(() => startSessionForOrg(validOrgId), 3000);
+      } else {
+        sess.status = "disconnected";
+        sess.qrDataUrl = null;
+        sess.connectedUser = null;
+        sess.socket = null;
         try {
-          axios.post(
-            `${BACKEND_URL}/api/v1/integrations/whatsapp/session-alert`,
-            {
-              organization_id: validOrgId,
-              event: shouldReconnect ? "whatsapp_session_reconnecting" : "whatsapp_session_logged_out",
-              details: { statusCode, reason: lastDisconnect?.error?.message || "connection_closed" },
-            },
-            {
-              timeout: 5000,
-              headers: { "X-Koryxa-Proxy-Secret": SERVICE_IA_PROXY_SECRET },
-            }
-          ).catch(() => {});
+          fs.rmSync(sessionPath, { recursive: true, force: true });
         } catch (_) {}
-
-        sess.starting = false;
-        if (shouldReconnect) {
-          sess.status = "connecting";
-          setTimeout(() => startSessionForOrg(validOrgId), 3000);
-        } else {
-          sess.status = "disconnected";
-          sess.qrDataUrl = null;
-          sess.connectedUser = null;
-          sess.socket = null;
-          try {
-            fs.rmSync(sessionPath, { recursive: true, force: true });
-          } catch (_) {}
-        }
       }
-    });
+    }
+  });
 
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
       if (type !== "notify") return;
