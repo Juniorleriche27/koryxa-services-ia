@@ -227,3 +227,37 @@ async def reset_whatsapp_session(o: OrgDep, _: ManageDep):
         except Exception:
             continue
     return {"ok": True, "status": "scanning"}
+
+
+@router.post("/session-alert")
+async def report_whatsapp_session_alert(request: Request, s: SessionDep):
+    """Enregistre et propage une alerte de statut de session WhatsApp."""
+    import hmac
+    import structlog
+
+    headers = request.headers
+    secret = headers.get("x-koryxa-proxy-secret") or headers.get("x-service-ia-proxy-secret")
+    settings = get_settings()
+    configured_secret = settings.proxy_secret
+    if not configured_secret and settings.environment != "production":
+        configured_secret = "service-ia-development-only-proxy-secret"
+    if not configured_secret or not secret or not hmac.compare_digest(secret, configured_secret):
+        from app.core.errors import ApplicationError
+
+        raise ApplicationError(
+            "invalid_proxy_secret", "Authentification d'alerte invalide", 401
+        )
+    payload = await request.json()
+    org_id = payload.get("organization_id")
+    event_type = payload.get("event") or "whatsapp_session_alert"
+    details = payload.get("details") or {}
+
+    logger = structlog.get_logger()
+    logger.warning(
+        "whatsapp_session_alert_received",
+        organization_id=org_id,
+        event=event_type,
+        details=details,
+    )
+    return {"status": "recorded", "event": event_type, "organization_id": org_id}
+

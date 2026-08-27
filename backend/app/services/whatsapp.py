@@ -61,6 +61,7 @@ class WhatsAppService:
                 id=s.id,
                 organization_id=s.organization_id,
                 phone_number=s.phone_number,
+                whatsapp_lid=s.whatsapp_lid,
                 label=s.label,
                 is_active=s.is_active,
                 created_by_user_id=s.created_by_user_id,
@@ -164,6 +165,7 @@ class WhatsAppService:
         sender = WhatsAppAuthorizedSender(
             organization_id=org_id,
             phone_number=phone_norm,
+            whatsapp_lid=data.whatsapp_lid.replace("@lid", "").strip() if data.whatsapp_lid else None,
             label=data.label,
             is_active=data.is_active,
             created_by_user_id=user_id,
@@ -190,6 +192,8 @@ class WhatsAppService:
             raise ApplicationError(
                 "authorized_sender_not_found", "Numéro autorisé introuvable", 404
             )
+        if data.whatsapp_lid is not None:
+            sender.whatsapp_lid = data.whatsapp_lid.replace("@lid", "").strip() if data.whatsapp_lid else None
         if data.label is not None:
             sender.label = data.label
         if data.is_active is not None:
@@ -221,38 +225,40 @@ class WhatsAppService:
         org_id: str,
         raw_phone: str,
         cfg: OrganizationIntegrationConfig | None = None,
+        sender_lid: str | None = None,
     ) -> bool:
         clean_phone = normalize_e164(raw_phone)
-        if not clean_phone:
+        clean_lid = str(sender_lid).replace("@lid", "").strip() if sender_lid else None
+
+        if not clean_phone and not clean_lid:
             return False
 
-        # 1. Vérifier la table dédiée des numéros autorisés
-        authorized_row = await s.scalar(
-            select(WhatsAppAuthorizedSender).where(
-                WhatsAppAuthorizedSender.organization_id == org_id,
-                WhatsAppAuthorizedSender.phone_number == clean_phone,
-                WhatsAppAuthorizedSender.is_active.is_(True),
-            )
+        # 1. Vérifier la table dédiée des numéros autorisés (par numéro E.164 ou LID vérifié)
+        stmt = select(WhatsAppAuthorizedSender).where(
+            WhatsAppAuthorizedSender.organization_id == org_id,
+            WhatsAppAuthorizedSender.is_active.is_(True),
         )
+        if clean_phone and clean_lid:
+            stmt = stmt.where(
+                (WhatsAppAuthorizedSender.phone_number == clean_phone)
+                | (WhatsAppAuthorizedSender.whatsapp_lid == clean_lid)
+            )
+        elif clean_phone:
+            stmt = stmt.where(WhatsAppAuthorizedSender.phone_number == clean_phone)
+        elif clean_lid:
+            stmt = stmt.where(WhatsAppAuthorizedSender.whatsapp_lid == clean_lid)
+
+        authorized_row = await s.scalar(stmt)
         if authorized_row is not None:
             return True
 
         # 2. Rétro-compatibilité : liste JSON historique dans la configuration
-        if cfg and cfg.whatsapp_authorized_senders:
+        if cfg and cfg.whatsapp_authorized_senders and clean_phone:
             for legacy_num in cfg.whatsapp_authorized_senders:
                 if normalize_e164(legacy_num) == clean_phone:
                     return True
 
-        # Si aucun numéro n'est configuré du tout dans l'organisation, mode ouvert par défaut ou fermé selon config
-        total_configured = await s.scalar(
-            select(func.count(WhatsAppAuthorizedSender.id)).where(
-                WhatsAppAuthorizedSender.organization_id == org_id
-            )
-        ) or 0
-        if total_configured == 0 and not (cfg and cfg.whatsapp_authorized_senders):
-            # Aucun filtrage configuré pour cette org
-            return True
-
+        # FERMÉ PAR DÉFAUT (Zero Trust) : Aucun numéro n'est autorisé sans inscription explicite
         return False
 
     async def test_connection(self, s: AsyncSession, org_id: str) -> dict[str, Any]:
@@ -526,11 +532,16 @@ class WhatsAppService:
             cfg = await self.configs.get(s, org_id)
 
         clean_from_phone = normalize_e164(from_phone)
+        sender_lid = payload.get("sender_lid") or payload.get("lid")
+        if not sender_lid and "@lid" in from_phone:
+            sender_lid = from_phone
 
         # -------------------------------------------------------------
-        # CONTRÔLE STRICT DES EXPÉDITEURS AUTORISÉS (Chantier 1)
+        # CONTRÔLE STRICT DES EXPÉDITEURS AUTORISÉS (Chantier 1 - Zero Trust)
         # -------------------------------------------------------------
-        is_authorized = await self.is_sender_authorized(s, org_id, clean_from_phone, cfg)
+        is_authorized = await self.is_sender_authorized(
+            s, org_id, clean_from_phone, cfg, sender_lid=sender_lid
+        )
         if not is_authorized:
             await s.commit()
             neutral_reply = (
@@ -540,6 +551,7 @@ class WhatsAppService:
             return {
                 "status": "unauthorized_sender",
                 "from_phone": clean_from_phone,
+                "sender_lid": sender_lid,
                 "organization_id": org_id,
                 "reply_message": neutral_reply,
             }

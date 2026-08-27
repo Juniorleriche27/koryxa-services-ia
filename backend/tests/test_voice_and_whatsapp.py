@@ -90,6 +90,13 @@ def test_whatsapp_webhook_handshake_and_inbound_message() -> None:
         assert challenge_res.status_code == 200
         assert challenge_res.text == "test_challenge_12345"
 
+        # Register authorized sender
+        client.post(
+            "/api/v1/integrations/whatsapp/authorized-numbers",
+            headers=owner,
+            json={"phone_number": "+2250708091011", "label": "Conseiller"},
+        )
+
         # 2. Test inbound message simulation
         inbound_res = client.post(
             "/api/v1/integrations/whatsapp/webhook",

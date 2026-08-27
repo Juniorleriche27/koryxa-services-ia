@@ -47,6 +47,8 @@ services:
   whatsapp-bridge:
     build:
       context: ./services/whatsapp-bridge
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     image: koryxa-whatsapp-bridge:${GIT_COMMIT:-latest}
     container_name: koryxa-whatsapp-bridge
     env_file:
@@ -78,6 +80,8 @@ services:
           pids: 100
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     networks:
       - internal
       - public

@@ -66,6 +66,7 @@ class WhatsAppAuthorizedSender(Base):
         ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
     )
     phone_number: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    whatsapp_lid: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     label: Mapped[str | None] = mapped_column(String(100))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_by_user_id: Mapped[str] = mapped_column(String(100), nullable=False)

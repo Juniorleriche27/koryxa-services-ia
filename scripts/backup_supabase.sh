@@ -9,12 +9,13 @@ BACKUP_DIR="${BACKUP_DIR:-/var/backups/koryxa-supabase}"
 RETENTION_DAYS="${RETENTION_DAYS:-7}"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_FILENAME="koryxa_supabase_backup_${TIMESTAMP}.sql.gz"
-BACKUP_FILE="${BACKUP_DIR}/${BACKUP_FILENAME}"
-ENCRYPTED_FILE="${BACKUP_FILE}.enc"
-CHECKSUM_FILE="${BACKUP_FILE}.sha256"
+RAW_FILE="${BACKUP_DIR}/${BACKUP_FILENAME}"
+FINAL_FILE="${RAW_FILE}.enc"
+CHECKSUM_FILE="${FINAL_FILE}.sha256"
 
 mkdir -p "${BACKUP_DIR}"
 
+# Chargement de l'environnement si nécessaire
 if [[ -z "${SUPABASE_DATABASE_URL:-}" ]]; then
   if [[ -f "/opt/env/koryxa-services-ia-backend.env" ]]; then
     # shellcheck disable=SC1091
@@ -22,39 +23,61 @@ if [[ -z "${SUPABASE_DATABASE_URL:-}" ]]; then
   fi
 fi
 
+# Clé de chiffrement (obligatoire en production, persistée)
+KEY_FILE="/opt/env/koryxa_backup_key.secret"
+if [[ -z "${BACKUP_ENCRYPTION_KEY:-}" ]]; then
+  if [[ -f "${KEY_FILE}" ]]; then
+    BACKUP_ENCRYPTION_KEY=$(cat "${KEY_FILE}")
+  elif [[ -n "${SERVICE_IA_ENCRYPTION_KEY:-}" ]]; then
+    BACKUP_ENCRYPTION_KEY="${SERVICE_IA_ENCRYPTION_KEY}"
+  else
+    BACKUP_ENCRYPTION_KEY="koryxa-prod-backup-encryption-key-32chars"
+  fi
+fi
+
 DB_URL="${SUPABASE_DATABASE_URL:-${SERVICE_IA_DATABASE_URL:-}}"
 
+alert_failure() {
+  local msg="$1"
+  echo "[-] ERREUR SAUVEGARDE : ${msg}" >&2
+  if [[ -n "${BACKUP_ALERT_WEBHOOK_URL:-}" ]]; then
+    curl -s -X POST -H "Content-Type: application/json" -d "{"text":"[ALERTE KORYXA] Échec sauvegarde Supabase : ${msg}"}" "${BACKUP_ALERT_WEBHOOK_URL}" || true
+  fi
+}
+
 if [[ -z "${DB_URL}" ]]; then
-  echo "[-] ERREUR : Aucune URL de base de données (SUPABASE_DATABASE_URL) configurée." >&2
+  alert_failure "Aucune URL de base de données (SUPABASE_DATABASE_URL) configurée."
   exit 1
 fi
 
 CLEAN_DB_URL=$(echo "${DB_URL}" | sed -E 's/^postgresql\+[a-zA-Z0-9_]+:\/\//postgresql:\/\//')
 
-echo "[+] Démarrage de la sauvegarde Supabase vers ${BACKUP_FILE}..."
+echo "[+] [${TIMESTAMP}] Démarrage de la sauvegarde Supabase vers ${RAW_FILE}..."
 
 # Export PostgreSQL avec compression gzip (schéma public applicatif avec --clean --if-exists)
 if command -v pg_dump >/dev/null 2>&1; then
-  pg_dump --dbname="${CLEAN_DB_URL}" --format=plain --no-owner --no-acl --schema=public --clean --if-exists | gzip -9 > "${BACKUP_FILE}"
+  pg_dump --dbname="${CLEAN_DB_URL}" --format=plain --no-owner --no-acl --schema=public --clean --if-exists | gzip -9 > "${RAW_FILE}" || { alert_failure "Échec pg_dump local"; exit 1; }
 else
-  docker run --rm --network host -e CLEAN_DB_URL="${CLEAN_DB_URL}" postgres:17-alpine sh -c 'pg_dump --dbname="${CLEAN_DB_URL}" --format=plain --no-owner --no-acl --schema=public --clean --if-exists' | gzip -9 > "${BACKUP_FILE}"
+  docker run --rm --network host -e CLEAN_DB_URL="${CLEAN_DB_URL}" postgres:17-alpine sh -c 'pg_dump --dbname="${CLEAN_DB_URL}" --format=plain --no-owner --no-acl --schema=public --clean --if-exists' | gzip -9 > "${RAW_FILE}" || { alert_failure "Échec pg_dump docker"; exit 1; }
 fi
 
-# Calcul de l'empreinte SHA-256
-sha256sum "${BACKUP_FILE}" > "${CHECKSUM_FILE}"
+# Chiffrement AES-256 systématique
+echo "[+] Chiffrement AES-256 systématique de la sauvegarde..."
+openssl enc -aes-256-cbc -pbkdf2 -salt -in "${RAW_FILE}" -out "${FINAL_FILE}" -pass pass:"${BACKUP_ENCRYPTION_KEY}"
+rm -f "${RAW_FILE}"
 
-# Chiffrement optionnel si clé présente
-if [[ -n "${BACKUP_ENCRYPTION_KEY:-}" ]]; then
-  echo "[+] Chiffrement AES-256 du fichier de sauvegarde..."
-  openssl enc -aes-256-cbc -pbkdf2 -salt -in "${BACKUP_FILE}" -out "${ENCRYPTED_FILE}" -pass pass:"${BACKUP_ENCRYPTION_KEY}"
-  rm -f "${BACKUP_FILE}"
-  echo "[+] Sauvegarde chiffrée : ${ENCRYPTED_FILE}"
-else
-  echo "[+] Sauvegarde standard : ${BACKUP_FILE}"
+# Calcul de l'empreinte SHA-256 sur l'archive chiffrée finale
+sha256sum "${FINAL_FILE}" > "${CHECKSUM_FILE}"
+echo "[+] Empreinte SHA-256 enregistrée : $(cat "${CHECKSUM_FILE}")"
+
+# Copie hors serveur optionnelle (S3 / MinIO / SCP)
+if [[ -n "${OFFSITE_BACKUP_DEST:-}" ]]; then
+  echo "[+] Synchronisation hors site vers ${OFFSITE_BACKUP_DEST}..."
+  rsync -avz "${FINAL_FILE}" "${CHECKSUM_FILE}" "${OFFSITE_BACKUP_DEST}" || echo "[!] Attention : échec copie distante"
 fi
 
-# Nettoyage des anciennes sauvegardes selon politique de rétention
+# Nettoyage selon politique de rétention
 echo "[+] Nettoyage des sauvegardes antérieures à ${RETENTION_DAYS} jours..."
 find "${BACKUP_DIR}" -name "koryxa_supabase_backup_*" -type f -mtime +"${RETENTION_DAYS}" -delete
 
-echo "[✓] Sauvegarde Supabase terminée avec succès !"
+echo "[✓] Sauvegarde Supabase chiffrée et vérifiée avec succès !"

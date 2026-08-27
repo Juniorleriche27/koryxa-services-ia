@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -12,11 +13,13 @@ class WhatsAppWebhookQuery(BaseModel):
 
 class WhatsAppAuthorizedSenderCreate(BaseModel):
     phone_number: str = Field(min_length=6, max_length=32, description="Numéro au format E.164 (+225...)")
+    whatsapp_lid: str | None = Field(default=None, max_length=64, description="LID WhatsApp associé si connu")
     label: str | None = Field(default=None, max_length=100, description="Nom ou rôle du collaborateur")
     is_active: bool = True
 
 
 class WhatsAppAuthorizedSenderUpdate(BaseModel):
+    whatsapp_lid: str | None = Field(default=None, max_length=64)
     label: str | None = Field(default=None, max_length=100)
     is_active: bool | None = None
 
@@ -25,6 +28,7 @@ class WhatsAppAuthorizedSenderRead(BaseModel):
     id: str
     organization_id: str
     phone_number: str
+    whatsapp_lid: str | None = None
     label: str | None = None
     is_active: bool
     created_by_user_id: str

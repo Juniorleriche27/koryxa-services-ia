@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from decimal import Decimal
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -38,11 +36,17 @@ def test_authorized_numbers_crud_and_tenant_isolation() -> None:
         add_res = client.post(
             "/api/v1/integrations/whatsapp/authorized-numbers",
             headers=headers_a,
-            json={"phone_number": "+225 07 08 09 10 11", "label": "Koffi Commercial", "is_active": True},
+            json={
+                "phone_number": "+225 07 08 09 10 11",
+                "whatsapp_lid": "12345678901234@lid",
+                "label": "Koffi Commercial",
+                "is_active": True,
+            },
         )
         assert add_res.status_code == 201
         data_a = add_res.json()
         assert data_a["phone_number"] == "+2250708091011"
+        assert data_a["whatsapp_lid"] == "12345678901234"
         assert data_a["label"] == "Koffi Commercial"
         assert data_a["is_active"] is True
         sender_id = data_a["id"]
@@ -59,6 +63,7 @@ def test_authorized_numbers_crud_and_tenant_isolation() -> None:
         list_a = client.get("/api/v1/integrations/whatsapp/authorized-numbers", headers=headers_a).json()
         assert list_a["total"] == 1
         assert list_a["items"][0]["phone_number"] == "+2250708091011"
+        assert list_a["items"][0]["whatsapp_lid"] == "12345678901234"
 
         list_b = client.get("/api/v1/integrations/whatsapp/authorized-numbers", headers=headers_b).json()
         assert list_b["total"] == 0
@@ -71,15 +76,16 @@ def test_authorized_numbers_crud_and_tenant_isolation() -> None:
         )
         assert update_b.status_code == 404
 
-        # 5. Org A can update label and toggle is_active
+        # 5. Org A can update label, lid and toggle is_active
         update_a = client.patch(
             f"/api/v1/integrations/whatsapp/authorized-numbers/{sender_id}",
             headers=headers_a,
-            json={"label": "Koffi Responsable Ventes", "is_active": False},
+            json={"label": "Koffi Responsable Ventes", "whatsapp_lid": "999888777@lid", "is_active": False},
         )
         assert update_a.status_code == 200
         assert update_a.json()["is_active"] is False
         assert update_a.json()["label"] == "Koffi Responsable Ventes"
+        assert update_a.json()["whatsapp_lid"] == "999888777"
 
         # 6. Re-enable
         client.patch(
@@ -87,6 +93,32 @@ def test_authorized_numbers_crud_and_tenant_isolation() -> None:
             headers=headers_a,
             json={"is_active": True},
         )
+
+
+def test_closed_by_default_zero_trust_when_no_senders_configured() -> None:
+    """Vérifie que lorsqu'aucun numéro n'est configuré (0 configuré), TOUT message entrant est rejeté."""
+    with TestClient(app) as client:
+        headers, org_id = create_org_and_get_id(client, "tenant-zero-trust", "user-zero-trust", "Zero Trust Org")
+
+        # Aucune liste de numéros autorisés configurée pour cette organisation
+        unauth_msg = {
+            "from": "+2250708091011@s.whatsapp.net",
+            "text": "Vente de 10 sacs de ciment à 50000 FCFA client Diarra",
+            "organization_id": org_id,
+        }
+        res = client.post(
+            "/api/v1/integrations/whatsapp/webhook",
+            headers={"X-Koryxa-Proxy-Secret": "service-ia-development-only-proxy-secret"},
+            json=unauth_msg,
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "unauthorized_sender"
+        assert "pas autorisé" in data["reply_message"]
+
+        # ZERO vente créée
+        sales = client.get("/api/v1/registers/sales", headers=headers).json()
+        assert sales["total"] == 0
 
 
 def test_authorized_sender_vs_unauthorized_sender_execution() -> None:
@@ -145,3 +177,41 @@ def test_authorized_sender_vs_unauthorized_sender_execution() -> None:
         # VERIFY: Exactly 1 new sale was created in the database!
         sales_after_auth = client.get("/api/v1/registers/sales", headers=headers).json()
         assert sales_after_auth["total"] == count_before + 1
+
+
+def test_whatsapp_lid_sender_authorization() -> None:
+    """Vérifie l'autorisation par identifiant LID WhatsApp."""
+    with TestClient(app) as client:
+        headers, org_id = create_org_and_get_id(client, "tenant-lid-flow", "user-lid-flow", "LID Flow Org")
+
+        # Inscrire un collaborateur par son LID
+        lid_val = "109827364512938"
+        client.post(
+            "/api/v1/integrations/whatsapp/authorized-numbers",
+            headers=headers,
+            json={
+                "phone_number": "+2250808080808",
+                "whatsapp_lid": f"{lid_val}@lid",
+                "label": "Collaborateur LID",
+            },
+        )
+
+        # Message provenant du LID avec from anonyme / LID
+        lid_msg = {
+            "from": f"{lid_val}@lid",
+            "sender_lid": lid_val,
+            "text": "Vente de 2 ventilateurs à 30000 FCFA client Touré payé par Orange Money",
+            "organization_id": org_id,
+        }
+        res = client.post(
+            "/api/v1/integrations/whatsapp/webhook",
+            headers={"X-Koryxa-Proxy-Secret": "service-ia-development-only-proxy-secret"},
+            json=lid_msg,
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "processed"
+        assert "Vente enregistrée avec succès" in data["reply_message"]
+
+        sales = client.get("/api/v1/registers/sales", headers=headers).json()
+        assert sales["total"] == 1

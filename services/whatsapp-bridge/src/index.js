@@ -149,101 +149,143 @@ export async function startSessionForOrg(orgId) {
       logger.warn({ orgId: validOrgId, statusCode, shouldReconnect }, "Connexion WhatsApp fermée.");
 
       sess.starting = false;
-      if (shouldReconnect) {
-        sess.status = "connecting";
-        setTimeout(() => startSessionForOrg(validOrgId), 3000);
-      } else {
-        sess.status = "disconnected";
-        sess.qrDataUrl = null;
-        sess.connectedUser = null;
-        sess.socket = null;
+      if (connection === "close") {
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        logger.warn({ orgId: validOrgId, statusCode, shouldReconnect }, "Connexion WhatsApp fermée");
+
+        // Notification d'alerte au backend KORYXA
         try {
-          fs.rmSync(sessionPath, { recursive: true, force: true });
-        } catch (_) {}
-      }
-    }
-  });
-
-  sock.ev.on("messages.upsert", async ({ messages, type }) => {
-    if (type !== "notify") return;
-
-    for (const msg of messages) {
-      if (!msg.message || msg.key.fromMe) continue;
-      const remoteJid = msg.key.remoteJid;
-      if (!remoteJid || remoteJid.includes("@broadcast") || remoteJid.includes("@newsletter")) continue;
-
-      const senderPhone = "+" + remoteJid.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/[^0-9]/g, "");
-      let textContent = "";
-
-      // 1. Message Texte
-      if (msg.message.conversation) {
-        textContent = msg.message.conversation.trim();
-      } else if (msg.message.extendedTextMessage?.text) {
-        textContent = msg.message.extendedTextMessage.text.trim();
-      }
-
-      // 2. Message Vocal -> Transcription via Whisper
-      const isAudio = Boolean(
-        msg.message.audioMessage ||
-        (msg.message.documentMessage && (msg.message.documentMessage.mimetype || "").includes("audio"))
-      );
-      if (isAudio) {
-        try {
-          logger.info({ orgId: validOrgId, senderPhone }, "Téléchargement buffer audio vocal...");
-          const audioBuffer = await downloadMediaMessage(msg, "buffer", {});
-          
-          if (audioBuffer && audioBuffer.length > 0) {
-            const form = new FormData();
-            form.append("file", audioBuffer, { filename: "voice.ogg", contentType: "audio/ogg" });
-            form.append("language", "fr");
-
-            const transcribeRes = await axios.post(`${AUDIO_ENGINE_URL}/transcribe`, form, {
-              headers: form.getHeaders(),
-              timeout: 25000,
-            });
-
-            if (transcribeRes.data && transcribeRes.data.text) {
-              textContent = transcribeRes.data.text.trim();
-              logger.info({ orgId: validOrgId, senderPhone }, "Vocal transcrit avec succès");
+          axios.post(
+            `${BACKEND_URL}/api/v1/integrations/whatsapp/session-alert`,
+            {
+              organization_id: validOrgId,
+              event: shouldReconnect ? "whatsapp_session_reconnecting" : "whatsapp_session_logged_out",
+              details: { statusCode, reason: lastDisconnect?.error?.message || "connection_closed" },
+            },
+            {
+              timeout: 5000,
+              headers: { "X-Koryxa-Proxy-Secret": SERVICE_IA_PROXY_SECRET },
             }
-          }
-        } catch (err) {
-          logger.error({ err: err.message, orgId: validOrgId }, "Erreur transcription audio WhatsApp");
+          ).catch(() => {});
+        } catch (_) {}
+
+        sess.starting = false;
+        if (shouldReconnect) {
+          sess.status = "connecting";
+          setTimeout(() => startSessionForOrg(validOrgId), 3000);
+        } else {
+          sess.status = "disconnected";
+          sess.qrDataUrl = null;
+          sess.connectedUser = null;
+          sess.socket = null;
+          try {
+            fs.rmSync(sessionPath, { recursive: true, force: true });
+          } catch (_) {}
         }
       }
+    });
 
-      if (!textContent) continue;
+    sock.ev.on("messages.upsert", async ({ messages, type }) => {
+      if (type !== "notify") return;
 
-      logger.info({ orgId: validOrgId, senderPhone }, "Transmission message WhatsApp au backend KORYXA");
+      for (const msg of messages) {
+        if (!msg.message || msg.key.fromMe) continue;
+        const remoteJid = msg.key.remoteJid;
+        if (!remoteJid || remoteJid.includes("@broadcast") || remoteJid.includes("@newsletter")) continue;
 
-      // 3. Appel Webhook Backend KORYXA avec X-Koryxa-Proxy-Secret
-      try {
-        const payload = {
-          text: textContent,
-          from: senderPhone,
-          message_id: msg.key.id || `wa_${Date.now()}`,
-          organization_id: validOrgId,
-        };
+        let senderPhone = "";
+        let senderLid = null;
+        let senderJid = remoteJid;
 
-        const backendRes = await axios.post(
-          `${BACKEND_URL}/api/v1/integrations/whatsapp/webhook`,
-          payload,
-          {
-            timeout: 15000,
-            headers: { "X-Koryxa-Proxy-Secret": SERVICE_IA_PROXY_SECRET },
+        // Gestion rigoureuse des identifiants @lid vs @s.whatsapp.net (E.164)
+        if (remoteJid.endsWith("@lid")) {
+          senderLid = remoteJid.replace("@lid", "");
+          if (msg.key.participant && msg.key.participant.endsWith("@s.whatsapp.net")) {
+            senderPhone = "+" + msg.key.participant.replace("@s.whatsapp.net", "").replace(/[^0-9]/g, "");
+            senderJid = msg.key.participant;
           }
+        } else if (remoteJid.endsWith("@s.whatsapp.net") || remoteJid.endsWith("@c.us")) {
+          senderPhone = "+" + remoteJid.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/[^0-9]/g, "");
+          if (msg.key.participant && msg.key.participant.endsWith("@lid")) {
+            senderLid = msg.key.participant.replace("@lid", "");
+          }
+        }
+
+        let textContent = "";
+
+        // 1. Message Texte
+        if (msg.message.conversation) {
+          textContent = msg.message.conversation.trim();
+        } else if (msg.message.extendedTextMessage?.text) {
+          textContent = msg.message.extendedTextMessage.text.trim();
+        }
+
+        // 2. Message Vocal -> Transcription via Whisper
+        const isAudio = Boolean(
+          msg.message.audioMessage ||
+          (msg.message.documentMessage && (msg.message.documentMessage.mimetype || "").includes("audio"))
         );
+        if (isAudio) {
+          try {
+            logger.info({ orgId: validOrgId, senderPhone, senderLid }, "Téléchargement buffer audio vocal...");
+            const audioBuffer = await downloadMediaMessage(msg, "buffer", {});
+            
+            if (audioBuffer && audioBuffer.length > 0) {
+              const form = new FormData();
+              form.append("file", audioBuffer, { filename: "voice.ogg", contentType: "audio/ogg" });
+              form.append("language", "fr");
 
-        const replyMsg = backendRes.data?.reply_message || backendRes.data?.reply;
-        if (replyMsg && typeof replyMsg === "string" && replyMsg.trim()) {
-          await sock.sendMessage(remoteJid, { text: replyMsg.trim() }, { quoted: msg });
-          logger.info({ orgId: validOrgId, remoteJid }, "Réponse WhatsApp envoyée");
+              const transcribeRes = await axios.post(`${AUDIO_ENGINE_URL}/transcribe`, form, {
+                headers: form.getHeaders(),
+                timeout: 25000,
+              });
+
+              if (transcribeRes.data && transcribeRes.data.text) {
+                textContent = transcribeRes.data.text.trim();
+                logger.info({ orgId: validOrgId, senderPhone, senderLid }, "Vocal transcrit avec succès");
+              }
+            }
+          } catch (err) {
+            logger.error({ err: err.message, orgId: validOrgId }, "Erreur transcription audio WhatsApp");
+          }
         }
-      } catch (backendErr) {
-        logger.error({ err: backendErr.message, orgId: validOrgId }, "Erreur communication backend KORYXA");
+
+        if (!textContent) continue;
+
+        logger.info({ orgId: validOrgId, senderPhone, senderLid }, "Transmission message WhatsApp au backend KORYXA");
+
+        // 3. Appel Webhook Backend KORYXA avec X-Koryxa-Proxy-Secret
+        try {
+          const payload = {
+            text: textContent,
+            from: senderPhone || (senderLid ? `${senderLid}@lid` : remoteJid),
+            sender_jid: senderJid,
+            sender_lid: senderLid,
+            push_name: msg.pushName || null,
+            message_id: msg.key.id || `wa_${Date.now()}`,
+            organization_id: validOrgId,
+          };
+
+          const backendRes = await axios.post(
+            `${BACKEND_URL}/api/v1/integrations/whatsapp/webhook`,
+            payload,
+            {
+              timeout: 15000,
+              headers: { "X-Koryxa-Proxy-Secret": SERVICE_IA_PROXY_SECRET },
+            }
+          );
+
+          const replyMsg = backendRes.data?.reply_message || backendRes.data?.reply;
+          if (replyMsg && typeof replyMsg === "string" && replyMsg.trim()) {
+            await sock.sendMessage(remoteJid, { text: replyMsg.trim() }, { quoted: msg });
+            logger.info({ orgId: validOrgId, remoteJid }, "Réponse WhatsApp envoyée");
+          }
+        } catch (backendErr) {
+          logger.error({ err: backendErr.message, orgId: validOrgId }, "Erreur communication backend KORYXA");
+        }
       }
-    }
-  });
+    });
 
   return sock;
 }

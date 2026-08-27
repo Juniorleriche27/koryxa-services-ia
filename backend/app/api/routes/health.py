@@ -4,6 +4,7 @@ from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import inspect, text
 
+from app.core.config import get_settings
 from app.db.session import engine
 
 router = APIRouter()
@@ -11,10 +12,12 @@ router = APIRouter()
 
 @router.get("/health/live")
 async def liveness() -> dict[str, str]:
+    settings = get_settings()
+    commit_sha = os.getenv("GIT_COMMIT") or settings.git_commit or "dev"
     return {
         "status": "ok",
         "service": "koryxa-service-ia",
-        "commit": os.getenv("GIT_COMMIT", "dev"),
+        "commit": commit_sha,
     }
 
 
