@@ -61,6 +61,7 @@ def test_voice_short_sale_does_not_use_amount_as_item() -> None:
         )
         assert response.status_code == 200
         data = response.json()
+        print("DEBUG_VOICE_DATA:", data)
         assert "Vente" in data["sale"]["item_label"] or "non détaillée" in data["sale"]["item_label"]
         assert Decimal(data["sale"]["total_amount"]) == Decimal("15000")
         assert data["sale"]["payment_status"] == "unpaid"
