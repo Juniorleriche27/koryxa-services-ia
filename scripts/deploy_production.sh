@@ -47,7 +47,7 @@ test -s "$backup_file"
 # 5. Migration et redémarrage contrôlé
 echo "🗄️ Validation et application des migrations Alembic..."
 docker compose run --rm backend alembic upgrade head
-docker compose run --rm backend alembic current | grep -q '20260819_0011 (head)'
+docker compose run --rm backend alembic current | grep -q '(head)'
 echo "🔄 Redémarrage des conteneurs en production..."
 docker compose up -d --no-build backend
 

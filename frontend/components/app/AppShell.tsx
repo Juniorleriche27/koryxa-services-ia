@@ -175,7 +175,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         created_by_user_id?: string;
       }>("/organizations/current")
         .then(setOrganization)
-        .catch(() => setOrganization({ name: "Organisation à configurer", business_category: "retail" }))
+        // A transport/authentication failure must never be interpreted as a
+        // missing organization, otherwise the UI displays a false onboarding.
+        .catch(() => undefined)
         .finally(() => setOrganizationLoaded(true));
     void load();
     const updated = (event: Event) =>

@@ -19,7 +19,7 @@ Le service IA est validé pour le périmètre déployé après correction des bl
 
 - Backend : Ruff sans erreur ; mypy sans erreur sur 98 fichiers ; 52 tests réussis.
 - Frontend : ESLint sans erreur ; 10 tests Vitest réussis ; build Next.js de production réussi ; audit npm avec zéro vulnérabilité.
-- Base : migration Alembic complète sur base jetable ; 25 tables obtenues ; révision `20260819_0011` ; aucune opération manquante détectée.
+- Base : migration Alembic complète sur base jetable ; 25 tables obtenues ; révision à la tête de chaîne ; aucune opération manquante détectée.
 - Déploiement : le script refuse une configuration Compose invalide, sauvegarde PostgreSQL, applique et contrôle les migrations, attend l'état `healthy`, puis contrôle les endpoints interne et public.
 
 ## Procédure de retour arrière

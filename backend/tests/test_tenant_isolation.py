@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -44,10 +44,39 @@ async def test_tenant_isolation_queries_strictly_by_tenant_id():
     )
     session = AsyncMock()
     session.scalar.return_value = None
+    session.scalars.return_value = MagicMock(all=MagicMock(return_value=[]))
 
     with pytest.raises(ApplicationError) as exc_info:
         await get_current_organization(identity, session)
     assert exc_info.value.code == "organization_not_found"
+
+
+@pytest.mark.asyncio
+async def test_invited_member_resolves_sole_active_organization():
+    identity = KoryxaIdentity(
+        tenant_id="service-ia-invited-user",
+        user_id="invited-user",
+        email="invitee@koryxa.com",
+        source="koryxa-services-ia",
+        auth_provider="koryxa-identity",
+        role="manager",
+        permissions=frozenset(),
+    )
+    org = Organization(
+        id="org-123",
+        tenant_id="service-ia-owner",
+        name="Org Alpha",
+        slug="org-alpha",
+        created_by_user_id="owner-user",
+    )
+    session = AsyncMock()
+    session.scalar.return_value = None
+    session.scalars.return_value = MagicMock(all=MagicMock(return_value=[org]))
+
+    resolved = await get_current_organization(identity, session)
+
+    assert resolved.id == "org-123"
+    assert resolved.tenant_id == "service-ia-owner"
 
 
 @pytest.mark.asyncio

@@ -8,6 +8,7 @@ from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.types import SafeStrEnum
 from app.models.member import MemberRole
 
 
@@ -26,9 +27,9 @@ class OrganizationInvitation(Base):
         ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
     )
     email: Mapped[str] = mapped_column(String(320), nullable=False, index=True)
-    role: Mapped[MemberRole] = mapped_column(String(20), nullable=False)
+    role: Mapped[MemberRole] = mapped_column(SafeStrEnum(MemberRole, length=20), nullable=False)
     status: Mapped[InvitationStatus] = mapped_column(
-        String(20), default=InvitationStatus.PENDING, nullable=False
+        SafeStrEnum(InvitationStatus, length=20), default=InvitationStatus.PENDING, nullable=False
     )
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     invited_by_user_id: Mapped[str] = mapped_column(String(128), nullable=False)

@@ -79,6 +79,33 @@ async def get_current_organization(identity: IdentityDep, session: SessionDep) -
     )
 
     if organization is None:
+        # Invited users do not own the organization's tenant identifier. Resolve
+        # their sole active membership without accepting an arbitrary tenant.
+        memberships = list(
+            (
+                await session.scalars(
+                    select(Organization)
+                    .join(
+                        OrganizationMember,
+                        OrganizationMember.organization_id == Organization.id,
+                    )
+                    .where(
+                        OrganizationMember.user_id == identity.user_id,
+                        OrganizationMember.status == MemberStatus.ACTIVE,
+                        Organization.is_active.is_(True),
+                    )
+                    .limit(2)
+                )
+            ).all()
+        )
+        if len(memberships) == 1:
+            return memberships[0]
+        if len(memberships) > 1:
+            raise ApplicationError(
+                "organization_selection_required",
+                "Plusieurs organisations sont accessibles; un tenant explicite est requis",
+                409,
+            )
         raise ApplicationError(
             "organization_not_found", "Aucune organisation active pour ce tenant", 404
         )
