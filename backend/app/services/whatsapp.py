@@ -333,10 +333,10 @@ class WhatsAppService:
                     source=RecordSource.INTEGRATION,
                 ),
             )
-            ref = created.get("reference") or "Enregistrée"
-            amount = created.get("total_amount") or ""
-            currency = created.get("currency") or "XOF"
-            client_name = created.get("client_name") or "Client standard"
+            ref = created.get("reference") or (parsed.sale.reference if parsed.sale else "Enregistrée")
+            amount = parsed.sale.total_amount if parsed.sale else ""
+            currency = parsed.sale.currency if parsed.sale else "XOF"
+            client_name = (parsed.sale.client_name if parsed.sale and parsed.sale.client_name else "Comptoir")
             reply_text = (
                 f"✅ *Vente enregistrée avec succès !*\n\n"
                 f"• Réf : {ref}\n"
@@ -352,14 +352,13 @@ class WhatsAppService:
                 VoiceConfirmRequest(
                     intent=parsed.intent,
                     payload=parsed.expense.model_dump(),
-                    source=RecordSource.INTEGRATION,
                 ),
             )
-            ref = created.get("reference") or "Enregistrée"
-            amount = created.get("amount") or ""
-            currency = created.get("currency") or "XOF"
-            category = created.get("category") or "Charges d'exploitation"
-            desc = created.get("description") or "Dépense"
+            ref = created.get("reference") or (parsed.expense.reference if parsed.expense else "Enregistrée")
+            amount = parsed.expense.amount if parsed.expense else ""
+            currency = parsed.expense.currency if parsed.expense else "XOF"
+            category = parsed.expense.category if parsed.expense else "Charges d'exploitation"
+            desc = parsed.expense.beneficiary if parsed.expense else "Dépense"
             reply_text = (
                 f"📤 *Dépense enregistrée avec succès !*\n\n"
                 f"• Réf : {ref}\n"
