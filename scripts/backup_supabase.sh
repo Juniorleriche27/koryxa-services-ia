@@ -31,8 +31,12 @@ fi
 
 echo "[+] Démarrage de la sauvegarde Supabase vers ${BACKUP_FILE}..."
 
-# Export PostgreSQL avec compression gzip
-pg_dump --dbname="${DB_URL}" --format=plain --no-owner --no-acl | gzip -9 > "${BACKUP_FILE}"
+# Export PostgreSQL avec compression gzip (support natif ou conteneur postgres)
+if command -v pg_dump >/dev/null 2>&1; then
+  pg_dump --dbname="${DB_URL}" --format=plain --no-owner --no-acl | gzip -9 > "${BACKUP_FILE}"
+else
+  docker run --rm --network host -e DB_URL="${DB_URL}" postgres:17-alpine sh -c 'pg_dump --dbname="${DB_URL}" --format=plain --no-owner --no-acl' | gzip -9 > "${BACKUP_FILE}"
+fi
 
 # Calcul de l'empreinte SHA-256
 sha256sum "${BACKUP_FILE}" > "${CHECKSUM_FILE}"
