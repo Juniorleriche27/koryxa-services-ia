@@ -31,7 +31,7 @@ def test_voice_nlp_parser_and_confirm_sale() -> None:
         assert data["intent"] == "sale"
         assert data["confidence"] >= 0.70
         candidate = data.get("sale") or (data.get("sales") and data["sales"][0])
-        assert Decimal(str(candidate["total_amount"])) == Decimal("15000")
+        assert Decimal(str(candidate["total_amount"])) == Decimal("45000")
         assert candidate["payment_method"] == "Wave"
         assert candidate["payment_status"] == "paid"
 

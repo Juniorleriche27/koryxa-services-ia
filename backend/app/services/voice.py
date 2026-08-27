@@ -501,20 +501,20 @@ class VoiceService:
                 for item in payload:
                     data = SaleCreate.model_validate(item)
                     sale = await self.register_service.create_sale(
-                        s, org_id, user_id, data, source=RecordSource.VOICE
+                        s, org_id, user_id, data
                     )
                     created_sales.append(sale.id)
                 return {"type": "sales_batch", "count": len(created_sales), "ids": created_sales}
             else:
                 data = SaleCreate.model_validate(payload)
                 sale = await self.register_service.create_sale(
-                    s, org_id, user_id, data, source=RecordSource.VOICE
+                    s, org_id, user_id, data
                 )
                 return {"type": "sale", "id": sale.id, "reference": sale.reference, "item_label": sale.item_label}
         elif request.intent == VoiceIntent.EXPENSE:
             data = ExpenseCreate.model_validate(request.payload)
             expense = await self.register_service.create_expense(
-                s, org_id, user_id, data, source=RecordSource.VOICE
+                s, org_id, user_id, data
             )
             return {"type": "expense", "id": expense.id, "reference": expense.reference}
         elif request.intent == VoiceIntent.OFFER:
