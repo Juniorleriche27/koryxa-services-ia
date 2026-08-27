@@ -30,7 +30,7 @@ def test_invitation_acceptance_and_member_permissions() -> None:
         token = invitation.json()["token"]
 
         member_headers = {
-            "X-Tenant-ID": "tenant-member-a",
+            "X-Tenant-ID": "tenant-invite-a",
             "X-User-ID": "member-a",
             "X-User-Email": "member@example.com",
         }
