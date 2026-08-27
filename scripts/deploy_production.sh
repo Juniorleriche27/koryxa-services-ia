@@ -67,13 +67,14 @@ echo "Vérification Backend API Ready..."
 docker compose exec -T backend python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/v1/health/ready')"
 
 echo "Vérification API publique..."
-curl --fail --silent --show-error "${PUBLIC_API_URL%/}/health/live" >/dev/null
+public_api_url="${PUBLIC_API_URL:-https://api.service-ia.koryxa.fr/api/v1}"
+curl --fail --silent --show-error "${public_api_url%/}/health/live" >/dev/null
 
 echo ""
 echo "================================================================="
 echo "✅ DÉPLOIEMENT TERMINÉ AVEC SUCCÈS SUR LE SERVEUR !"
 echo "================================================================="
-echo "• Backend API : ${PUBLIC_API_URL}"
+echo "• Backend API : ${public_api_url}"
 echo "• Image : koryxa-services-ia-backend:${GIT_COMMIT}"
 echo "• Sauvegarde : ${backup_file}"
 echo "• N8N Workflows : backend/app/integrations/n8n_workflows/"
