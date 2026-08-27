@@ -112,7 +112,11 @@ def test_authorized_sender_vs_unauthorized_sender_execution() -> None:
             "text": "Vente de 5 climatiseurs à 250000 FCFA client M. Inconnu payé par Wave",
             "organization_id": org_id,
         }
-        res_unauth = client.post("/api/v1/integrations/whatsapp/webhook", json=unauth_msg)
+        res_unauth = client.post(
+            "/api/v1/integrations/whatsapp/webhook",
+            headers={"X-Koryxa-Proxy-Secret": "service-ia-development-only-proxy-secret"},
+            json=unauth_msg,
+        )
         assert res_unauth.status_code == 200
         unauth_data = res_unauth.json()
         assert unauth_data["status"] == "unauthorized_sender"
@@ -128,7 +132,11 @@ def test_authorized_sender_vs_unauthorized_sender_execution() -> None:
             "text": "Vente de 5 climatiseurs à 250000 FCFA client M. Legitime payé par Wave",
             "organization_id": org_id,
         }
-        res_auth = client.post("/api/v1/integrations/whatsapp/webhook", json=auth_msg)
+        res_auth = client.post(
+            "/api/v1/integrations/whatsapp/webhook",
+            headers={"X-Koryxa-Proxy-Secret": "service-ia-development-only-proxy-secret"},
+            json=auth_msg,
+        )
         assert res_auth.status_code == 200
         auth_data = res_auth.json()
         assert auth_data["status"] == "processed"
