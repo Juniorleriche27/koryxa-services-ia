@@ -13,7 +13,6 @@ from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware
 from app.core.security import SecurityHeadersMiddleware
 from app.db.base import Base
-from app.db.migrations import run_auto_migrations
 from app.db.session import dispose_engine, engine
 
 settings = get_settings()
@@ -23,10 +22,6 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    try:
-        await run_auto_migrations(engine)
-    except Exception as exc:
-        logger.error("auto_migrations_failed", error=str(exc))
     logger.info("service_started", environment=settings.environment)
     yield
     await dispose_engine()
