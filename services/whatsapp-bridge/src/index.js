@@ -166,7 +166,8 @@ export async function startSessionForOrg(orgId) {
       sess.starting = false;
       if (shouldReconnect) {
         sess.status = "connecting";
-        setTimeout(() => startSessionForOrg(validOrgId), 3000);
+        const delay = statusCode === 408 ? 8000 : 3000;
+        setTimeout(() => startSessionForOrg(validOrgId), delay);
       } else {
         sess.status = "disconnected";
         sess.qrDataUrl = null;
@@ -305,10 +306,34 @@ function autoRestoreSessions() {
 // -------------------------------------------------------------
 
 app.get("/health", (req, res) => {
+  let connectedCount = 0;
+  let scanningCount = 0;
+  let connectingCount = 0;
+  const sessionsDetail = {};
+
+  for (const [orgId, sess] of orgSessions.entries()) {
+    if (sess.status === "connected") connectedCount++;
+    else if (sess.status === "scanning") scanningCount++;
+    else if (sess.status === "connecting") connectingCount++;
+
+    sessionsDetail[orgId] = {
+      status: sess.status,
+      is_connected: sess.status === "connected",
+      phone: sess.connectedUser?.id ? "+" + sess.connectedUser.id.split(":")[0] : null,
+      user_name: sess.connectedUser?.name || null,
+      has_qr: Boolean(sess.qrDataUrl),
+    };
+  }
+
   res.json({
     status: "ok",
     service: "koryxa-whatsapp-bridge",
-    active_sessions: orgSessions.size,
+    process_alive: true,
+    total_managed_sessions: orgSessions.size,
+    connected_sessions: connectedCount,
+    scanning_sessions: scanningCount,
+    connecting_sessions: connectingCount,
+    sessions: sessionsDetail,
     timestamp: new Date().toISOString(),
   });
 });

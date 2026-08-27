@@ -215,3 +215,31 @@ def test_whatsapp_lid_sender_authorization() -> None:
 
         sales = client.get("/api/v1/registers/sales", headers=headers).json()
         assert sales["total"] == 1
+
+
+def test_whatsapp_session_alert_endpoint() -> None:
+    """Vérifie le traitement sans erreur de l'endpoint d'alerte de session."""
+    with TestClient(app) as client:
+        payload = {
+            "organization_id": "47160127-4827-4859-9085-c0e7bfaf34e0",
+            "event": "whatsapp_session_reconnecting",
+            "details": {"statusCode": 408, "reason": "QR timeout"},
+        }
+        # 1. Non authentifié -> 401
+        res_unauth = client.post(
+            "/api/v1/integrations/whatsapp/session-alert",
+            json=payload,
+        )
+        assert res_unauth.status_code == 401
+
+        # 2. Authentifié avec proxy secret -> 200
+        res = client.post(
+            "/api/v1/integrations/whatsapp/session-alert",
+            headers={"X-Koryxa-Proxy-Secret": "service-ia-development-only-proxy-secret"},
+            json=payload,
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "recorded"
+        assert data["alert_event"] == "whatsapp_session_reconnecting"
+

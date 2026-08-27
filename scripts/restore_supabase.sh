@@ -7,7 +7,7 @@ set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
   echo "Usage: $0 <backup_file.enc_or_gz> [TARGET_DATABASE_URL]"
-  echo "Exemple: $0 /var/backups/koryxa-supabase/koryxa_supabase_backup_20260827_120000.sql.gz.enc postgresql://...:5432/staging_db"
+  echo "Exemple: $0 /var/backups/koryxa-supabase/koryxa_supabase_backup_20260827_120000Z.sql.gz.enc postgresql://...:5432/staging_db"
   exit 1
 fi
 
@@ -21,15 +21,19 @@ fi
 
 CLEAN_TARGET_DB_URL=$(echo "${TARGET_DB_URL}" | sed -E 's/^postgresql\+[a-zA-Z0-9_]+:\/\//postgresql:\/\//')
 
-# 1. Vérification de l'empreinte SHA-256
+# 1. Vérification OBLIGATOIRE de l'empreinte SHA-256 (aucun bypass)
 CHECKSUM_FILE="${BACKUP_INPUT}.sha256"
-if [[ -f "${CHECKSUM_FILE}" ]]; then
-  echo "[+] Vérification de l'intégrité SHA-256..."
-  sha256sum -c "${CHECKSUM_FILE}" || { echo "[-] ERREUR : Checksum invalide, fichier corrompu !" >&2; exit 1; }
-  echo "[✓] Empreinte SHA-256 vérifiée avec succès !"
-else
-  echo "[!] Avertissement : Fichier de checksum ${CHECKSUM_FILE} non trouvé, validation de taille."
+if [[ ! -f "${CHECKSUM_FILE}" ]]; then
+  echo "[-] ERREUR CRITIQUE : Fichier de checksum obligatoire manquant (${CHECKSUM_FILE}). Restauration refusée." >&2
+  exit 1
 fi
+
+echo "[+] Vérification obligatoire de l'intégrité SHA-256..."
+sha256sum -c "${CHECKSUM_FILE}" || {
+  echo "[-] ERREUR CRITIQUE : Checksum invalide, fichier corrompu ou falsifié !" >&2
+  exit 1
+}
+echo "[✓] Empreinte SHA-256 vérifiée avec succès !"
 
 TEMP_SQL_FILE="/tmp/koryxa_restore_$(date +%s).sql"
 
@@ -41,19 +45,23 @@ trap cleanup EXIT
 echo "[+] Préparation du déchiffrement depuis ${BACKUP_INPUT}..."
 
 KEY_FILE="/opt/env/koryxa_backup_key.secret"
-if [[ -z "${BACKUP_ENCRYPTION_KEY:-}" ]]; then
+BACKUP_ENCRYPTION_KEY="${BACKUP_ENCRYPTION_KEY:-}"
+
+if [[ -z "${BACKUP_ENCRYPTION_KEY}" ]]; then
   if [[ -f "${KEY_FILE}" ]]; then
     BACKUP_ENCRYPTION_KEY=$(cat "${KEY_FILE}")
   elif [[ -f "/opt/env/koryxa-services-ia-backend.env" ]]; then
     # shellcheck disable=SC1091
     source "/opt/env/koryxa-services-ia-backend.env"
-    BACKUP_ENCRYPTION_KEY="${SERVICE_IA_ENCRYPTION_KEY:-koryxa-prod-backup-encryption-key-32chars}"
-  else
-    BACKUP_ENCRYPTION_KEY="koryxa-prod-backup-encryption-key-32chars"
+    BACKUP_ENCRYPTION_KEY="${SERVICE_IA_ENCRYPTION_KEY:-}"
   fi
 fi
 
 if [[ "${BACKUP_INPUT}" == *.enc ]]; then
+  if [[ -z "${BACKUP_ENCRYPTION_KEY}" || ${#BACKUP_ENCRYPTION_KEY} -lt 16 ]]; then
+    echo "[-] ERREUR CRITIQUE : Clé de déchiffrement absente ou invalide (min 16 caractères)." >&2
+    exit 1
+  fi
   echo "[+] Déchiffrement AES-256 et décompression gzip..."
   openssl enc -d -aes-256-cbc -pbkdf2 -in "${BACKUP_INPUT}" -pass pass:"${BACKUP_ENCRYPTION_KEY}" | gunzip > "${TEMP_SQL_FILE}"
 elif [[ "${BACKUP_INPUT}" == *.gz ]]; then

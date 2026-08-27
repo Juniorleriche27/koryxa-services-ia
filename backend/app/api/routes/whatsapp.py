@@ -261,8 +261,8 @@ async def report_whatsapp_session_alert(request: Request, s: SessionDep):
     logger.warning(
         "whatsapp_session_alert_received",
         organization_id=org_id,
-        event=event_type,
+        alert_event=event_type,
         details=details,
     )
-    return {"status": "recorded", "event": event_type, "organization_id": org_id}
+    return {"status": "recorded", "alert_event": event_type, "organization_id": org_id}
 
