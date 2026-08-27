@@ -29,13 +29,15 @@ if [[ -z "${DB_URL}" ]]; then
   exit 1
 fi
 
+CLEAN_DB_URL=$(echo "${DB_URL}" | sed -E 's/^postgresql\+[a-zA-Z0-9_]+:\/\//postgresql:\/\//')
+
 echo "[+] Démarrage de la sauvegarde Supabase vers ${BACKUP_FILE}..."
 
 # Export PostgreSQL avec compression gzip (support natif ou conteneur postgres)
 if command -v pg_dump >/dev/null 2>&1; then
-  pg_dump --dbname="${DB_URL}" --format=plain --no-owner --no-acl | gzip -9 > "${BACKUP_FILE}"
+  pg_dump --dbname="${CLEAN_DB_URL}" --format=plain --no-owner --no-acl | gzip -9 > "${BACKUP_FILE}"
 else
-  docker run --rm --network host -e DB_URL="${DB_URL}" postgres:17-alpine sh -c 'pg_dump --dbname="${DB_URL}" --format=plain --no-owner --no-acl' | gzip -9 > "${BACKUP_FILE}"
+  docker run --rm --network host -e CLEAN_DB_URL="${CLEAN_DB_URL}" postgres:17-alpine sh -c 'pg_dump --dbname="${CLEAN_DB_URL}" --format=plain --no-owner --no-acl' | gzip -9 > "${BACKUP_FILE}"
 fi
 
 # Calcul de l'empreinte SHA-256
