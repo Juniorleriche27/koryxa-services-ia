@@ -41,8 +41,9 @@ class VoiceService:
     def __init__(self, register_service: RegisterService | None = None) -> None:
         self.register_service = register_service or RegisterService()
 
-    def parse_transcript(self, request: VoiceParseRequest) -> VoiceParseResponse:
-        text = clean_speech_duplicates(request.transcript.strip())
+    def parse_transcript(self, request: VoiceParseRequest | str, default_currency: str = "XOF") -> VoiceParseResponse:
+        raw_text = request.transcript if isinstance(request, VoiceParseRequest) else str(request)
+        text = clean_speech_duplicates(raw_text.strip())
         lower = text.lower()
 
         # Determine Intent
@@ -57,11 +58,11 @@ class VoiceService:
             intent = VoiceIntent.OFFER
         else:
             # Default heuristics: if numbers and client/product mentioned, assume sale
-            if re.search(r"\\b\\d+[\\s\\d]*\\b", text):
+            if re.search(r"\b\d+[\s\d]*\b", text):
                 intent = VoiceIntent.SALE
 
         if intent == VoiceIntent.SALE:
-            return self._parse_sale(text)
+            return self._parse_sale(text, default_currency=default_currency)
         elif intent == VoiceIntent.EXPENSE:
             return self._parse_expense(text)
         elif intent == VoiceIntent.PROCEDURE:
