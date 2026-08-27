@@ -10,8 +10,6 @@ services:
       - ${SERVICE_IA_ENV_FILE:-/opt/env/koryxa-services-ia-backend.env}
     environment:
       SERVICE_IA_ENVIRONMENT: production
-      SERVICE_IA_PROXY_SECRET: ${SERVICE_IA_PROXY_SECRET:?SERVICE_IA_PROXY_SECRET is required}
-      SERVICE_IA_ENCRYPTION_KEY: ${SERVICE_IA_ENCRYPTION_KEY:?SERVICE_IA_ENCRYPTION_KEY is required}
       SERVICE_IA_CORS_ORIGINS: '["${FRONTEND_ORIGIN:-https://service-ia.koryxa.fr}"]'
       SERVICE_IA_TRUSTED_PROXY_SOURCES: '["koryxa-gateway","koryxa-admin","koryxa-services-ia"]'
       SERVICE_IA_KNOWLIA_BASE_URL: ${KNOWLIA_BASE_URL:-http://prod_knowlia:8080}
