@@ -251,8 +251,12 @@ class VoiceService:
             cleaned = cleaned[un_match.end():].strip()
         elif num_match:
             try:
-                quantity = Decimal(num_match.group(1))
-                cleaned = cleaned[num_match.end():].strip()
+                num_val = Decimal(num_match.group(1))
+                if num_val >= 100 and not re.search(r"(?i)\b(?:à|au\s+prix\s+de|pour)\s+\d+", text):
+                    quantity = Decimal("1")
+                else:
+                    quantity = num_val
+                    cleaned = cleaned[num_match.end():].strip()
             except Exception:
                 quantity = Decimal("1")
 
@@ -358,10 +362,13 @@ class VoiceService:
             extracted_entities={
                 "item_label": primary_sale.item_label,
                 "quantity": str(primary_sale.quantity),
+                "amount": str(primary_sale.total_amount),
                 "total_amount": str(primary_sale.total_amount),
                 "currency": primary_sale.currency,
+                "client": primary_sale.client_name or "Comptoir",
                 "client_name": primary_sale.client_name or "Comptoir",
                 "payment_method": primary_sale.payment_method or "Non spécifié",
+                "payment_status": primary_sale.payment_status.value if hasattr(primary_sale.payment_status, "value") else str(primary_sale.payment_status),
                 "sales_count": len(sales),
             },
             summary_message=summary,
