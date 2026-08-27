@@ -9,11 +9,12 @@ from app.core.errors import ApplicationError
 
 class SecretCipher:
     def __init__(self) -> None:
-        secret = get_settings().proxy_secret
-        if not secret and get_settings().environment != "production":
-            secret = "service-ia-development-only-secret"
+        settings = get_settings()
+        secret = settings.encryption_key or settings.proxy_secret
+        if not secret and settings.environment != "production":
+            secret = "service-ia-development-only-encryption-key"
         if not secret:
-            raise ApplicationError("encryption_unavailable", "Chiffrement indisponible", 503)
+            raise ApplicationError("encryption_unavailable", "Clé de chiffrement SERVICE_IA_ENCRYPTION_KEY indisponible", 503)
         self.fernet = Fernet(urlsafe_b64encode(sha256(secret.encode()).digest()))
 
     def encrypt(self, value: str | None) -> str | None:

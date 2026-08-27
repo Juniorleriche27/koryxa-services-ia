@@ -28,12 +28,18 @@ services:
       SERVICE_IA_ENVIRONMENT: production
       SERVICE_IA_DATABASE_URL: postgresql+asyncpg://service_ia:${POSTGRES_PASSWORD:-replace-with-a-strong-password}@postgres:5432/service_ia
       SERVICE_IA_PROXY_SECRET: ${SERVICE_IA_PROXY_SECRET:-secret_proxy_prod_koryxa_ia_2026}
+      SERVICE_IA_ENCRYPTION_KEY: ${SERVICE_IA_ENCRYPTION_KEY:-${SERVICE_IA_PROXY_SECRET:-secret_proxy_prod_koryxa_ia_2026}}
       SERVICE_IA_CORS_ORIGINS: '["${FRONTEND_ORIGIN:-https://service-ia.koryxa.fr}"]'
       SERVICE_IA_TRUSTED_PROXY_SOURCES: '["koryxa-gateway","koryxa-admin","koryxa-services-ia"]'
       SERVICE_IA_KNOWLIA_BASE_URL: ${KNOWLIA_BASE_URL:-http://prod_knowlia:8080}
       SERVICE_IA_FILE_STORAGE_PATH: /data/files
     volumes:
       - service_ia_files:/data/files
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
     depends_on:
       postgres:
         condition: service_healthy

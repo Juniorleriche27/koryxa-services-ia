@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
     require_koryxa_context: bool = True
     proxy_secret: str | None = Field(default=None, min_length=32)
+    encryption_key: str | None = Field(default=None, min_length=32)
     trusted_proxy_sources: list[str] = Field(
         default_factory=lambda: ["koryxa-gateway", "koryxa-admin", "koryxa-services-ia"]
     )
