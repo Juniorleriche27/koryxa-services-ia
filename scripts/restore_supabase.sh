@@ -46,13 +46,13 @@ fi
 
 echo "[+] Application des schémas et données sur la base cible..."
 if command -v psql >/dev/null 2>&1; then
-  psql "${CLEAN_TARGET_DB_URL}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL_FILE}"
+  psql "${CLEAN_TARGET_DB_URL}" -f "${TEMP_SQL_FILE}"
   echo "[+] Vérification post-restauration..."
   psql "${CLEAN_TARGET_DB_URL}" -c "SELECT count(*) AS total_orgs FROM organizations;"
   psql "${CLEAN_TARGET_DB_URL}" -c "SELECT count(*) AS total_sales FROM sales;"
   psql "${CLEAN_TARGET_DB_URL}" -c "SELECT count(*) AS total_expenses FROM expenses;"
 else
-  docker run --rm --network host -v "${TEMP_SQL_FILE}:/restore.sql:ro" -e CLEAN_TARGET_DB_URL="${CLEAN_TARGET_DB_URL}" postgres:17-alpine sh -c 'psql "${CLEAN_TARGET_DB_URL}" -v ON_ERROR_STOP=1 -f /restore.sql'
+  docker run --rm --network host -v "${TEMP_SQL_FILE}:/restore.sql:ro" -e CLEAN_TARGET_DB_URL="${CLEAN_TARGET_DB_URL}" postgres:17-alpine sh -c 'psql "${CLEAN_TARGET_DB_URL}" -f /restore.sql'
   echo "[+] Vérification post-restauration..."
   docker run --rm --network host -e CLEAN_TARGET_DB_URL="${CLEAN_TARGET_DB_URL}" postgres:17-alpine sh -c 'psql "${CLEAN_TARGET_DB_URL}" -c "SELECT count(*) AS total_orgs FROM organizations;" && psql "${CLEAN_TARGET_DB_URL}" -c "SELECT count(*) AS total_sales FROM sales;" && psql "${CLEAN_TARGET_DB_URL}" -c "SELECT count(*) AS total_expenses FROM expenses;"'
 fi
