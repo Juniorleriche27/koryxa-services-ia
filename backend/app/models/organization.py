@@ -32,6 +32,11 @@ class Organization(Base):
     longitude: Mapped[float | None] = mapped_column(nullable=True)
     geofence_radius_meters: Mapped[int] = mapped_column(default=50, nullable=False)
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    subscription_plan: Mapped[str] = mapped_column(String(40), default="trial", nullable=False)
+    subscription_status: Mapped[str] = mapped_column(String(40), default="trial", nullable=False)
+    subscription_period_months: Mapped[int] = mapped_column(default=3, nullable=False)
+    subscription_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    max_authorized_senders: Mapped[int] = mapped_column(default=3, nullable=False)
     created_by_user_id: Mapped[str] = mapped_column(String(128), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

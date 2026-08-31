@@ -4,6 +4,7 @@ from app.api.routes import (
     ai,
     attendance,
     automations,
+    billing,
     direct_uploads,
     health,
     identity,
@@ -41,3 +42,4 @@ api_router.include_router(knowlia.router, prefix="/knowlia", tags=["knowlia"])
 api_router.include_router(radar.router, prefix="/radar", tags=["radar"])
 
 api_router.include_router(workflow.router, prefix="/workflow", tags=["workflow"])
+api_router.include_router(billing.router, prefix="/billing", tags=["billing"])
