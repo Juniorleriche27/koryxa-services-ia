@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Building2,
@@ -16,6 +16,10 @@ import {
   Coins,
   History,
   Sparkles,
+  QrCode,
+  RefreshCw,
+  MessageSquare,
+  Smartphone,
 } from "lucide-react";
 import { compressOrganizationLogo } from "@/lib/images/compressOrganizationLogo";
 import { serviceIaFetch } from "@/lib/service-ia/api";
@@ -34,114 +38,63 @@ export type OnboardingOrganization = {
 
 const COUNTRIES_AND_CURRENCIES = [
   // --- Afrique de l'Ouest & Centrale (UEMOA / CEMAC / CEDEAO) ---
-  { country: "Togo", currency: "XOF", flag: "🇹🇬" },
-  { country: "Côte d'Ivoire", currency: "XOF", flag: "🇨🇮" },
-  { country: "Bénin", currency: "XOF", flag: "🇧🇯" },
-  { country: "Sénégal", currency: "XOF", flag: "🇸🇳" },
-  { country: "Burkina Faso", currency: "XOF", flag: "🇧🇫" },
-  { country: "Mali", currency: "XOF", flag: "🇲🇱" },
-  { country: "Niger", currency: "XOF", flag: "🇳🇪" },
-  { country: "Guinée-Bissau", currency: "XOF", flag: "🇬🇼" },
-  { country: "Cameroun", currency: "XAF", flag: "🇨🇲" },
-  { country: "Gabon", currency: "XAF", flag: "🇬🇦" },
-  { country: "Congo (Brazzaville)", currency: "XAF", flag: "🇨🇬" },
-  { country: "Congo (RDC)", currency: "CDF", flag: "🇨🇩" },
-  { country: "Tchad", currency: "XAF", flag: "🇹🇩" },
-  { country: "Centrafrique", currency: "XAF", flag: "🇨🇫" },
-  { country: "Guinée équatoriale", currency: "XAF", flag: "🇬🇶" },
-  { country: "Guinée (Conakry)", currency: "GNF", flag: "🇬🇳" },
-  { country: "Ghana", currency: "GHS", flag: "🇬🇭" },
-  { country: "Nigeria", currency: "NGN", flag: "🇳🇬" },
-  { country: "Liberia", currency: "LRD", flag: "🇱🇷" },
-  { country: "Sierra Leone", currency: "SLE", flag: "🇸🇱" },
-  { country: "Gambie", currency: "GMD", flag: "🇬🇲" },
-  { country: "Cap-Vert", currency: "CVE", flag: "🇨🇻" },
-  { country: "Mauritanie", currency: "MRU", flag: "🇲🇷" },
+  { country: "Togo", currency: "XOF", flag: "🇹🇬", dial: "+228" },
+  { country: "Côte d'Ivoire", currency: "XOF", flag: "🇨🇮", dial: "+225" },
+  { country: "Bénin", currency: "XOF", flag: "🇧🇯", dial: "+229" },
+  { country: "Sénégal", currency: "XOF", flag: "🇸🇳", dial: "+221" },
+  { country: "Burkina Faso", currency: "XOF", flag: "🇧🇫", dial: "+226" },
+  { country: "Mali", currency: "XOF", flag: "🇲🇱", dial: "+223" },
+  { country: "Niger", currency: "XOF", flag: "🇳🇪", dial: "+227" },
+  { country: "Guinée-Bissau", currency: "XOF", flag: "🇬🇼", dial: "+245" },
+  { country: "Cameroun", currency: "XAF", flag: "🇨🇲", dial: "+237" },
+  { country: "Gabon", currency: "XAF", flag: "🇬🇦", dial: "+241" },
+  { country: "Congo (Brazzaville)", currency: "XAF", flag: "🇨🇬", dial: "+242" },
+  { country: "Congo (RDC)", currency: "CDF", flag: "🇨🇩", dial: "+243" },
+  { country: "Tchad", currency: "XAF", flag: "🇹🇩", dial: "+235" },
+  { country: "Centrafrique", currency: "XAF", flag: "🇨🇫", dial: "+236" },
+  { country: "Guinée équatoriale", currency: "XAF", flag: "🇬🇶", dial: "+240" },
+  { country: "Guinée (Conakry)", currency: "GNF", flag: "🇬🇳", dial: "+224" },
+  { country: "Ghana", currency: "GHS", flag: "🇬🇭", dial: "+233" },
+  { country: "Nigeria", currency: "NGN", flag: "🇳🇬", dial: "+234" },
+  { country: "Liberia", currency: "LRD", flag: "🇱🇷", dial: "+231" },
+  { country: "Sierra Leone", currency: "SLE", flag: "🇸🇱", dial: "+232" },
+  { country: "Gambie", currency: "GMD", flag: "🇬🇲", dial: "+220" },
+  { country: "Cap-Vert", currency: "CVE", flag: "🇨🇻", dial: "+238" },
+  { country: "Mauritanie", currency: "MRU", flag: "🇲🇷", dial: "+222" },
 
   // --- Afrique du Nord ---
-  { country: "Maroc", currency: "MAD", flag: "🇲🇦" },
-  { country: "Algérie", currency: "DZD", flag: "🇩🇿" },
-  { country: "Tunisie", currency: "TND", flag: "🇹🇳" },
-  { country: "Égypte", currency: "EGP", flag: "🇪🇬" },
-  { country: "Libye", currency: "LYD", flag: "🇱🇾" },
+  { country: "Maroc", currency: "MAD", flag: "🇲🇦", dial: "+212" },
+  { country: "Algérie", currency: "DZD", flag: "🇩🇿", dial: "+213" },
+  { country: "Tunisie", currency: "TND", flag: "🇹🇳", dial: "+216" },
+  { country: "Égypte", currency: "EGP", flag: "🇪🇬", dial: "+20" },
+  { country: "Libye", currency: "LYD", flag: "🇱🇾", dial: "+218" },
 
   // --- Afrique de l'Est & Australe ---
-  { country: "Afrique du Sud", currency: "ZAR", flag: "🇿🇦" },
-  { country: "Kenya", currency: "KES", flag: "🇰🇪" },
-  { country: "Rwanda", currency: "RWF", flag: "🇷🇼" },
-  { country: "Burundi", currency: "BIF", flag: "🇧🇮" },
-  { country: "Tanzanie", currency: "TZS", flag: "🇹🇿" },
-  { country: "Ouganda", currency: "UGX", flag: "🇺🇬" },
-  { country: "Éthiopie", currency: "ETB", flag: "🇪🇹" },
-  { country: "Madagascar", currency: "MGA", flag: "🇲🇬" },
-  { country: "Maurice", currency: "MUR", flag: "🇲🇺" },
-  { country: "Comores", currency: "KMF", flag: "🇰🇲" },
-  { country: "Seychelles", currency: "SCR", flag: "🇸🇨" },
-  { country: "Djibouti", currency: "DJF", flag: "🇩🇯" },
-  { country: "Angola", currency: "AOA", flag: "🇦🇴" },
-  { country: "Mozambique", currency: "MZN", flag: "🇲🇿" },
-  { country: "Zambie", currency: "ZMW", flag: "🇿🇲" },
-  { country: "Zimbabwe", currency: "USD", flag: "🇿🇼" },
-  { country: "Namibie", currency: "NAD", flag: "🇳🇦" },
-  { country: "Botswana", currency: "BWP", flag: "🇧🇼" },
+  { country: "Afrique du Sud", currency: "ZAR", flag: "🇿🇦", dial: "+27" },
+  { country: "Kenya", currency: "KES", flag: "🇰🇪", dial: "+254" },
+  { country: "Rwanda", currency: "RWF", flag: "🇷🇼", dial: "+250" },
+  { country: "Burundi", currency: "BIF", flag: "🇧🇮", dial: "+257" },
+  { country: "Tanzanie", currency: "TZS", flag: "🇹🇿", dial: "+255" },
+  { country: "Ouganda", currency: "UGX", flag: "🇺🇬", dial: "+256" },
+  { country: "Éthiopie", currency: "ETB", flag: "🇪🇹", dial: "+251" },
+  { country: "Madagascar", currency: "MGA", flag: "🇲🇬", dial: "+261" },
+  { country: "Maurice", currency: "MUR", flag: "🇲🇺", dial: "+230" },
 
-  // --- Europe ---
-  { country: "France", currency: "EUR", flag: "🇫🇷" },
-  { country: "Belgique", currency: "EUR", flag: "🇧🇪" },
-  { country: "Suisse", currency: "CHF", flag: "🇨🇭" },
-  { country: "Luxembourg", currency: "EUR", flag: "🇱🇺" },
-  { country: "Allemagne", currency: "EUR", flag: "🇩🇪" },
-  { country: "Royaume-Uni", currency: "GBP", flag: "🇬🇧" },
-  { country: "Espagne", currency: "EUR", flag: "🇪🇸" },
-  { country: "Italie", currency: "EUR", flag: "🇮🇹" },
-  { country: "Portugal", currency: "EUR", flag: "🇵🇹" },
-  { country: "Pays-Bas", currency: "EUR", flag: "🇳🇱" },
-  { country: "Irlande", currency: "EUR", flag: "🇮🇪" },
-  { country: "Autriche", currency: "EUR", flag: "🇦🇹" },
-  { country: "Suède", currency: "SEK", flag: "🇸🇪" },
-  { country: "Norvège", currency: "NOK", flag: "🇳🇴" },
-  { country: "Danemark", currency: "DKK", flag: "🇩🇰" },
-  { country: "Finlande", currency: "EUR", flag: "🇫🇮" },
-  { country: "Pologne", currency: "PLN", flag: "🇵🇱" },
-  { country: "Roumanie", currency: "RON", flag: "🇷🇴" },
-  { country: "Grèce", currency: "EUR", flag: "🇬🇷" },
-  { country: "Turquie", currency: "TRY", flag: "🇹🇷" },
-  { country: "Russie", currency: "RUB", flag: "🇷🇺" },
-  { country: "Ukraine", currency: "UAH", flag: "🇺🇦" },
+  // --- Europe & International ---
+  { country: "France", currency: "EUR", flag: "🇫🇷", dial: "+33" },
+  { country: "Belgique", currency: "EUR", flag: "🇧🇪", dial: "+32" },
+  { country: "Suisse", currency: "CHF", flag: "🇨🇭", dial: "+41" },
+  { country: "Canada", currency: "CAD", flag: "🇨🇦", dial: "+1" },
+  { country: "États-Unis", currency: "USD", flag: "🇺🇸", dial: "+1" },
+];
 
-  // --- Amériques ---
-  { country: "États-Unis", currency: "USD", flag: "🇺🇸" },
-  { country: "Canada", currency: "CAD", flag: "🇨🇦" },
-  { country: "Brésil", currency: "BRL", flag: "🇧🇷" },
-  { country: "Haïti", currency: "HTG", flag: "🇭🇹" },
-  { country: "Mexique", currency: "MXN", flag: "🇲🇽" },
-  { country: "Colombie", currency: "COP", flag: "🇨🇴" },
-  { country: "Argentine", currency: "ARS", flag: "🇦🇷" },
-  { country: "Chili", currency: "CLP", flag: "🇨🇱" },
-  { country: "Pérou", currency: "PEN", flag: "🇵🇪" },
-  { country: "Guadeloupe / Martinique (Antilles)", currency: "EUR", flag: "🇬🇵" },
-  { country: "Guyane Française", currency: "EUR", flag: "🇬🇫" },
-  { country: "La Réunion / Mayotte", currency: "EUR", flag: "🇷🇪" },
-
-  // --- Moyen-Orient & Asie ---
-  { country: "Émirats Arabes Unis (Dubaï)", currency: "AED", flag: "🇦🇪" },
-  { country: "Arabie Saoudite", currency: "SAR", flag: "🇸🇦" },
-  { country: "Qatar", currency: "QAR", flag: "🇶🇦" },
-  { country: "Liban", currency: "USD", flag: "🇱🇧" },
-  { country: "Chine", currency: "CNY", flag: "🇨🇳" },
-  { country: "Inde", currency: "INR", flag: "🇮🇳" },
-  { country: "Japon", currency: "JPY", flag: "🇯🇵" },
-  { country: "Corée du Sud", currency: "KRW", flag: "🇰🇷" },
-  { country: "Singapour", currency: "SGD", flag: "🇸🇬" },
-  { country: "Indonésie", currency: "IDR", flag: "🇮🇩" },
-  { country: "Malaisie", currency: "MYR", flag: "🇲🇾" },
-  { country: "Thaïlande", currency: "THB", flag: "🇹🇭" },
-  { country: "Vietnam", currency: "VND", flag: "🇻🇳" },
-
-  // --- Océanie ---
-  { country: "Australie", currency: "AUD", flag: "🇦🇺" },
-  { country: "Nouvelle-Zélande", currency: "NZD", flag: "🇳🇿" },
-  { country: "Autre Pays (International)", currency: "USD", flag: "🌐" },
+const SECTORS = [
+  { value: "retail", label: "Commerce Général & Boutique", detail: "Vente au détail, supérette, bazar, prêt-à-porter" },
+  { value: "food_beverage", label: "Alimentation & Restauration", detail: "Restaurant, maquis, bar, boulangerie, traiteur" },
+  { value: "materials", label: "Quincaillerie & Matériaux", detail: "BTP, outillage, pièces auto, électricité, plomberie" },
+  { value: "services", label: "Prestations de Services", detail: "Cabinet, agence, consulting, salon, maintenance" },
+  { value: "health", label: "Santé, Beauté & Bien-être", detail: "Pharmacie, parapharmacie, cosmétique, clinique" },
+  { value: "agro", label: "Agriculture & Agroalimentaire", detail: "Production, transformation, élevage, distribution" },
 ];
 
 const GOALS = [
@@ -211,6 +164,13 @@ export function OrganizationOnboarding({
   const [cityAddress, setCityAddress] = useState("");
   const [goal, setGoal] = useState("sales");
 
+  // Step 4: Live WhatsApp Connection
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+  const [isWaConnected, setIsWaConnected] = useState(false);
+  const [connectedPhone, setConnectedPhone] = useState<string | null>(null);
+  const [savedOrg, setSavedOrg] = useState<OnboardingOrganization | null>(null);
+  const [pollingSession, setPollingSession] = useState(false);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -226,10 +186,14 @@ export function OrganizationOnboarding({
     const found = COUNTRIES_AND_CURRENCIES.find((c) => c.country === selectedCountry);
     if (found) {
       setPrimaryCurrency(found.currency);
+      if (!whatsappNumber || whatsappNumber.startsWith("+")) {
+        setWhatsappNumber(found.dial + " ");
+      }
     }
   };
 
-  const finish = async () => {
+  // Sauvegarde des données et passage à l'étape 4 (Connexion WhatsApp)
+  const saveAndProceedToWhatsApp = async () => {
     if (name.trim().length < 2) {
       setError("Veuillez renseigner le nom officiel de votre entreprise.");
       setStep(1);
@@ -271,16 +235,60 @@ export function OrganizationOnboarding({
         }),
       });
 
-      onComplete(updated);
-      window.dispatchEvent(new CustomEvent("koryxa:organization-updated", { detail: updated }));
-      window.dispatchEvent(new CustomEvent("koryxa:record-created"));
-      router.push(DESTINATIONS[goal] || "/espace");
+      setSavedOrg(updated);
+      setStep(4);
+      setPollingSession(true);
     } catch (cause: any) {
       const msg = cause?.message || "La configuration n'a pas pu être enregistrée. Veuillez réessayer.";
       setError(msg);
     } finally {
       setBusy(false);
     }
+  };
+
+  // Polling du QR Code et de l'état de connexion WhatsApp en étape 4
+  useEffect(() => {
+    if (step !== 4 || !pollingSession) return;
+
+    let timer: NodeJS.Timeout | null = null;
+
+    const checkQr = async () => {
+      try {
+        const res = await serviceIaFetch<{
+          status: string;
+          qr: string | null;
+          phone: string | null;
+          user_name: string | null;
+        }>("/integrations/whatsapp/session-qr");
+
+        if (res.status === "connected") {
+          setIsWaConnected(true);
+          setConnectedPhone(res.phone);
+        } else {
+          setIsWaConnected(false);
+          if (res.qr) {
+            setQrCodeDataUrl(res.qr);
+          }
+        }
+      } catch {
+        // En cas d'erreur de polling
+      }
+    };
+
+    checkQr();
+    timer = setInterval(checkQr, 3000);
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [step, pollingSession]);
+
+  const finishToApp = () => {
+    const finalOrg = savedOrg || organization;
+    onComplete(finalOrg);
+    window.dispatchEvent(new CustomEvent("koryxa:organization-updated", { detail: finalOrg }));
+    window.dispatchEvent(new CustomEvent("koryxa:record-created"));
+    router.push(DESTINATIONS[goal] || "/espace");
   };
 
   return (
@@ -292,13 +300,13 @@ export function OrganizationOnboarding({
             <BrandLogo className="onboarding-brand-logo" />
             <div>
               <strong>KORYXA</strong>
-              <small>Configuration Initiale de l'Entreprise</small>
+              <small>Configuration & Assistant IA</small>
             </div>
           </div>
           <div className="onboarding-progress">
-            <span>Étape {step} sur 3</span>
+            <span>Étape {step} sur 4</span>
             <div>
-              {[1, 2, 3].map((item) => (
+              {[1, 2, 3, 4].map((item) => (
                 <i key={item} className={item <= step ? "is-done" : ""} />
               ))}
             </div>
@@ -351,22 +359,22 @@ export function OrganizationOnboarding({
                 </label>
 
                 <label>
-                  Nom complet du Dirigeant / Gérant *
+                  Nom complet du Dirigeant *
                   <input
                     value={responsibleName}
                     onChange={(e) => setResponsibleName(e.target.value)}
-                    placeholder="Ex. Junior LERICHE"
+                    placeholder="Ex. Yayra Lamadokou"
                     maxLength={180}
                     required
                   />
                 </label>
 
                 <label>
-                  Fonction dans l'entreprise
+                  Fonction / Titre
                   <input
                     value={responsibleRole}
                     onChange={(e) => setResponsibleRole(e.target.value)}
-                    placeholder="Ex. Gérant, Directeur Général, Fondateur"
+                    placeholder="Ex. Gérant, Fondateur, Directrice"
                     maxLength={120}
                   />
                 </label>
@@ -375,165 +383,101 @@ export function OrganizationOnboarding({
           </div>
         )}
 
-        {/* STEP 2: Métier, Pays, Devise & Historique Financier */}
+        {/* STEP 2: Métier & Devise */}
         {step === 2 && (
           <div className="onboarding-body">
             <span className="onboarding-icon">
               <Globe2 size={26} />
             </span>
-            <p className="app-eyebrow">Étape 2 · Activité, Devise & Situation Financière</p>
-            <h1 id="onboarding-title">Votre secteur et vos chiffres de départ</h1>
+            <p className="app-eyebrow">Étape 2 · Secteur d'Activité & Devise</p>
+            <h1 id="onboarding-title">Personnalisons votre métier</h1>
             <p>
-              Précisez votre monnaie et renseignez votre réalité passée si votre entreprise est déjà en activité.
+              KORYXA adapte automatiquement le vocabulaire, les formulaires de vente et les alertes de stock à votre secteur.
             </p>
 
-            <div className="onboarding-form-grid">
-              <label className="is-wide">
-                Secteur / Catégorie d'Activité *
-                <select
-                  value={businessCategory}
-                  onChange={(e) => setBusinessCategory(e.target.value)}
-                  className="w-full mt-1.5 p-3 rounded-xl border border-border bg-background text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none"
-                >
-                  <option value="retail">🛍️ Commerce, Vente & Distribution (Boutique, Épicerie, Dépôt, Quincaillerie)</option>
-                  <option value="education">🎓 Écoles, Collèges, Lycées, Universités & Formation (Établissement scolaire, Institut)</option>
-                  <option value="services">💼 Prestation de Services, Agence & Conseil (Cabinet, Prestataire, Freelance)</option>
-                  <option value="hospitality">🍽️ Restauration, Bar, Café & Hôtellerie (Restaurant, Fast-food, Hôtel)</option>
-                  <option value="crafts">✂️ Artisanat, BTP & Production (Atelier, Couture, Menuiserie, Imprimerie)</option>
-                  <option value="association">🤝 Association, Fondation & ONG (Club, Organisation à but non lucratif)</option>
-                </select>
-              </label>
-
-              <label>
-                Pays d'implantation *
-                <select
-                  value={country}
-                  onChange={(e) => handleCountryChange(e.target.value)}
-                  className="w-full mt-1.5 p-3 rounded-xl border border-border bg-background text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none"
-                >
-                  {COUNTRIES_AND_CURRENCIES.map((c) => (
-                    <option key={c.country} value={c.country}>
-                      {c.flag} {c.country}
-                    </option>
+            <div className="space-y-4 text-left">
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-2">
+                  Sélectionnez votre Secteur d'Activité *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {SECTORS.map((s) => (
+                    <button
+                      key={s.value}
+                      type="button"
+                      className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                        businessCategory === s.value
+                          ? "bg-emerald-500/10 border-emerald-600 shadow-sm ring-1 ring-emerald-500"
+                          : "bg-card border-border hover:border-emerald-500/40 hover:bg-muted/30"
+                      }`}
+                      onClick={() => setBusinessCategory(s.value)}
+                    >
+                      <strong className="block text-xs font-bold text-foreground">{s.label}</strong>
+                      <small className="text-[11px] text-muted-foreground block mt-0.5 leading-tight">
+                        {s.detail}
+                      </small>
+                    </button>
                   ))}
-                </select>
-              </label>
-
-              <label>
-                Devise de Caisse & Factures *
-                <select
-                  value={primaryCurrency}
-                  onChange={(e) => setPrimaryCurrency(e.target.value)}
-                  className="w-full mt-1.5 p-3 rounded-xl border border-border bg-background text-sm font-semibold focus:ring-2 focus:ring-primary focus:outline-none"
-                >
-                  <option value="XOF">XOF - Franc CFA (UEMOA · Togo, Côte d'Ivoire, Bénin, Sénégal...)</option>
-                  <option value="XAF">XAF - Franc CFA (CEMAC · Cameroun, Gabon, Congo, Tchad...)</option>
-                  <option value="GNF">GNF - Franc Guinéen (Guinée)</option>
-                  <option value="CDF">CDF - Franc Congolais (RDC)</option>
-                  <option value="NGN">NGN - Naira (Nigeria)</option>
-                  <option value="GHS">GHS - Cedi (Ghana)</option>
-                  <option value="MAD">MAD - Dirham Marocain (Maroc)</option>
-                  <option value="DZD">DZD - Dinar Algérien (Algérie)</option>
-                  <option value="TND">TND - Dinar Tunisien (Tunisie)</option>
-                  <option value="EGP">EGP - Livre Égyptienne (Égypte)</option>
-                  <option value="ZAR">ZAR - Rand Sud-Africain (Afrique du Sud)</option>
-                  <option value="KES">KES - Shilling Kényan (Kenya)</option>
-                  <option value="RWF">RWF - Franc Rwandais (Rwanda)</option>
-                  <option value="MGA">MGA - Ariary Malgache (Madagascar)</option>
-                  <option value="EUR">EUR - Euro (€ · France, Europe)</option>
-                  <option value="USD">USD - Dollar US ($ · International)</option>
-                  <option value="CAD">CAD - Dollar Canadien (Canada)</option>
-                  <option value="GBP">GBP - Livre Sterling (Royaume-Uni)</option>
-                  <option value="CHF">CHF - Franc Suisse (Suisse)</option>
-                  <option value="AED">AED - Dirham des Émirats (Dubaï)</option>
-                  <option value="CNY">CNY - Yuan Renminbi (Chine)</option>
-                  <option value="BRL">BRL - Real Brésilien (Brésil)</option>
-                  <option value="HTG">HTG - Gourde Haïtienne (Haïti)</option>
-                </select>
-              </label>
-            </div>
-
-            {/* Existing Business vs New Business Box */}
-            <div className="mt-4 p-3.5 rounded-2xl bg-card border border-border text-left">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <History size={18} className="text-primary" />
-                  <span className="text-xs font-bold text-foreground">
-                    Avez-vous déjà un historique d'activité ou un fond de caisse existant ?
-                  </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsExistingBusiness(!isExistingBusiness)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
-                    isExistingBusiness
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {isExistingBusiness ? "Oui, entreprise existante" : "Non, nouvelle entreprise (0)"}
-                </button>
               </div>
 
-              {isExistingBusiness && (
-                <div className="mt-3 pt-3 border-t border-border/60 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="block text-xs font-semibold">
-                    Solde initial disponible en caisse ({primaryCurrency})
-                    <input
-                      type="text"
-                      value={initialCashBalance}
-                      onChange={(e) => setInitialCashBalance(e.target.value)}
-                      placeholder="Ex. 150 000"
-                      className="w-full mt-1 p-2.5 rounded-xl border border-border bg-background text-sm font-bold"
-                    />
-                    <small className="text-muted-foreground text-[10px]">
-                      Montant réellement présent dans votre tiroir-caisse
-                    </small>
-                  </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <label>
+                  Pays d'Implantation *
+                  <select
+                    value={country}
+                    onChange={(e) => handleCountryChange(e.target.value)}
+                    className="w-full mt-1 p-2.5 rounded-xl border border-border bg-background text-sm font-semibold"
+                  >
+                    {COUNTRIES_AND_CURRENCIES.map((c) => (
+                      <option key={c.country} value={c.country}>
+                        {c.flag} {c.country} ({c.currency})
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <label className="block text-xs font-semibold">
-                    Créances clients antérieures ({primaryCurrency})
-                    <input
-                      type="text"
-                      value={historicalReceivables}
-                      onChange={(e) => setHistoricalReceivables(e.target.value)}
-                      placeholder="Ex. 50 000"
-                      className="w-full mt-1 p-2.5 rounded-xl border border-border bg-background text-sm font-bold"
-                    />
-                    <small className="text-muted-foreground text-[10px]">
-                      Total des factures impayées en attente d'encaissement
-                    </small>
-                  </label>
-                </div>
-              )}
+                <label>
+                  Devise Principale
+                  <input
+                    value={primaryCurrency}
+                    disabled
+                    className="w-full mt-1 p-2.5 rounded-xl border border-border bg-muted text-sm font-bold opacity-80"
+                  />
+                  <small className="text-muted-foreground text-[10px]">
+                    Auto-configurée selon votre pays
+                  </small>
+                </label>
+              </div>
             </div>
           </div>
         )}
 
-        {/* STEP 3: WhatsApp, Adresse & Choix du Module de Départ */}
+        {/* STEP 3: WhatsApp & Choix du Module */}
         {step === 3 && (
           <div className="onboarding-body">
             <span className="onboarding-icon">
               <PhoneCall size={26} />
             </span>
-            <p className="app-eyebrow">Étape 3 · Contact & Caisse de Départ</p>
-            <h1 id="onboarding-title">Connectons vos opérations</h1>
+            <p className="app-eyebrow">Étape 3 · Numéro WhatsApp & Objectif</p>
+            <h1 id="onboarding-title">Préparez vos ventes WhatsApp</h1>
             <p>
-              Renseignez votre WhatsApp pour les ventes instantanées et choisissez votre premier écran.
+              Renseignez le numéro WhatsApp avec lequel vous ou vos vendeurs dicterez vos ventes.
             </p>
 
             <div className="space-y-4 text-left">
               <div className="onboarding-form-grid">
                 <label>
-                  Numéro WhatsApp Professionnel
+                  Numéro WhatsApp Professionnel *
                   <input
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.target.value)}
-                    placeholder="Ex. +228 90 00 00 00"
+                    placeholder="Ex. +228 90 12 34 56"
                     maxLength={25}
+                    required
                   />
-                  <small className="text-muted-foreground text-[11px]">
-                    Utilisé pour la dictée vocale et l'envoi des reçus clients
+                  <small className="text-emerald-700 font-medium text-[11px]">
+                    ✓ Ce numéro sera automatiquement autorisé pour envoyer des ventes vocales et texte.
                   </small>
                 </label>
 
@@ -550,7 +494,7 @@ export function OrganizationOnboarding({
 
               <div className="pt-2">
                 <label className="block text-xs font-bold text-foreground mb-2">
-                  Par quel module souhaitez-vous démarrer aujourd'hui ? *
+                  Par quel module souhaitez-vous démarrer ? *
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {GOALS.map((item) => {
@@ -598,6 +542,69 @@ export function OrganizationOnboarding({
           </div>
         )}
 
+        {/* STEP 4: Live WhatsApp QR Code Connection */}
+        {step === 4 && (
+          <div className="onboarding-body">
+            <span className="onboarding-icon">
+              <QrCode size={26} />
+            </span>
+            <p className="app-eyebrow">Étape 4 · Connexion WhatsApp en Direct</p>
+            <h1 id="onboarding-title">Activez votre Assistant IA</h1>
+            <p>
+              Scannez ce QR Code avec votre téléphone WhatsApp pour connecter instantanément votre assistant.
+            </p>
+
+            <div className="my-4 flex flex-col items-center justify-center">
+              {isWaConnected ? (
+                <div className="rounded-3xl border-2 border-emerald-500 bg-emerald-50/70 p-6 text-center shadow-md animate-in zoom-in-95 duration-200">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
+                    <CheckCircle2 size={36} />
+                  </div>
+                  <h3 className="mt-4 text-lg font-extrabold text-emerald-950">
+                    WhatsApp Connecté avec succès !
+                  </h3>
+                  <p className="mt-1.5 text-xs text-emerald-800">
+                    {connectedPhone ? `Connecté au ${connectedPhone}` : "Votre session est active et sécurisée."}
+                  </p>
+                  <div className="mt-4 rounded-2xl bg-white/80 p-3.5 text-xs text-slate-700 font-medium border border-emerald-200">
+                    🎉 Votre assistant IA KORYXA est prêt ! Vous pouvez lui envoyer des notes vocales ou messages : <em>"Vente de 3 articles à 15000"</em>.
+                  </div>
+                </div>
+              ) : qrCodeDataUrl ? (
+                <div className="flex flex-col items-center">
+                  <div className="rounded-3xl border-4 border-emerald-500 bg-white p-3.5 shadow-xl">
+                    <img
+                      src={qrCodeDataUrl}
+                      alt="QR Code WhatsApp"
+                      className="h-60 w-60 object-contain rounded-2xl"
+                    />
+                  </div>
+                  <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-emerald-700 animate-pulse">
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>En attente de scan sur votre téléphone...</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex h-60 w-60 flex-col items-center justify-center rounded-3xl border border-border bg-muted/40 p-6 text-center">
+                  <RefreshCw size={28} className="animate-spin text-emerald-600" />
+                  <span className="mt-3 text-xs font-bold text-foreground">
+                    Génération du QR Code sécurisé...
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-2xl bg-muted/50 p-4 text-xs text-muted-foreground text-left space-y-1">
+              <strong className="block text-foreground font-bold">Comment connecter ?</strong>
+              <ol className="list-decimal pl-4 space-y-0.5">
+                <li>Ouvrez WhatsApp sur votre smartphone.</li>
+                <li>Allez dans <strong>Appareils connectés</strong> &gt; <strong>Connecter un appareil</strong>.</li>
+                <li>Pointez votre appareil photo vers le QR code ci-dessus.</li>
+              </ol>
+            </div>
+          </div>
+        )}
+
         {/* Error Notification */}
         {error && (
           <div className="mx-6 mt-3 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-bold text-center">
@@ -607,7 +614,7 @@ export function OrganizationOnboarding({
 
         {/* Footer Actions */}
         <footer className="onboarding-actions">
-          {step > 1 ? (
+          {step > 1 && step < 4 ? (
             <button
               type="button"
               className="app-button app-button-secondary"
@@ -637,19 +644,37 @@ export function OrganizationOnboarding({
               <span>Continuer</span>
               <ArrowRight size={16} />
             </button>
-          ) : (
+          ) : step === 3 ? (
             <button
               type="button"
               className="app-button app-button-primary"
-              onClick={() => void finish()}
+              onClick={() => void saveAndProceedToWhatsApp()}
               disabled={busy || name.trim().length < 2}
             >
-              <span>{busy ? "Finalisation en cours…" : "🚀 Valider & Accéder à mon Espace"}</span>
+              <span>{busy ? "Enregistrement en cours…" : "Continuer vers la connexion WhatsApp"}</span>
+              <ArrowRight size={16} />
             </button>
+          ) : (
+            <div className="flex w-full items-center justify-between gap-3">
+              <button
+                type="button"
+                className="text-xs font-bold text-muted-foreground hover:text-foreground transition underline"
+                onClick={finishToApp}
+              >
+                Passer cette étape & connecter plus tard
+              </button>
+              <button
+                type="button"
+                className="app-button app-button-primary"
+                onClick={finishToApp}
+              >
+                <span>{isWaConnected ? "🚀 Accéder à mon Cockpit" : "Continuer vers mon Espace"}</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
           )}
         </footer>
       </section>
     </div>
   );
 }
-

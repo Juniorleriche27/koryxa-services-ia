@@ -85,14 +85,22 @@ def test_owner_can_complete_organization_onboarding() -> None:
             json={
                 "name": "Atelier Lumière",
                 "sector": "Architecture",
-                "country": "France",
+                "country": "Togo",
                 "responsible_name": "Aminata Diallo",
                 "responsible_role": "Gérante",
-                "primary_goal": "documents",
+                "primary_goal": "sales",
+                "whatsapp_number": "+22890123456",
             },
         )
-    assert response.status_code == 200
-    assert response.json()["name"] == "Atelier Lumière"
-    assert response.json()["responsible_name"] == "Aminata Diallo"
-    assert response.json()["primary_goal"] == "documents"
-    assert response.json()["onboarding_completed_at"] is not None
+        assert response.status_code == 200
+        assert response.json()["name"] == "Atelier Lumière"
+        assert response.json()["responsible_name"] == "Aminata Diallo"
+        assert response.json()["onboarding_completed_at"] is not None
+
+        # Verify that the WhatsApp number is now automatically in authorized senders
+        senders_resp = client.get("/api/v1/integrations/whatsapp/authorized-numbers", headers=OWNER_HEADERS)
+        assert senders_resp.status_code == 200
+        senders = senders_resp.json()["items"]
+        assert len(senders) >= 1
+        assert any(s["phone_number"] == "+22890123456" for s in senders)
+

@@ -160,6 +160,29 @@ class OrganizationService:
             )
             session.add(rec_sale)
 
+        # Enregistrement automatique du numéro WhatsApp du dirigeant comme expéditeur autorisé
+        if data.whatsapp_number and data.whatsapp_number.strip():
+            from app.models.integrations import WhatsAppAuthorizedSender
+            from app.services.whatsapp import normalize_e164
+
+            phone_norm = normalize_e164(data.whatsapp_number)
+            if phone_norm and len(phone_norm) >= 7:
+                existing_sender = await session.scalar(
+                    select(WhatsAppAuthorizedSender).where(
+                        WhatsAppAuthorizedSender.organization_id == organization.id,
+                        WhatsAppAuthorizedSender.phone_number == phone_norm,
+                    )
+                )
+                if not existing_sender:
+                    new_sender = WhatsAppAuthorizedSender(
+                        organization_id=organization.id,
+                        phone_number=phone_norm,
+                        label=f"Numéro principal ({data.responsible_name.strip() if data.responsible_name else 'Dirigeant'})",
+                        is_active=True,
+                        created_by_user_id=organization.created_by_user_id,
+                    )
+                    session.add(new_sender)
+
         await session.commit()
         await session.refresh(organization)
         return organization
