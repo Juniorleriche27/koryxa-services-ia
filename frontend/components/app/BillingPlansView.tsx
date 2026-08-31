@@ -10,14 +10,16 @@ import {
   Smartphone,
   ArrowRight,
   Clock,
-  AlertTriangle,
   RefreshCw,
-  ExternalLink,
   Lock,
-  ChevronRight,
+  Star,
+  Layers,
+  Receipt,
+  Headphones,
+  Check,
+  Building,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
-import { StatusPill } from "./Ui";
 
 interface PlanOffer {
   code: string;
@@ -46,34 +48,100 @@ interface BillingStatusData {
   available_plans: PlanOffer[];
 }
 
+const DEFAULT_PLANS: PlanOffer[] = [
+  {
+    code: "pack_starter_3m",
+    name: "Starter Solo",
+    plan: "starter",
+    period_months: 3,
+    amount_minor: 19900,
+    currency: "XOF",
+    display_price: "19 900 FCFA",
+    is_launch_deal: true,
+    original_price: "29 700 FCFA",
+    max_senders: 1,
+    features: [
+      "1 Numéro WhatsApp connecté (Gérant)",
+      "Dictée vocale & texte illimitée (Français & expressions locales)",
+      "Reçus WhatsApp automatiques clients (PDF & texte)",
+      "Bilan de caisse quotidien chaque soir à 21h sur WhatsApp",
+      "Sauvegardes quotidiennes chiffrées AES-256",
+    ],
+  },
+  {
+    code: "pack_business_3m",
+    name: "Business Multi-Vendeurs",
+    plan: "business",
+    period_months: 3,
+    amount_minor: 39900,
+    currency: "XOF",
+    display_price: "39 900 FCFA",
+    is_launch_deal: true,
+    original_price: "59 700 FCFA",
+    max_senders: 3,
+    features: [
+      "Jusqu'à 3 Numéros WhatsApp (Gérant + 2 Vendeurs)",
+      "Tout ce qui est inclus dans Starter",
+      "Gestion des stocks en direct & alertes de rupture WhatsApp",
+      "Suivi des créances & relances clients en 1-clic",
+      "Export comptable complet Excel / PDF certifié",
+      "Support prioritaire direct sur WhatsApp 7j/7",
+    ],
+  },
+  {
+    code: "pack_starter_1m",
+    name: "Starter Mensuel",
+    plan: "starter",
+    period_months: 1,
+    amount_minor: 9900,
+    currency: "XOF",
+    display_price: "9 900 FCFA / mois",
+    is_launch_deal: false,
+    max_senders: 1,
+    features: [
+      "1 Numéro WhatsApp connecté",
+      "Dictée vocale & caisse illimitée",
+      "Reçus WhatsApp & bilans de fin de journée",
+    ],
+  },
+  {
+    code: "pack_business_1m",
+    name: "Business Mensuel",
+    plan: "business",
+    period_months: 1,
+    amount_minor: 19900,
+    currency: "XOF",
+    display_price: "19 900 FCFA / mois",
+    is_launch_deal: false,
+    max_senders: 3,
+    features: [
+      "Jusqu'à 3 Numéros WhatsApp",
+      "Stocks, créances & alertes",
+      "Export comptable & Support prioritaire",
+    ],
+  },
+];
+
 export function BillingPlansView() {
-  const [data, setData] = useState<BillingStatusData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedPlanCode, setSelectedPlanCode] = useState<string>("pack_business_3m");
+  const [billingData, setBillingData] = useState<BillingStatusData | null>(null);
+  const [billingCycle, setBillingCycle] = useState<"3months" | "monthly">("3months");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
-  const [provider, setProvider] = useState<string>("leekpay");
-  const [processing, setProcessing] = useState(false);
+  const [processingCode, setProcessingCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStatus = async () => {
-    try {
-      setLoading(true);
-      const res = await serviceIaFetch<BillingStatusData>("/billing/status");
-      setData(res);
-    } catch (e: any) {
-      setError("Impossible de charger les informations d'abonnement.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchStatus();
+    serviceIaFetch<BillingStatusData>("/billing/status")
+      .then((res) => {
+        if (res && res.subscription_plan) setBillingData(res);
+      })
+      .catch(() => {
+        // Fallback gracieux sans bloquer l'UI
+      });
   }, []);
 
   const handleCheckout = async (planCode: string) => {
     try {
-      setProcessing(true);
+      setProcessingCode(planCode);
       setError(null);
       const res = await serviceIaFetch<{
         checkout_url: string;
@@ -83,7 +151,7 @@ export function BillingPlansView() {
         method: "POST",
         body: JSON.stringify({
           product_code: planCode,
-          provider: provider,
+          provider: "leekpay",
           customer_phone: phoneNumber.trim() || undefined,
         }),
       });
@@ -92,203 +160,277 @@ export function BillingPlansView() {
         window.location.href = res.checkout_url;
       }
     } catch (e: any) {
-      setError(e.message || "Erreur lors de l'initialisation du paiement KORYXA Payment.");
+      setError(e.message || "Impossible d'initialiser le paiement pour le moment. Veuillez réessayer.");
     } finally {
-      setProcessing(false);
+      setProcessingCode(null);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-emerald-600" />
-      </div>
-    );
-  }
+  const isTrial = billingData?.is_trial ?? true;
+  const isBusinessActive = billingData?.subscription_plan === "business";
+  const daysLeft = billingData?.days_remaining ?? 14;
 
-  const selectedPlan = data?.available_plans.find((p) => p.code === selectedPlanCode) || data?.available_plans[0];
+  const starterPlan = billingCycle === "3months" ? DEFAULT_PLANS[0] : DEFAULT_PLANS[2];
+  const businessPlan = billingCycle === "3months" ? DEFAULT_PLANS[1] : DEFAULT_PLANS[3];
 
   return (
-    <div className="space-y-8">
-      {/* Current Subscription Status Header Card */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
+    <div className="space-y-10 max-w-6xl mx-auto pb-16">
+      {/* 1. LUXURY STATUS BANNER */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-linear-to-br from-slate-950 via-slate-900 to-emerald-950 p-7 text-white shadow-2xl">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="space-y-2">
             <div className="flex items-center gap-2.5">
-              <h2 className="text-xl font-bold text-slate-950">Statut de votre Formule</h2>
-              {data?.is_trial ? (
-                <span className="rounded-full bg-amber-100 px-3 py-0.5 text-xs font-bold text-amber-800">
-                  🎁 Période d'Essai (14j)
-                </span>
-              ) : data?.is_active ? (
-                <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-xs font-bold text-emerald-800">
-                  🟢 Formule Active ({data?.subscription_plan.toUpperCase()})
-                </span>
-              ) : (
-                <span className="rounded-full bg-red-100 px-3 py-0.5 text-xs font-bold text-red-800">
-                  🔴 Expiré / Suspendu
-                </span>
-              )}
+              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-mono font-extrabold uppercase tracking-widest text-emerald-400">
+                Abonnement KORYXA Service IA
+              </span>
             </div>
-            <p className="text-xs text-slate-500">
-              {data?.days_remaining !== null && data?.days_remaining !== undefined ? (
-                data.days_remaining > 0 ? (
-                  <span>Il vous reste <strong>{data.days_remaining} jours</strong> d'utilisation sur cette période.</span>
-                ) : (
-                  <span className="text-red-600 font-semibold">Votre période d'essai est arrivée à échéance. Souscrivez ci-dessous pour continuer.</span>
-                )
-              ) : (
-                <span>Aucune date limite définie.</span>
-              )}
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+              {isTrial ? "Période d'Essai Active · 14 Jours" : `Formule ${billingData?.subscription_plan.toUpperCase()}`}
+            </h2>
+            <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+              {isTrial
+                ? `Il vous reste environ ${daysLeft} jours d'essai complet sans engagement. Choisissez une formule ci-dessous pour continuer sans interruption.`
+                : `Votre abonnement est actif. Tous vos services et la flotte WhatsApp sont opérationnels.`}
             </p>
           </div>
 
-          <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 border border-slate-200/80">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
-              <Smartphone size={20} />
+          <div className="flex items-center gap-3 rounded-2xl bg-white/5 p-4 backdrop-blur-md border border-white/10 shrink-0">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br from-emerald-400 to-teal-600 text-slate-950 font-black shadow-lg shadow-emerald-500/20">
+              <Smartphone size={22} />
             </div>
             <div>
-              <div className="text-xs font-bold text-slate-900">
-                {data?.active_senders_count} / {data?.max_authorized_senders} Numéros WhatsApp
+              <div className="text-xs font-mono font-bold text-slate-400 uppercase">Capacité Flotte</div>
+              <div className="text-sm font-black text-white">
+                {billingData?.active_senders_count ?? 1} / {billingData?.max_authorized_senders ?? (isBusinessActive ? 3 : 1)} WhatsApp
               </div>
-              <div className="text-[11px] text-slate-500">
-                {data?.max_authorized_senders === 1 ? "Formule Solo (Gérant)" : "Formule Multi-Vendeurs"}
+              <div className="text-[11px] text-emerald-400 font-semibold">
+                {billingData?.max_authorized_senders === 1 ? "1 Gérant connecté" : "Multi-Vendeurs actif"}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Special Launch Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-emerald-800 via-teal-900 to-slate-900 p-6 text-white shadow-lg">
-        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1 max-w-xl">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-bold text-emerald-300 backdrop-blur-xs">
-              <Sparkles size={14} />
-              Offre Spéciale de Lancement · 3 Mois (-33 %)
+      {/* 2. BILLING CYCLE TOGGLE (3 MOIS vs MENSUEL) */}
+      <div className="flex flex-col items-center justify-center space-y-3">
+        <div className="inline-flex items-center gap-1 rounded-2xl bg-slate-100 p-1.5 border border-slate-200 shadow-inner">
+          <button
+            type="button"
+            onClick={() => setBillingCycle("3months")}
+            className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition-all cursor-pointer ${
+              billingCycle === "3months"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30 scale-105"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Sparkles size={14} className="fill-current" />
+            <span>Pack Lancement 3 Mois</span>
+            <span className="rounded-full bg-amber-400 text-slate-950 px-2 py-0.5 text-[10px] font-black uppercase">
+              -33 %
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setBillingCycle("monthly")}
+            className={`rounded-xl px-5 py-2.5 text-xs font-extrabold transition-all cursor-pointer ${
+              billingCycle === "monthly"
+                ? "bg-slate-900 text-white shadow-md scale-105"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Facturation Mensuelle
+          </button>
+        </div>
+        <p className="text-[11px] text-slate-500 font-medium">
+          {billingCycle === "3months"
+            ? "⭐ Économisez 33% et assurez la gestion de votre commerce pour toute la saison"
+            : "Renouvellement automatique chaque mois par Mobile Money"}
+        </p>
+      </div>
+
+      {/* ERROR BANNER */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700 text-center shadow-xs">
+          {error}
+        </div>
+      )}
+
+      {/* 3. LUXURY PRICING CARDS */}
+      <div className="grid gap-8 lg:grid-cols-2">
+        {/* CARD 1: STARTER SOLO */}
+        <div className="relative flex flex-col justify-between rounded-3xl border-2 border-slate-200 bg-white p-8 shadow-lg transition hover:border-slate-300 hover:shadow-xl">
+          <div>
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-slate-700">
+                  Formule Solo
+                </span>
+                <h3 className="text-2xl font-black text-slate-950 mt-2">{starterPlan.name}</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Parfait pour commerçant indépendant, boutique 1 gérant et prestataires.
+                </p>
+              </div>
             </div>
-            <h3 className="text-xl font-extrabold tracking-tight sm:text-2xl">
-              Payez 3 mois d'un coup et gagnez toute la saison sereinement
-            </h3>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Encaissable instantanément par <strong>Wave, Orange Money, MTN MoMo et Moov</strong> via notre passerelle officielle KORYXA Payment.
-            </p>
+
+            <div className="mt-6 flex items-baseline gap-2">
+              <span className="text-4xl font-black text-slate-950">{starterPlan.display_price}</span>
+              {starterPlan.original_price && (
+                <span className="text-sm font-bold text-slate-400 line-through">
+                  {starterPlan.original_price}
+                </span>
+              )}
+            </div>
+            {billingCycle === "3months" && (
+              <div className="text-[11px] font-bold text-emerald-700 mt-1">
+                Soit l'équivalent de ~6 600 FCFA / mois
+              </div>
+            )}
+
+            <div className="my-6 h-px bg-slate-100" />
+
+            <div className="space-y-3">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                Inclus dans votre offre :
+              </span>
+              <ul className="space-y-3 text-xs text-slate-700 font-medium">
+                {starterPlan.features.map((f, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckCircle2 size={16} className="shrink-0 text-emerald-600 mt-0.5" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          <div className="shrink-0">
+          <div className="mt-8 pt-6 border-t border-slate-100">
             <button
-              onClick={() => handleCheckout("pack_business_3m")}
-              disabled={processing}
-              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400 px-5 py-3.5 text-sm font-extrabold text-slate-950 shadow-md transition hover:bg-emerald-300 hover:scale-105 active:scale-95 cursor-pointer"
+              type="button"
+              onClick={() => handleCheckout(starterPlan.code)}
+              disabled={processingCode === starterPlan.code}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-slate-900 py-4 text-xs font-black text-white shadow-md hover:bg-slate-800 transition active:scale-98 cursor-pointer"
             >
-              <Zap size={18} className="fill-current" />
-              <span>{processing ? "Redirection…" : "Prendre le Pack 3 Mois"}</span>
+              <span>
+                {processingCode === starterPlan.code
+                  ? "Connexion KORYXA Payment…"
+                  : `Souscrire à ${starterPlan.display_price}`}
+              </span>
+              <ArrowRight size={15} />
+            </button>
+          </div>
+        </div>
+
+        {/* CARD 2: BUSINESS (BEST SELLER) */}
+        <div className="relative flex flex-col justify-between rounded-3xl border-2 border-emerald-500 bg-gradient-to-b from-white via-emerald-50/20 to-white p-8 shadow-2xl ring-4 ring-emerald-500/10">
+          <div className="absolute -top-3.5 right-8 rounded-full bg-linear-to-r from-emerald-600 to-teal-600 px-4 py-1 text-[11px] font-black uppercase tracking-wider text-white shadow-md flex items-center gap-1.5">
+            <Star size={12} className="fill-current" />
+            Recommandé · Best Seller
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-emerald-800">
+                  Formule PME & Équipe
+                </span>
+                <h3 className="text-2xl font-black text-slate-950 mt-2">{businessPlan.name}</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Idéal pour quincailleries, magasins avec vendeurs, grossistes et dépôts.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-baseline gap-2">
+              <span className="text-4xl font-black text-slate-950">{businessPlan.display_price}</span>
+              {businessPlan.original_price && (
+                <span className="text-sm font-bold text-slate-400 line-through">
+                  {businessPlan.original_price}
+                </span>
+              )}
+            </div>
+            {billingCycle === "3months" && (
+              <div className="text-[11px] font-bold text-emerald-700 mt-1">
+                Soit l'équivalent de ~13 300 FCFA / mois
+              </div>
+            )}
+
+            <div className="my-6 h-px bg-emerald-100/80" />
+
+            <div className="space-y-3">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-900">
+                Tout le pack Starter PLUS :
+              </span>
+              <ul className="space-y-3 text-xs text-slate-800 font-medium">
+                {businessPlan.features.map((f, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white mt-0.5">
+                      <Check size={11} strokeWidth={3} />
+                    </div>
+                    <span className={i === 0 ? "font-bold text-emerald-950" : ""}>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-emerald-100">
+            <button
+              type="button"
+              onClick={() => handleCheckout(businessPlan.code)}
+              disabled={processingCode === businessPlan.code}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-emerald-600 via-emerald-500 to-teal-600 py-4 text-xs font-black text-white shadow-xl shadow-emerald-600/30 hover:brightness-110 transition active:scale-98 cursor-pointer"
+            >
+              <Zap size={16} className="fill-current" />
+              <span>
+                {processingCode === businessPlan.code
+                  ? "Connexion KORYXA Payment…"
+                  : `Souscrire au Pack Business (${businessPlan.display_price})`}
+              </span>
+              <ArrowRight size={15} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Plans Selection Grid */}
-      <div>
-        <div className="mb-4">
-          <h3 className="text-lg font-bold text-slate-950">Choisissez votre Formule</h3>
-          <p className="text-xs text-slate-500">Toutes nos formules incluent la dictée vocale WhatsApp illimitée et les sauvegardes chiffrées.</p>
+      {/* 4. PAYMENT METHODS & ZERO TRUST SECURITY */}
+      <div className="rounded-3xl border border-slate-200/80 bg-white p-7 shadow-xs space-y-4 text-center">
+        <div className="text-xs font-black uppercase tracking-widest text-slate-400">
+          Moyens de Paiement Acceptés en 1 Clic
         </div>
-
-        {error && (
-          <div className="mb-6 rounded-2xl bg-red-50 p-4 border border-red-200 text-xs font-bold text-red-700 flex items-center gap-2">
-            <AlertTriangle size={16} />
-            <span>{error}</span>
+        
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="flex items-center gap-2 rounded-2xl bg-sky-50 px-4 py-2 border border-sky-200/70 shadow-xs">
+            <span className="h-3 w-3 rounded-full bg-sky-500" />
+            <strong className="text-xs font-black text-sky-900">Wave CI & Sénégal</strong>
           </div>
-        )}
-
-        <div className="grid gap-6 md:grid-cols-2">
-          {data?.available_plans.map((p) => {
-            const isSelected = selectedPlanCode === p.code;
-            const isBusiness = p.plan === "business";
-
-            return (
-              <div
-                key={p.code}
-                className={`relative flex flex-col justify-between rounded-3xl border-2 p-6 transition-all ${
-                  isSelected
-                    ? "border-emerald-600 bg-white shadow-xl ring-2 ring-emerald-500/20"
-                    : "border-slate-200 bg-white/70 hover:border-emerald-300 hover:bg-white"
-                }`}
-              >
-                {p.is_launch_deal && (
-                  <div className="absolute -top-3 right-6 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-white shadow-sm">
-                    Pack 3 Mois Éco
-                  </div>
-                )}
-
-                <div>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="text-lg font-extrabold text-slate-950">{p.name}</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {p.max_senders === 1 ? "Idéal pour commerçant indépendant" : "Pour magasin avec 2 à 3 vendeurs"}
-                      </p>
-                    </div>
-                    {isBusiness && (
-                      <span className="rounded-xl bg-amber-100 p-1.5 text-amber-700">
-                        <Sparkles size={18} />
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-slate-950">{p.display_price}</span>
-                    {p.original_price && (
-                      <span className="text-sm font-semibold text-slate-400 line-through">
-                        {p.original_price}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="my-6 h-px bg-slate-100" />
-
-                  <ul className="space-y-3 text-xs text-slate-700">
-                    {p.features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2.5">
-                        <CheckCircle2 size={16} className="shrink-0 text-emerald-600 mt-0.5" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="mt-8 pt-4 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => handleCheckout(p.code)}
-                    disabled={processing}
-                    className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold transition cursor-pointer ${
-                      isBusiness
-                        ? "bg-emerald-600 text-white shadow-md hover:bg-emerald-700"
-                        : "bg-slate-900 text-white hover:bg-slate-800"
-                    }`}
-                  >
-                    <span>{processing ? "Connexion KORYXA Payment…" : `Souscrire à ${p.display_price}`}</span>
-                    <ArrowRight size={14} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          <div className="flex items-center gap-2 rounded-2xl bg-orange-50 px-4 py-2 border border-orange-200/70 shadow-xs">
+            <span className="h-3 w-3 rounded-full bg-orange-500" />
+            <strong className="text-xs font-black text-orange-900">Orange Money</strong>
+          </div>
+          <div className="flex items-center gap-2 rounded-2xl bg-yellow-50 px-4 py-2 border border-yellow-200/70 shadow-xs">
+            <span className="h-3 w-3 rounded-full bg-yellow-500" />
+            <strong className="text-xs font-black text-yellow-900">MTN MoMo</strong>
+          </div>
+          <div className="flex items-center gap-2 rounded-2xl bg-blue-50 px-4 py-2 border border-blue-200/70 shadow-xs">
+            <span className="h-3 w-3 rounded-full bg-blue-600" />
+            <strong className="text-xs font-black text-blue-900">Moov Money</strong>
+          </div>
+          <div className="flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-2 border border-slate-200 shadow-xs">
+            <CreditCard size={14} className="text-slate-700" />
+            <strong className="text-xs font-black text-slate-800">Cartes Bancaires</strong>
+          </div>
         </div>
-      </div>
 
-      {/* Security & Mobile Money Guarantee */}
-      <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 text-center text-xs text-slate-600 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-slate-800 font-semibold">
-          <ShieldCheck size={18} className="text-emerald-600" />
-          <span>Paiement sécurisé par KORYXA Payment (Wave, Orange, MTN, Moov)</span>
-        </div>
-        <div className="flex items-center gap-4 text-slate-500 text-[11px]">
-          <span>✓ Activation instantanée</span>
-          <span>✓ Reçu WhatsApp automatique</span>
-          <span>✓ Zéro frais caché</span>
+        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-center gap-6 text-[11px] text-slate-500 font-semibold">
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck size={14} className="text-emerald-600" /> Passerelle Officielle KORYXA Payment
+          </span>
+          <span>✓ Activation immédiate sans délai</span>
+          <span>✓ Facture & Reçu certifié WhatsApp</span>
+          <span>✓ Zéro engagement · Annulable à tout moment</span>
         </div>
       </div>
     </div>
