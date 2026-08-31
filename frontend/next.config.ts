@@ -1,4 +1,4 @@
-﻿// next.config.ts
+// next.config.ts
 import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
 
@@ -23,7 +23,7 @@ type NextConfigWithTurbopack = NextConfig & {
 };
 
 const nextConfig: NextConfigWithTurbopack = {
-  output: "standalone",
+  output: process.env.DOCKER_BUILD ? "standalone" : undefined,
   reactStrictMode: true,
   poweredByHeader: false,
 
