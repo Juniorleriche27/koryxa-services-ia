@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from datetime import UTC, datetime, timedelta
+from hmac import compare_digest
 from typing import Any
 
 import httpx
@@ -260,41 +261,73 @@ class BillingService:
 
     def verify_webhook_auth(self, auth_header: str | None, secret_header: str | None) -> bool:
         if not self.webhook_secret:
-            # Si aucun secret de webhook n'est configuré en dev/test, autoriser avec log d'avertissement
-            logger.warning("webhook_secret_not_configured_skipping_auth")
-            return True
+            logger.error("webhook_secret_not_configured_rejecting_request")
+            return False
 
         expected_secret = self.webhook_secret.get_secret_value()
-        if secret_header and secret_header.strip() == expected_secret:
+        if secret_header and compare_digest(secret_header.strip(), expected_secret):
             return True
-        if auth_header and auth_header.strip() == f"Bearer {expected_secret}":
+        if auth_header and compare_digest(auth_header.strip(), f"Bearer {expected_secret}"):
             return True
         return False
+
+    async def _verify_payment_with_gateway(self, payment_id: str) -> bool:
+        if not self.project_key:
+            return False
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    f"{self.koryxa_payment_url}/v1/client/payments/{payment_id}",
+                    headers={
+                        "X-Project-Code": self.project_code,
+                        "X-Project-Key": self.project_key.get_secret_value(),
+                    },
+                )
+            if response.status_code != 200:
+                logger.error(
+                    "payment_reconciliation_failed",
+                    payment_id=payment_id,
+                    status=response.status_code,
+                )
+                return False
+            payment_status = str(response.json().get("payment_status", "")).lower()
+            return payment_status in {"successful", "succeeded", "completed", "paid"}
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.error(
+                "payment_reconciliation_unavailable", payment_id=payment_id, error=str(exc)
+            )
+            return False
 
     async def handle_payment_webhook(
         self, session: AsyncSession, payload: BillingWebhookPayload
     ) -> dict[str, Any]:
-        logger.info("received_koryxa_payment_webhook", payload=payload.model_dump())
+        logger.info(
+            "received_koryxa_payment_webhook",
+            payment_id=payload.payment_id,
+            idempotency_key=payload.idempotency_key,
+            status=payload.status,
+        )
 
         # 1. Résolution de la transaction
         tx: BillingTransaction | None = None
         if payload.idempotency_key:
             tx = await session.scalar(
-                select(BillingTransaction).where(
-                    BillingTransaction.idempotency_key == payload.idempotency_key
-                )
+                select(BillingTransaction)
+                .where(BillingTransaction.idempotency_key == payload.idempotency_key)
+                .with_for_update()
             )
         if not tx and payload.payment_id:
             tx = await session.scalar(
-                select(BillingTransaction).where(
-                    BillingTransaction.koryxa_payment_id == payload.payment_id
-                )
+                select(BillingTransaction)
+                .where(BillingTransaction.koryxa_payment_id == payload.payment_id)
+                .with_for_update()
             )
 
-        org_id = tx.organization_id if tx else payload.customer_id
-        if not org_id:
-            logger.warning("webhook_rejected_no_organization", payload=payload.model_dump())
-            return {"status": "ignored", "reason": "no_organization_resolved"}
+        if not tx:
+            logger.warning("webhook_rejected_unknown_transaction", payment_id=payload.payment_id)
+            return {"status": "rejected", "reason": "unknown_transaction"}
+
+        org_id = tx.organization_id
 
         org = await session.get(Organization, org_id)
         if not org:
@@ -315,24 +348,32 @@ class BillingService:
                 }
 
             # 3. Vérification Montant et Devise
-            plan_code = payload.product_code or (tx.product_code if tx else "pack_business_3m")
+            payment_id = payload.payment_id or tx.koryxa_payment_id
+            if not payment_id or not await self._verify_payment_with_gateway(payment_id):
+                logger.error("webhook_payment_not_confirmed", payment_id=payment_id)
+                return {"status": "rejected", "reason": "payment_not_confirmed"}
+
+            plan_code = tx.product_code
             plan_offer = self.get_plan_by_code(plan_code)
             if not plan_offer:
                 logger.error("webhook_unknown_plan_code", plan_code=plan_code)
                 return {"status": "ignored", "reason": "unknown_plan_code"}
 
-            if payload.amount_minor is not None and payload.amount_minor < plan_offer.amount_minor:
+            if payload.product_code and payload.product_code != tx.product_code:
+                return {"status": "rejected", "reason": "product_mismatch"}
+
+            if payload.amount_minor is not None and payload.amount_minor != tx.amount_minor:
                 logger.error(
                     "webhook_amount_mismatch",
-                    expected=plan_offer.amount_minor,
+                    expected=tx.amount_minor,
                     received=payload.amount_minor,
                 )
                 return {"status": "rejected", "reason": "amount_mismatch"}
 
-            if payload.currency and payload.currency.upper() != plan_offer.currency.upper():
+            if payload.currency and payload.currency.upper() != tx.currency.upper():
                 logger.error(
                     "webhook_currency_mismatch",
-                    expected=plan_offer.currency,
+                    expected=tx.currency,
                     received=payload.currency,
                 )
                 return {"status": "rejected", "reason": "currency_mismatch"}
@@ -356,27 +397,9 @@ class BillingService:
             org.subscription_ends_at = new_expiration
             org.max_authorized_senders = max(org.max_authorized_senders or 1, max_senders)
 
-            if tx:
-                tx.status = "completed"
-                tx.completed_at = now
-                if payload.payment_id:
-                    tx.koryxa_payment_id = payload.payment_id
-            else:
-                tx = BillingTransaction(
-                    organization_id=org.id,
-                    product_code=plan_offer.code,
-                    plan=plan_offer.plan,
-                    period_months=plan_offer.period_months,
-                    amount_minor=plan_offer.amount_minor,
-                    currency=plan_offer.currency,
-                    provider=payload.provider or "leekpay",
-                    status="completed",
-                    koryxa_payment_id=payload.payment_id,
-                    idempotency_key=payload.idempotency_key
-                    or f"direct-{payload.payment_id or org.id}-{int(time.time())}",
-                    completed_at=now,
-                )
-                session.add(tx)
+            tx.status = "completed"
+            tx.completed_at = now
+            tx.koryxa_payment_id = payment_id
 
             await session.commit()
             logger.info(

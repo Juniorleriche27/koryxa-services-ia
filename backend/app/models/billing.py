@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -13,7 +13,9 @@ class BillingTransaction(Base):
     __tablename__ = "billing_transactions"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    organization_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
     product_code: Mapped[str] = mapped_column(String(80), nullable=False)
     plan: Mapped[str] = mapped_column(String(40), nullable=False)
     period_months: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
@@ -21,7 +23,9 @@ class BillingTransaction(Base):
     currency: Mapped[str] = mapped_column(String(10), default="XOF", nullable=False)
     provider: Mapped[str] = mapped_column(String(40), default="leekpay", nullable=False)
     status: Mapped[str] = mapped_column(String(40), default="pending", index=True, nullable=False)
-    koryxa_payment_id: Mapped[str | None] = mapped_column(String(120), index=True, nullable=True)
+    koryxa_payment_id: Mapped[str | None] = mapped_column(
+        String(120), unique=True, index=True, nullable=True
+    )
     checkout_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     idempotency_key: Mapped[str] = mapped_column(
         String(120), unique=True, index=True, nullable=False

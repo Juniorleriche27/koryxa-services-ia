@@ -44,6 +44,12 @@ class Settings(BaseSettings):
             raise ValueError("SERVICE_IA_PROXY_SECRET est requis en production")
         if self.environment == "production" and not self.encryption_key:
             raise ValueError("SERVICE_IA_ENCRYPTION_KEY est requis en production")
+        if self.environment == "production" and not self.koryxa_pay_project_code:
+            raise ValueError("SERVICE_IA_KORYXA_PAY_PROJECT_CODE est requis en production")
+        if self.environment == "production" and not self.koryxa_pay_project_key:
+            raise ValueError("SERVICE_IA_KORYXA_PAY_PROJECT_KEY est requis en production")
+        if self.environment == "production" and not self.koryxa_pay_webhook_secret:
+            raise ValueError("SERVICE_IA_KORYXA_PAY_WEBHOOK_SECRET est requis en production")
         if self.environment == "production" and self.encryption_key == self.proxy_secret:
             raise ValueError(
                 "SERVICE_IA_ENCRYPTION_KEY doit être distinct de SERVICE_IA_PROXY_SECRET"

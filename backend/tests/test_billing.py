@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -7,9 +9,41 @@ OWNER_HEADERS = {
     "X-User-ID": "owner-billing",
     "X-Koryxa-Source": "koryxa-admin",
 }
+WEBHOOK_HEADERS = {"X-Koryxa-Webhook-Secret": "test-webhook-secret"}
 
 
-def test_billing_status_and_checkout_flow() -> None:
+class GatewayResponse:
+    def __init__(self, status_code: int, payload: dict[str, Any]) -> None:
+        self.status_code = status_code
+        self._payload = payload
+        self.text = "gateway response"
+
+    def json(self) -> dict[str, Any]:
+        return self._payload
+
+
+class GatewayClient:
+    async def __aenter__(self) -> "GatewayClient":
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        return None
+
+    async def post(self, *_: object, **__: object) -> GatewayResponse:
+        return GatewayResponse(
+            201,
+            {
+                "checkout_url": "https://pay.koryxa.fr/payment/kpx_pay_123456789",
+                "payment_id": "kpx_pay_123456789",
+            },
+        )
+
+    async def get(self, *_: object, **__: object) -> GatewayResponse:
+        return GatewayResponse(200, {"payment_status": "succeeded"})
+
+
+def test_billing_status_and_checkout_flow(monkeypatch: Any) -> None:
+    monkeypatch.setattr("app.services.billing.httpx.AsyncClient", lambda **_: GatewayClient())
     with TestClient(app) as client:
         # 1. Create org
         org_resp = client.post(
@@ -29,10 +63,26 @@ def test_billing_status_and_checkout_flow() -> None:
         assert data["is_trial"] is True
         assert len(data["available_plans"]) >= 2
 
-        # 3. Simulate KORYXA Payment webhook callback for Pack Business 3 Mois
-        idempotency_key = f"sub-{org_id}-pack_business_3m-12345"
+        # 3. Create a real local pending transaction through the checkout endpoint.
+        checkout_resp = client.post(
+            "/api/v1/billing/checkout",
+            headers=OWNER_HEADERS,
+            json={"product_code": "pack_business_3m", "provider": "leekpay"},
+        )
+        assert checkout_resp.status_code == 200
+        idempotency_key = checkout_resp.json()["idempotency_key"]
+
+        # The webhook is always closed when its authentication header is absent.
+        unauthenticated = client.post(
+            "/api/v1/billing/webhook",
+            json={"status": "successful", "payment_id": "kpx_pay_123456789"},
+        )
+        assert unauthenticated.status_code == 401
+
+        # 4. Simulate an authenticated KORYXA Payment callback.
         webhook_resp = client.post(
             "/api/v1/billing/webhook",
+            headers=WEBHOOK_HEADERS,
             json={
                 "event": "payment.successful",
                 "status": "successful",
@@ -61,6 +111,7 @@ def test_billing_status_and_checkout_flow() -> None:
         # 5. Security & Idempotency: Replay of same webhook should NOT re-apply
         replay_resp = client.post(
             "/api/v1/billing/webhook",
+            headers=WEBHOOK_HEADERS,
             json={
                 "event": "payment.successful",
                 "status": "successful",
@@ -76,9 +127,10 @@ def test_billing_status_and_checkout_flow() -> None:
         replay_data = replay_resp.json()
         assert replay_data["status"] == "already_processed"
 
-        # 6. Security: Underpaid webhook must be rejected
+        # 6. Security: an unknown payment can never create a subscription.
         underpaid_resp = client.post(
             "/api/v1/billing/webhook",
+            headers=WEBHOOK_HEADERS,
             json={
                 "event": "payment.successful",
                 "status": "successful",
@@ -92,3 +144,4 @@ def test_billing_status_and_checkout_flow() -> None:
         )
         assert underpaid_resp.status_code == 200
         assert underpaid_resp.json()["status"] == "rejected"
+        assert underpaid_resp.json()["reason"] == "unknown_transaction"
