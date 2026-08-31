@@ -71,7 +71,10 @@ def test_ai_copilot_chat_with_financial_context() -> None:
             headers=owner,
             json={
                 "messages": [
-                    {"role": "user", "content": "Quelle est la situation de ma trésorerie et mes impayés ?"}
+                    {
+                        "role": "user",
+                        "content": "Quelle est la situation de ma trésorerie et mes impayés ?",
+                    }
                 ],
                 "include_financial_context": True,
             },

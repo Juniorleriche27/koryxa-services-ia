@@ -10,6 +10,7 @@ class PaymentStatus(StrEnum):
     PARTIAL = "partial"
     PAID = "paid"
 
+
 class SafeStrEnum(TypeDecorator):
     impl = String(40)
     cache_ok = True
@@ -34,13 +35,16 @@ class SafeStrEnum(TypeDecorator):
                 return member
         return list(self.enum_cls)[0]
 
+
 class Base(DeclarativeBase):
     pass
+
 
 class Sale(Base):
     __tablename__ = "test_sales_safe"
     id: Mapped[int] = mapped_column(primary_key=True)
     payment_status: Mapped[PaymentStatus] = mapped_column(SafeStrEnum(PaymentStatus))
+
 
 engine = sa.create_engine("sqlite:///:memory:")
 Base.metadata.create_all(engine)
@@ -51,7 +55,9 @@ with Session(engine) as session:
     # 2. Insert LOWERCASE 'paid'
     session.execute(sa.text("INSERT INTO test_sales_safe (id, payment_status) VALUES (2, 'paid')"))
     # 3. Insert 'UNPAID'
-    session.execute(sa.text("INSERT INTO test_sales_safe (id, payment_status) VALUES (3, 'UNPAID')"))
+    session.execute(
+        sa.text("INSERT INTO test_sales_safe (id, payment_status) VALUES (3, 'UNPAID')")
+    )
     session.commit()
 
     s1 = session.get(Sale, 1)

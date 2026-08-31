@@ -81,7 +81,9 @@ def test_daily_digest_and_unpaid_reminders_automations() -> None:
         assert reminders_resp.status_code == 200
         reminders_data = reminders_resp.json()
         assert reminders_data["total_unpaid_count"] >= 1
-        found_unpaid = any(r["reference"] == "VTE-TEST-UNPAID-01" for r in reminders_data["reminders"])
+        found_unpaid = any(
+            r["reference"] == "VTE-TEST-UNPAID-01" for r in reminders_data["reminders"]
+        )
         assert found_unpaid is True
 
         # 6. Test POST /api/v1/automations/unpaid-reminders/send

@@ -88,9 +88,7 @@ async def list_attendance_history(
         )
         or 0
     )
-    items = list(
-        (await s.scalars(stmt.offset((page - 1) * page_size).limit(page_size))).all()
-    )
+    items = list((await s.scalars(stmt.offset((page - 1) * page_size).limit(page_size))).all())
     return Page(
         items=[AttendanceRecordRead.model_validate(x) for x in items],
         total=total,

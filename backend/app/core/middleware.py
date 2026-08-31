@@ -58,7 +58,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # Endpoints exemptés
-        if path.startswith("/api/v1/health") or path.startswith("/docs") or path.startswith("/openapi"):
+        if (
+            path.startswith("/api/v1/health")
+            or path.startswith("/docs")
+            or path.startswith("/openapi")
+        ):
             return await call_next(request)
 
         # Clé de limitation : Tenant ID si présent, sinon IP client

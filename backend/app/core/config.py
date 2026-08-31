@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     knowlia_base_url: str = "http://localhost:8093"
     knowlia_timeout_seconds: float = 60.0
     knowlia_shared_storage_path: str | None = None
+    koryxa_pay_api_url: str = "https://api-pay.koryxa.fr"
+    koryxa_pay_project_code: str | None = None
+    koryxa_pay_project_key: SecretStr | None = None
+    koryxa_pay_webhook_secret: SecretStr | None = None
 
     @model_validator(mode="after")
     def validate_production_security(self) -> "Settings":
@@ -47,7 +51,9 @@ class Settings(BaseSettings):
         if self.environment == "production" and not self.cors_origins:
             raise ValueError("SERVICE_IA_CORS_ORIGINS doit contenir au moins une origine")
         if "*" in self.cors_origins:
-            raise ValueError("Une origine CORS explicite est requise lorsque les cookies sont autorisés")
+            raise ValueError(
+                "Une origine CORS explicite est requise lorsque les cookies sont autorisés"
+            )
         return self
 
 

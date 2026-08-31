@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from uuid import uuid4
 
 import httpx
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -104,10 +102,12 @@ PLANS_CATALOG: list[BillingPlanOffer] = [
 class BillingService:
     def __init__(self) -> None:
         self.settings = get_settings()
-        self.koryxa_payment_url = getattr(self.settings, "koryxa_payment_api_url", "https://api-pay.koryxa.fr").rstrip("/")
-        self.project_code = getattr(self.settings, "koryxa_payment_project_code", "service-ia")
-        self.project_key = getattr(self.settings, "koryxa_payment_project_key", None)
-        self.default_project_key = "kpx_EtwntovG9ydBbEyA4wwD5tBpSKMLZHIrgOXbeFrK1jk"
+        self.koryxa_payment_url = (
+            self.settings.koryxa_pay_api_url or "https://api-pay.koryxa.fr"
+        ).rstrip("/")
+        self.project_code = self.settings.koryxa_pay_project_code or "service-ia"
+        self.project_key = self.settings.koryxa_pay_project_key
+        self.webhook_secret = self.settings.koryxa_pay_webhook_secret
 
     def get_plan_by_code(self, product_code: str) -> BillingPlanOffer | None:
         return next((p for p in PLANS_CATALOG if p.code == product_code), None)
@@ -115,12 +115,15 @@ class BillingService:
     async def get_organization_billing_status(
         self, session: AsyncSession, organization: Organization
     ) -> BillingStatusResponse:
-        active_senders = await session.scalar(
-            select(func.count(WhatsAppAuthorizedSender.id)).where(
-                WhatsAppAuthorizedSender.organization_id == organization.id,
-                WhatsAppAuthorizedSender.is_active.is_(True),
+        active_senders = (
+            await session.scalar(
+                select(func.count(WhatsAppAuthorizedSender.id)).where(
+                    WhatsAppAuthorizedSender.organization_id == organization.id,
+                    WhatsAppAuthorizedSender.is_active.is_(True),
+                )
             )
-        ) or 0
+            or 0
+        )
 
         days_remaining: int | None = None
         if organization.subscription_ends_at:
@@ -130,8 +133,12 @@ class BillingService:
             delta = ends_at - datetime.now(UTC)
             days_remaining = max(0, delta.days)
 
-        is_trial = organization.subscription_plan == "trial" or organization.subscription_status == "trial"
-        is_active = organization.subscription_status == "active" or (is_trial and (days_remaining is None or days_remaining > 0))
+        is_trial = (
+            organization.subscription_plan == "trial" or organization.subscription_status == "trial"
+        )
+        is_active = organization.subscription_status == "active" or (
+            is_trial and (days_remaining is None or days_remaining > 0)
+        )
 
         return BillingStatusResponse(
             subscription_plan=organization.subscription_plan or "trial",
@@ -154,10 +161,20 @@ class BillingService:
     ) -> BillingCheckoutResponse:
         plan_offer = self.get_plan_by_code(request.product_code)
         if not plan_offer:
-            raise ApplicationError("invalid_plan", f"Offre introuvable pour le code {request.product_code}", 400)
+            raise ApplicationError(
+                "invalid_plan", f"Offre introuvable pour le code {request.product_code}", 400
+            )
+
+        if not self.project_key:
+            logger.warning("koryxa_pay_project_key_missing_in_environment")
+            raise ApplicationError(
+                "payment_gateway_unconfigured",
+                "La passerelle de paiement KORYXA n'est pas encore configurée sur ce serveur (clé SERVICE_IA_KORYXA_PAY_PROJECT_KEY manquante).",
+                503,
+            )
 
         idempotency_key = f"sub-{organization.id}-{plan_offer.code}-{int(time.time())}"
-        resolved_key = self.project_key.get_secret_value() if self.project_key else self.default_project_key
+        resolved_key = self.project_key.get_secret_value()
 
         payload = {
             "product_code": plan_offer.code,
@@ -168,8 +185,8 @@ class BillingService:
             "idempotency_key": idempotency_key,
         }
 
-        checkout_url = f"https://pay.koryxa.fr/checkout/{idempotency_key}"
-        payment_id = None
+        checkout_url: str | None = None
+        payment_id: str | None = None
 
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
@@ -184,12 +201,35 @@ class BillingService:
                 )
                 if resp.status_code in (200, 201):
                     data = resp.json()
-                    checkout_url = data.get("checkout_url") or data.get("url") or checkout_url
+                    checkout_url = data.get("checkout_url") or data.get("url")
                     payment_id = data.get("payment_id") or data.get("id")
                 else:
-                    logger.warning("koryxa_payment_checkout_fallback", status_code=resp.status_code, body=resp.text)
+                    logger.error(
+                        "koryxa_payment_checkout_failed",
+                        status_code=resp.status_code,
+                        response_body=resp.text,
+                    )
+                    raise ApplicationError(
+                        "payment_initiation_failed",
+                        f"KORYXA Payment a refusé l'initialisation (HTTP {resp.status_code}): {resp.text}",
+                        502,
+                    )
+        except ApplicationError:
+            raise
         except Exception as exc:
-            logger.error("koryxa_payment_checkout_error", error=str(exc))
+            logger.error("koryxa_payment_checkout_network_error", error=str(exc))
+            raise ApplicationError(
+                "payment_gateway_unavailable",
+                f"Impossible de joindre le serveur KORYXA Payment: {exc}",
+                503,
+            ) from exc
+
+        if not checkout_url:
+            raise ApplicationError(
+                "invalid_checkout_response",
+                "L'orchestrateur de paiement n'a pas retourné d'URL de paiement valide.",
+                502,
+            )
 
         tx = BillingTransaction(
             organization_id=organization.id,
@@ -218,56 +258,137 @@ class BillingService:
             currency=plan_offer.currency,
         )
 
+    def verify_webhook_auth(self, auth_header: str | None, secret_header: str | None) -> bool:
+        if not self.webhook_secret:
+            # Si aucun secret de webhook n'est configuré en dev/test, autoriser avec log d'avertissement
+            logger.warning("webhook_secret_not_configured_skipping_auth")
+            return True
+
+        expected_secret = self.webhook_secret.get_secret_value()
+        if secret_header and secret_header.strip() == expected_secret:
+            return True
+        if auth_header and auth_header.strip() == f"Bearer {expected_secret}":
+            return True
+        return False
+
     async def handle_payment_webhook(
         self, session: AsyncSession, payload: BillingWebhookPayload
     ) -> dict[str, Any]:
         logger.info("received_koryxa_payment_webhook", payload=payload.model_dump())
 
-        tx = None
+        # 1. Résolution de la transaction
+        tx: BillingTransaction | None = None
         if payload.idempotency_key:
             tx = await session.scalar(
-                select(BillingTransaction).where(BillingTransaction.idempotency_key == payload.idempotency_key)
+                select(BillingTransaction).where(
+                    BillingTransaction.idempotency_key == payload.idempotency_key
+                )
             )
         if not tx and payload.payment_id:
             tx = await session.scalar(
-                select(BillingTransaction).where(BillingTransaction.koryxa_payment_id == payload.payment_id)
+                select(BillingTransaction).where(
+                    BillingTransaction.koryxa_payment_id == payload.payment_id
+                )
             )
 
         org_id = tx.organization_id if tx else payload.customer_id
         if not org_id:
+            logger.warning("webhook_rejected_no_organization", payload=payload.model_dump())
             return {"status": "ignored", "reason": "no_organization_resolved"}
 
         org = await session.get(Organization, org_id)
         if not org:
+            logger.warning("webhook_rejected_org_not_found", org_id=org_id)
             return {"status": "ignored", "reason": "organization_not_found"}
 
         status_lower = (payload.status or "").lower()
         if status_lower in ("successful", "completed", "success", "paid"):
+            # 2. Protection Anti-Rejeu (Idempotence Stricte)
+            if tx and tx.status in ("completed", "successful"):
+                logger.info(
+                    "webhook_already_processed", tx_id=tx.id, idempotency_key=tx.idempotency_key
+                )
+                return {
+                    "status": "already_processed",
+                    "plan": org.subscription_plan,
+                    "organization_id": org.id,
+                }
+
+            # 3. Vérification Montant et Devise
             plan_code = payload.product_code or (tx.product_code if tx else "pack_business_3m")
-            plan_offer = self.get_plan_by_code(plan_code) or self.get_plan_by_code("pack_business_3m")
+            plan_offer = self.get_plan_by_code(plan_code)
+            if not plan_offer:
+                logger.error("webhook_unknown_plan_code", plan_code=plan_code)
+                return {"status": "ignored", "reason": "unknown_plan_code"}
 
-            months = plan_offer.period_months if plan_offer else 3
-            plan_name = plan_offer.plan if plan_offer else "business"
-            max_senders = plan_offer.max_senders if plan_offer else 3
+            if payload.amount_minor is not None and payload.amount_minor < plan_offer.amount_minor:
+                logger.error(
+                    "webhook_amount_mismatch",
+                    expected=plan_offer.amount_minor,
+                    received=payload.amount_minor,
+                )
+                return {"status": "rejected", "reason": "amount_mismatch"}
 
+            if payload.currency and payload.currency.upper() != plan_offer.currency.upper():
+                logger.error(
+                    "webhook_currency_mismatch",
+                    expected=plan_offer.currency,
+                    received=payload.currency,
+                )
+                return {"status": "rejected", "reason": "currency_mismatch"}
+
+            months = plan_offer.period_months
+            plan_name = plan_offer.plan
+            max_senders = plan_offer.max_senders
+
+            # 4. Calcul d'expiration sécurisé
             now = datetime.now(UTC)
-            base_date = org.subscription_ends_at if (org.subscription_ends_at and org.subscription_ends_at > now) else now
+            org_ends = org.subscription_ends_at
+            if org_ends and org_ends.tzinfo is None:
+                org_ends = org_ends.replace(tzinfo=UTC)
+
+            base_date = org_ends if (org_ends and org_ends > now) else now
             new_expiration = base_date + timedelta(days=months * 30)
 
             org.subscription_plan = plan_name
             org.subscription_status = "active"
             org.subscription_period_months = months
             org.subscription_ends_at = new_expiration
-            org.max_authorized_senders = max(org.max_authorized_senders, max_senders)
+            org.max_authorized_senders = max(org.max_authorized_senders or 1, max_senders)
 
             if tx:
                 tx.status = "completed"
                 tx.completed_at = now
                 if payload.payment_id:
                     tx.koryxa_payment_id = payload.payment_id
+            else:
+                tx = BillingTransaction(
+                    organization_id=org.id,
+                    product_code=plan_offer.code,
+                    plan=plan_offer.plan,
+                    period_months=plan_offer.period_months,
+                    amount_minor=plan_offer.amount_minor,
+                    currency=plan_offer.currency,
+                    provider=payload.provider or "leekpay",
+                    status="completed",
+                    koryxa_payment_id=payload.payment_id,
+                    idempotency_key=payload.idempotency_key
+                    or f"direct-{payload.payment_id or org.id}-{int(time.time())}",
+                    completed_at=now,
+                )
+                session.add(tx)
 
             await session.commit()
-            logger.info("organization_subscription_activated", org_id=org.id, plan=plan_name, ends_at=new_expiration.isoformat())
-            return {"status": "success", "plan": plan_name, "expires_at": new_expiration.isoformat()}
+            logger.info(
+                "organization_subscription_activated",
+                org_id=org.id,
+                plan=plan_name,
+                ends_at=new_expiration.isoformat(),
+            )
+            return {
+                "status": "success",
+                "plan": plan_name,
+                "expires_at": new_expiration.isoformat(),
+            }
 
         return {"status": "acknowledged", "payment_status": payload.status}

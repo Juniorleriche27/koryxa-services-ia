@@ -44,14 +44,33 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
         domain = domain or {}
         sector_label = domain.get("sector_label", "Commerce & Entreprise")
         agent_role = domain.get("role_sales", self.role_title)
-        is_education = "scol" in sector_label.lower() or "ecole" in sector_label.lower() or "éduc" in sector_label.lower()
+        is_education = (
+            "scol" in sector_label.lower()
+            or "ecole" in sector_label.lower()
+            or "éduc" in sector_label.lower()
+        )
 
         # Action: Detect "Enregistre une vente / écolage / scolarité..."
         sale_triggers = [
-            "enregistre une vente", "ajoute une vente", "enregistrer vente", "nouvelle vente", "vends", "vendu", "vente de",
-            "enregistre l'écolage", "enregistre l'ecolage", "encaisse l'écolage", "encaisse l'ecolage",
-            "paiement scolarité", "paiement écolage", "scolarité de", "écolage de", "tranche de", "inscription de",
-            "encaissement de", "enregistre l'inscription",
+            "enregistre une vente",
+            "ajoute une vente",
+            "enregistrer vente",
+            "nouvelle vente",
+            "vends",
+            "vendu",
+            "vente de",
+            "enregistre l'écolage",
+            "enregistre l'ecolage",
+            "encaisse l'écolage",
+            "encaisse l'ecolage",
+            "paiement scolarité",
+            "paiement écolage",
+            "scolarité de",
+            "écolage de",
+            "tranche de",
+            "inscription de",
+            "encaissement de",
+            "enregistre l'inscription",
         ]
         if any(w in msg_lower for w in sale_triggers):
             action_res = await self._try_record_sale(s, org, user, user_message, currency)
@@ -85,7 +104,22 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
 
         if not reply:
             client_word = "l'élève / parent" if is_education else "le client"
-            if any(w in msg_lower for w in ["chiffre d'affaire", "chiffre d'affaires", "ca", "chiffre daffaire", "recette", "recettes", "total vente", "total des ventes", "combien j'ai vendu", "combien on a vendu", "revenu"]):
+            if any(
+                w in msg_lower
+                for w in [
+                    "chiffre d'affaire",
+                    "chiffre d'affaires",
+                    "ca",
+                    "chiffre daffaire",
+                    "recette",
+                    "recettes",
+                    "total vente",
+                    "total des ventes",
+                    "combien j'ai vendu",
+                    "combien on a vendu",
+                    "revenu",
+                ]
+            ):
                 total_ca = total_sales_amount
                 ca_encaisse = total_sales_paid
                 ca_attente = total_sales_unpaid
@@ -102,7 +136,19 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
                     f"Pour sécuriser vos rentrées, vous avez {ca_attente:,.0f} {currency} à encaisser auprès des clients en compte."
                 ).replace(",", " ")
 
-            elif any(w in msg_lower for w in ["relance", "impayé", "impayes", "créance", "creance", "débiteur", "debiteur", "qui me doit"]):
+            elif any(
+                w in msg_lower
+                for w in [
+                    "relance",
+                    "impayé",
+                    "impayes",
+                    "créance",
+                    "creance",
+                    "débiteur",
+                    "debiteur",
+                    "qui me doit",
+                ]
+            ):
                 if not unpaid_sales or total_sales_unpaid == 0:
                     reply = (
                         f"✅ Situation Saine pour {org_name} !\n\n"
@@ -137,11 +183,17 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
         return {
             "reply": reply,
             "agent_name": f"{agent_role} (KORYXA Expert)",
-            "agent_badge": "🎓 Recouvrement Écolages" if is_education else "🤝 Ventes & Recouvrement",
+            "agent_badge": "🎓 Recouvrement Écolages"
+            if is_education
+            else "🤝 Ventes & Recouvrement",
             "thinking_summary": f"Analyse commerciale adaptée au secteur {sector_label}...",
             "action_executed": None,
             "suggested_actions": [
-                {"title": "Consulter les Ventes", "action_type": "navigate", "payload": {"path": "/espace/ventes"}},
+                {
+                    "title": "Consulter les Ventes",
+                    "action_type": "navigate",
+                    "payload": {"path": "/espace/ventes"},
+                },
             ],
         }
 
@@ -153,7 +205,10 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
 
         # 1. Detect Quantity
         qty = Decimal("1.00")
-        qty_match = re.search(r"(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(cartons?|sacs?|paquets?|boites?|boîtes?|bouteilles?|unités?|kilos?|kg|litres?|l|articles?|pièces?|pcs?)?", msg_lower)
+        qty_match = re.search(
+            r"(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(cartons?|sacs?|paquets?|boites?|boîtes?|bouteilles?|unités?|kilos?|kg|litres?|l|articles?|pièces?|pcs?)?",
+            msg_lower,
+        )
         if qty_match:
             try:
                 qty = Decimal(qty_match.group(1).replace(",", "."))
@@ -161,15 +216,21 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
                 pass
 
         # 2. Detect Unit Price or Total Price
-        unit_price_match = re.search(r"(?:à|a|au prix de)\s*(\d+(?:[\s.,]\d+)?)\s*(?:f|cfa|xof|eur|\$|francs?)?(?:\s*(?:l'un|le|la|un|une|par|chaque))?", msg_lower)
-        total_amount_match = re.search(r"(?:pour un total de|total de|montant de|pour)\s*(\d+(?:[\s.,]\d+)?)\s*(?:f|cfa|xof|eur|\$|francs?)?", msg_lower)
+        unit_price_match = re.search(
+            r"(?:à|a|au prix de)\s*(\d+(?:[\s.,]\d+)?)\s*(?:f|cfa|xof|eur|\$|francs?)?(?:\s*(?:l'un|le|la|un|une|par|chaque))?",
+            msg_lower,
+        )
+        total_amount_match = re.search(
+            r"(?:pour un total de|total de|montant de|pour)\s*(\d+(?:[\s.,]\d+)?)\s*(?:f|cfa|xof|eur|\$|francs?)?",
+            msg_lower,
+        )
 
         all_numbers = [
             Decimal(m.group(1).replace(" ", "").replace(",", "."))
             for m in re.finditer(r"(\d+(?:[\s.,]\d+)?)\s*(?:f|cfa|xof|eur|\$|francs?)", msg_lower)
             if m.group(1).strip()
         ]
-        
+
         unit_price = Decimal("0.00")
         total_amount = Decimal("0.00")
 
@@ -222,23 +283,55 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
             cm = re.search(cp, msg_clean, re.IGNORECASE)
             if cm and cm.group(1):
                 raw_c = cm.group(1).strip()
-                for stop_word in [" et", " payé", " paye", " regler", " avec", " via", " moov", " orange", " wave", " mtn", " espece", " espèces"]:
+                for stop_word in [
+                    " et",
+                    " payé",
+                    " paye",
+                    " regler",
+                    " avec",
+                    " via",
+                    " moov",
+                    " orange",
+                    " wave",
+                    " mtn",
+                    " espece",
+                    " espèces",
+                ]:
                     if stop_word in raw_c.lower():
-                        raw_c = raw_c[:raw_c.lower().index(stop_word)].strip()
-                if len(raw_c) >= 2 and raw_c.lower() not in ["moi", "une", "un", "la", "le", "des", "les", "vente"]:
+                        raw_c = raw_c[: raw_c.lower().index(stop_word)].strip()
+                if len(raw_c) >= 2 and raw_c.lower() not in [
+                    "moi",
+                    "une",
+                    "un",
+                    "la",
+                    "le",
+                    "des",
+                    "les",
+                    "vente",
+                ]:
                     client_name = raw_c.title()
                     break
 
         # 4. Detect Item Label
         item_label = "Article / Marchandise"
-        item_match = re.search(r"(?:vente de|vente d'|vente|vendu|pour)\s+(\d+\s+)?([A-Za-zÀ-ÿ0-9_\-\s]{2,50})?\s+(?:à|a\s+\d|au prix|pour|effectu|effectué|par|payé)", msg_clean, re.IGNORECASE)
+        item_match = re.search(
+            r"(?:vente de|vente d'|vente|vendu|pour)\s+(\d+\s+)?([A-Za-zÀ-ÿ0-9_\-\s]{2,50})?\s+(?:à|a\s+\d|au prix|pour|effectu|effectué|par|payé)",
+            msg_clean,
+            re.IGNORECASE,
+        )
         if item_match and item_match.group(2):
             raw_i = item_match.group(2).strip()
             if len(raw_i) >= 2:
                 item_label = raw_i.title()
         else:
             if " de " in msg_lower:
-                parts = msg_clean.split(" de ", 1)[1].split(" à ")[0].split(" a ")[0].split(" pour ")[0].strip()
+                parts = (
+                    msg_clean.split(" de ", 1)[1]
+                    .split(" à ")[0]
+                    .split(" a ")[0]
+                    .split(" pour ")[0]
+                    .strip()
+                )
                 if len(parts) >= 2:
                     item_label = parts.title()
 
@@ -266,7 +359,14 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
                 break
 
         # 6. Payment Status
-        is_paid = "impayé" not in msg_lower and "impaye" not in msg_lower and "crédit" not in msg_lower and "credit" not in msg_lower and "en attente" not in msg_lower and "non payé" not in msg_lower
+        is_paid = (
+            "impayé" not in msg_lower
+            and "impaye" not in msg_lower
+            and "crédit" not in msg_lower
+            and "credit" not in msg_lower
+            and "en attente" not in msg_lower
+            and "non payé" not in msg_lower
+        )
         pay_status = PaymentStatus.PAID if is_paid else PaymentStatus.UNPAID
         paid_amount = total_amount if is_paid else Decimal("0.00")
 
@@ -291,7 +391,11 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
             ),
         )
 
-        status_text = "Règlement reçu (100% Encaissé)" if is_paid else "En attente de règlement (Créance client)"
+        status_text = (
+            "Règlement reçu (100% Encaissé)"
+            if is_paid
+            else "En attente de règlement (Créance client)"
+        )
 
         return {
             "reply": (
@@ -315,7 +419,17 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
                 "client": client_name,
             },
             "suggested_actions": [
-                {"title": "Consulter les Ventes", "action_type": "navigate", "payload": {"path": "/espace/ventes"}},
-                {"title": "Point de trésorerie", "action_type": "send_chat", "payload": {"prompt": "Quelle est ma trésorerie réelle et mon solde de caisse ?"}},
+                {
+                    "title": "Consulter les Ventes",
+                    "action_type": "navigate",
+                    "payload": {"path": "/espace/ventes"},
+                },
+                {
+                    "title": "Point de trésorerie",
+                    "action_type": "send_chat",
+                    "payload": {
+                        "prompt": "Quelle est ma trésorerie réelle et mon solde de caisse ?"
+                    },
+                },
             ],
         }

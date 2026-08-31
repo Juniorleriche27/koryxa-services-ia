@@ -89,7 +89,9 @@ class AIEngineService:
                 created = await self.knowlia.create_assistant(
                     identity, f"Service IA — {organization.name}"
                 )
-                cfg.knowlia_assistant_id = str(created.get("id") or created.get("assistant_id") or "")
+                cfg.knowlia_assistant_id = str(
+                    created.get("id") or created.get("assistant_id") or ""
+                )
                 if not cfg.knowlia_assistant_id:
                     raise ApplicationError(
                         "knowlia_invalid_response", "Knowlia n’a pas retourné d’assistant", 502
@@ -108,7 +110,10 @@ class AIEngineService:
             from app.core.config import get_settings
 
             if get_settings().environment in ("test", "development"):
-                if "crée une procédure" in prompt.lower() or "expected_steps_count" in prompt.lower():
+                if (
+                    "crée une procédure" in prompt.lower()
+                    or "expected_steps_count" in prompt.lower()
+                ):
                     mock_proc = {
                         "title": "Procédure d'inventaire physique des stocks",
                         "objective": "Garantir la concordance entre le stock physique et théorique.",
@@ -154,7 +159,9 @@ class AIEngineService:
                 elif "rédige une relance" in prompt.lower() or "overdue_days" in prompt.lower():
                     # Parse data from prompt if present
                     try:
-                        raw_data = prompt.split("Données: ", 1)[1] if "Données: " in prompt else "{}"
+                        raw_data = (
+                            prompt.split("Données: ", 1)[1] if "Données: " in prompt else "{}"
+                        )
                         parsed = json.loads(raw_data)
                         client = parsed.get("client_name", "Société BTP Ivoire")
                         amt = parsed.get("balance_due") or parsed.get("amount", 750000)
@@ -212,7 +219,11 @@ class AIEngineService:
 
         # Native generator with specialized French & African business recovery phrasing
         currency = req.currency or "XOF"
-        balance = req.balance_due if req.balance_due is not None else max(0.0, req.amount - req.paid_amount)
+        balance = (
+            req.balance_due
+            if req.balance_due is not None
+            else max(0.0, req.amount - req.paid_amount)
+        )
         balance_fmt = f"{balance:,.0f} {currency}".replace(",", " ")
         total_fmt = f"{req.amount:,.0f} {currency}".replace(",", " ")
         paid_fmt = f"{req.paid_amount:,.0f} {currency}".replace(",", " ")
@@ -308,7 +319,9 @@ class AIEngineService:
             encoded_text = urllib.parse.quote(body)
             clean_phone = re.sub(r"[^0-9]", "", req.client_phone or "")
             if clean_phone:
-                whatsapp_url = f"https://api.whatsapp.com/send?phone={clean_phone}&text={encoded_text}"
+                whatsapp_url = (
+                    f"https://api.whatsapp.com/send?phone={clean_phone}&text={encoded_text}"
+                )
             else:
                 whatsapp_url = f"https://api.whatsapp.com/send?text={encoded_text}"
 
@@ -508,7 +521,21 @@ class AIEngineService:
         last_msg = messages[-1].content.lower().strip() if messages else ""
 
         # 1. Greetings and presentation
-        if any(w in last_msg for w in ["salut", "bonjour", "bonsoir", "coucou", "hello", "qui es-tu", "qui es tu", "présente-toi", "presente toi", "bonjour !"]):
+        if any(
+            w in last_msg
+            for w in [
+                "salut",
+                "bonjour",
+                "bonsoir",
+                "coucou",
+                "hello",
+                "qui es-tu",
+                "qui es tu",
+                "présente-toi",
+                "presente toi",
+                "bonjour !",
+            ]
+        ):
             return (
                 f"👋 **Bonjour ! Je suis Cora, votre directrice des opérations et assistante IA.**\n\n"
                 f"Je suis connectée en temps réel à l'ensemble des registres opérationnels de votre entreprise :\n"
@@ -524,7 +551,8 @@ class AIEngineService:
 
         # 2. Cashflow & Treasury
         if any(
-            w in last_msg for w in ["trésorerie", "tresorerie", "solde", "cash", "argent", "banque", "disponible"]
+            w in last_msg
+            for w in ["trésorerie", "tresorerie", "solde", "cash", "argent", "banque", "disponible"]
         ):
             return (
                 f"📊 **Analyse de votre Trésorerie en Temps Réel** :\n\n"
@@ -536,7 +564,21 @@ class AIEngineService:
             )
 
         # 3. Unpaid & Reminders
-        if any(w in last_msg for w in ["relance", "impayé", "impayes", "impayee", "créance", "creance", "débiteur", "debiteur", "qui me doit", "qui doit"]):
+        if any(
+            w in last_msg
+            for w in [
+                "relance",
+                "impayé",
+                "impayes",
+                "impayee",
+                "créance",
+                "creance",
+                "débiteur",
+                "debiteur",
+                "qui me doit",
+                "qui doit",
+            ]
+        ):
             if not ctx["unpaid_sales"]:
                 return "✅ **Excellente nouvelle** : Vous n'avez aucune créance client impayée actuellement enregistrée dans vos registres !"
 
@@ -553,7 +595,10 @@ class AIEngineService:
             )
 
         # 4. Sales and Revenue
-        if any(w in last_msg for w in ["vente", "ventes", "chiffre", "ca", "combien j'ai vendu", "combien de vente"]):
+        if any(
+            w in last_msg
+            for w in ["vente", "ventes", "chiffre", "ca", "combien j'ai vendu", "combien de vente"]
+        ):
             return (
                 f"📈 **Synthèse Commerciale** :\n\n"
                 f"• **Nombre total de ventes** : **{ctx['total_sales_count']} vente(s)**\n"
@@ -563,7 +608,10 @@ class AIEngineService:
             )
 
         # 5. Expenses and Purchases
-        if any(w in last_msg for w in ["dépense", "depense", "depenses", "achat", "achats", "charge", "charges"]):
+        if any(
+            w in last_msg
+            for w in ["dépense", "depense", "depenses", "achat", "achats", "charge", "charges"]
+        ):
             return (
                 f"💸 **Synthèse des Dépenses & Achats** :\n\n"
                 f"• **Dépenses réglées** : **{ctx['total_expenses_paid']} XOF**\n"
@@ -572,7 +620,20 @@ class AIEngineService:
             )
 
         # 6. Radar & Health Alerts
-        if any(w in last_msg for w in ["radar", "alerte", "alertes", "problème", "probleme", "anomalie", "risque", "santé", "sante"]):
+        if any(
+            w in last_msg
+            for w in [
+                "radar",
+                "alerte",
+                "alertes",
+                "problème",
+                "probleme",
+                "anomalie",
+                "risque",
+                "santé",
+                "sante",
+            ]
+        ):
             if ctx["open_alerts_count"] == 0:
                 return "🛡️ **Radar KORYXA est au vert** : Aucune anomalie, écart de caisse ou tarif expiré n'a été détecté aujourd'hui. Votre mémoire opérationnelle est saine."
 
@@ -586,7 +647,20 @@ class AIEngineService:
             )
 
         # 7. Procedures & SOP
-        if any(w in last_msg for w in ["procédure", "procedure", "procedures", "sop", "process", "méthode", "methode", "règle", "regle"]):
+        if any(
+            w in last_msg
+            for w in [
+                "procédure",
+                "procedure",
+                "procedures",
+                "sop",
+                "process",
+                "méthode",
+                "methode",
+                "règle",
+                "regle",
+            ]
+        ):
             return (
                 f"📋 **Mémoire Opérationnelle & Procédures** :\n\n"
                 f"Votre entreprise dispose de **{ctx['procedures_count']} procédure(s)** formalisée(s).\n\n"

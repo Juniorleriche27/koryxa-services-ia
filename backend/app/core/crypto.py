@@ -14,7 +14,11 @@ class SecretCipher:
         if not secret and settings.environment != "production":
             secret = "service-ia-development-only-encryption-key"
         if not secret:
-            raise ApplicationError("encryption_unavailable", "Clé de chiffrement SERVICE_IA_ENCRYPTION_KEY indisponible", 503)
+            raise ApplicationError(
+                "encryption_unavailable",
+                "Clé de chiffrement SERVICE_IA_ENCRYPTION_KEY indisponible",
+                503,
+            )
         self.fernet = Fernet(urlsafe_b64encode(sha256(secret.encode()).digest()))
 
     def encrypt(self, value: str | None) -> str | None:

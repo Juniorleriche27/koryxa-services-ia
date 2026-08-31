@@ -11,8 +11,21 @@ from app.models.registers import Offer, Procedure, Sale
 from app.storage.local import LocalFileStorage
 
 ALLOWED_DOCUMENT_EXTENSIONS = {
-    "csv", "doc", "docx", "jpeg", "jpg", "json", "pdf", "png", "ppt", "pptx",
-    "txt", "webp", "xls", "xlsx", "zip",
+    "csv",
+    "doc",
+    "docx",
+    "jpeg",
+    "jpg",
+    "json",
+    "pdf",
+    "png",
+    "ppt",
+    "pptx",
+    "txt",
+    "webp",
+    "xls",
+    "xlsx",
+    "zip",
 }
 
 
@@ -35,7 +48,9 @@ class FileService:
         if len(content) > settings.max_upload_bytes:
             raise ApplicationError("file_too_large", "Le fichier dépasse la limite de 100 Mo", 413)
         extension = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
-        if extension not in ALLOWED_DOCUMENT_EXTENSIONS or not self._has_valid_signature(extension, content):
+        if extension not in ALLOWED_DOCUMENT_EXTENSIONS or not self._has_valid_signature(
+            extension, content
+        ):
             raise ApplicationError(
                 "unsupported_file",
                 "Format non accepté ou contenu du fichier invalide",
@@ -72,7 +87,9 @@ class FileService:
             "png": lambda value: value.startswith(b"\x89PNG\r\n\x1a\n"),
             "jpg": lambda value: value.startswith(b"\xff\xd8\xff"),
             "jpeg": lambda value: value.startswith(b"\xff\xd8\xff"),
-            "webp": lambda value: len(value) >= 12 and value[:4] == b"RIFF" and value[8:12] == b"WEBP",
+            "webp": lambda value: (
+                len(value) >= 12 and value[:4] == b"RIFF" and value[8:12] == b"WEBP"
+            ),
         }
         if extension in signatures:
             return signatures[extension](content)

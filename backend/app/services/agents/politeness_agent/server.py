@@ -14,6 +14,7 @@ from .config import (
 try:
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
+
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False

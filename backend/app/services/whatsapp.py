@@ -165,7 +165,9 @@ class WhatsAppService:
         sender = WhatsAppAuthorizedSender(
             organization_id=org_id,
             phone_number=phone_norm,
-            whatsapp_lid=data.whatsapp_lid.replace("@lid", "").strip() if data.whatsapp_lid else None,
+            whatsapp_lid=data.whatsapp_lid.replace("@lid", "").strip()
+            if data.whatsapp_lid
+            else None,
             label=data.label,
             is_active=data.is_active,
             created_by_user_id=user_id,
@@ -193,7 +195,9 @@ class WhatsAppService:
                 "authorized_sender_not_found", "Numéro autorisé introuvable", 404
             )
         if data.whatsapp_lid is not None:
-            sender.whatsapp_lid = data.whatsapp_lid.replace("@lid", "").strip() if data.whatsapp_lid else None
+            sender.whatsapp_lid = (
+                data.whatsapp_lid.replace("@lid", "").strip() if data.whatsapp_lid else None
+            )
         if data.label is not None:
             sender.label = data.label
         if data.is_active is not None:
@@ -202,9 +206,7 @@ class WhatsAppService:
         await s.refresh(sender)
         return sender
 
-    async def delete_authorized_sender(
-        self, s: AsyncSession, org_id: str, sender_id: str
-    ) -> bool:
+    async def delete_authorized_sender(self, s: AsyncSession, org_id: str, sender_id: str) -> bool:
         sender = await s.scalar(
             select(WhatsAppAuthorizedSender).where(
                 WhatsAppAuthorizedSender.id == sender_id,
@@ -295,7 +297,9 @@ class WhatsAppService:
                     error_data = resp.json().get("error", {})
                     return {
                         "status": "error",
-                        "message": error_data.get("message", f"Erreur Meta HTTP {resp.status_code}"),
+                        "message": error_data.get(
+                            "message", f"Erreur Meta HTTP {resp.status_code}"
+                        ),
                         "error_code": error_data.get("code"),
                     }
         except Exception as exc:
@@ -305,7 +309,12 @@ class WhatsAppService:
             }
 
     async def send_reply(
-        self, phone_id: str, access_token: str, to_phone: str, message: str, api_version: str = "v21.0"
+        self,
+        phone_id: str,
+        access_token: str,
+        to_phone: str,
+        message: str,
+        api_version: str = "v21.0",
     ) -> bool:
         """Envoie un message sortant via l'API Meta WhatsApp Cloud."""
         if not phone_id or not access_token or not to_phone or not message:
@@ -355,14 +364,23 @@ class WhatsAppService:
             )
         return challenge or ""
 
-    async def _handle_conversational_query(
-        self, s: AsyncSession, org_id: str, query: str
-    ) -> str:
+    async def _handle_conversational_query(self, s: AsyncSession, org_id: str, query: str) -> str:
         """Interroge la base de connaissances et les registres pour formuler une réponse WhatsApp."""
         lower = query.lower()
 
         # 1. Questions sur le solde de caisse / trésorerie
-        if any(w in lower for w in ["solde", "caisse", "trésorerie", "tresorerie", "disponible", "liquidité", "liquidite"]):
+        if any(
+            w in lower
+            for w in [
+                "solde",
+                "caisse",
+                "trésorerie",
+                "tresorerie",
+                "disponible",
+                "liquidité",
+                "liquidite",
+            ]
+        ):
             total_collected = await s.scalar(
                 select(func.sum(Sale.total_amount)).where(
                     Sale.organization_id == org_id,
@@ -386,12 +404,17 @@ class WhatsAppService:
             )
 
         # 2. Questions sur les ventes du jour / totales
-        if any(w in lower for w in ["combien", "total", "chiffre", "ca", "ventes", "recette", "bilan"]):
-            total_sales = await s.scalar(
-                select(func.count(Sale.id)).where(
-                    Sale.organization_id == org_id, Sale.is_archived.is_(False)
+        if any(
+            w in lower for w in ["combien", "total", "chiffre", "ca", "ventes", "recette", "bilan"]
+        ):
+            total_sales = (
+                await s.scalar(
+                    select(func.count(Sale.id)).where(
+                        Sale.organization_id == org_id, Sale.is_archived.is_(False)
+                    )
                 )
-            ) or 0
+                or 0
+            )
             total_amount = await s.scalar(
                 select(func.sum(Sale.total_amount)).where(
                     Sale.organization_id == org_id,
@@ -574,10 +597,14 @@ class WhatsAppService:
                     source=RecordSource.INTEGRATION,
                 ),
             )
-            ref = created.get("reference") or (parsed.sale.reference if parsed.sale else "Enregistrée")
+            ref = created.get("reference") or (
+                parsed.sale.reference if parsed.sale else "Enregistrée"
+            )
             amount = parsed.sale.total_amount if parsed.sale else ""
             currency = parsed.sale.currency if parsed.sale else "XOF"
-            client_name = (parsed.sale.client_name if parsed.sale and parsed.sale.client_name else "Comptoir")
+            client_name = (
+                parsed.sale.client_name if parsed.sale and parsed.sale.client_name else "Comptoir"
+            )
             reply_text = (
                 f"✅ *Vente enregistrée avec succès !*\n\n"
                 f"• Réf : {ref}\n"
@@ -595,7 +622,9 @@ class WhatsAppService:
                     payload=parsed.expense.model_dump(),
                 ),
             )
-            ref = created.get("reference") or (parsed.expense.reference if parsed.expense else "Enregistrée")
+            ref = created.get("reference") or (
+                parsed.expense.reference if parsed.expense else "Enregistrée"
+            )
             amount = parsed.expense.amount if parsed.expense else ""
             currency = parsed.expense.currency if parsed.expense else "XOF"
             category = parsed.expense.category if parsed.expense else "Charges d'exploitation"
@@ -619,7 +648,13 @@ class WhatsAppService:
             access_token = self.configs.decrypt(cfg.whatsapp_access_token_encrypted)
             if cfg.whatsapp_auto_reply and access_token:
                 api_ver = cfg.whatsapp_api_version or "v21.0"
-                await self.send_reply(cfg.whatsapp_phone_number_id, access_token, from_phone, reply_text, api_version=api_ver)
+                await self.send_reply(
+                    cfg.whatsapp_phone_number_id,
+                    access_token,
+                    from_phone,
+                    reply_text,
+                    api_version=api_ver,
+                )
 
         return {
             "status": "processed",
@@ -629,4 +664,3 @@ class WhatsAppService:
             "record": created,
             "reply_message": reply_text,
         }
-

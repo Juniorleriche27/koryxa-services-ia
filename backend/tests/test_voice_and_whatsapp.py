@@ -62,7 +62,9 @@ def test_voice_short_sale_does_not_use_amount_as_item() -> None:
         )
         assert response.status_code == 200
         data = response.json()
-        assert "Vente" in data["sale"]["item_label"] or "non détaillée" in data["sale"]["item_label"]
+        assert (
+            "Vente" in data["sale"]["item_label"] or "non détaillée" in data["sale"]["item_label"]
+        )
         assert Decimal(data["sale"]["total_amount"]) == Decimal("15000")
         assert data["sale"]["payment_status"] == "unpaid"
         assert "non pay" in data["summary_message"].lower()
@@ -100,9 +102,7 @@ def test_whatsapp_webhook_handshake_and_inbound_message() -> None:
         # 2. Test inbound message simulation
         inbound_res = client.post(
             "/api/v1/integrations/whatsapp/webhook",
-            headers={
-                "X-Koryxa-Proxy-Secret": "service-ia-development-only-proxy-secret"
-            },
+            headers={"X-Koryxa-Proxy-Secret": "service-ia-development-only-proxy-secret"},
             json={
                 "from": "+2250708091011",
                 "text": "Vente de prestation conseil 500000 FCFA client Société Alpha payé par virement",
@@ -139,9 +139,7 @@ def test_whatsapp_internal_webhook_rejects_missing_secret_and_unknown_tenant() -
 
         unknown_tenant = client.post(
             "/api/v1/integrations/whatsapp/webhook",
-            headers={
-                "X-Koryxa-Proxy-Secret": "service-ia-development-only-proxy-secret"
-            },
+            headers={"X-Koryxa-Proxy-Secret": "service-ia-development-only-proxy-secret"},
             json={**payload, "organization_id": "unknown-tenant"},
         )
         assert unknown_tenant.status_code == 404
@@ -202,7 +200,10 @@ def test_voice_multi_sales_and_currencies() -> None:
         assert sylvie_res.status_code == 200
         sylvie_data = sylvie_res.json()
         assert sylvie_data["sale"]["client_name"] == "Sylvie"
-        assert "téléphones" in sylvie_data["sale"]["item_label"].lower() or "téléphone" in sylvie_data["sale"]["item_label"].lower()
+        assert (
+            "téléphones" in sylvie_data["sale"]["item_label"].lower()
+            or "téléphone" in sylvie_data["sale"]["item_label"].lower()
+        )
         assert Decimal(sylvie_data["sale"]["quantity"]) == Decimal("3")
         assert Decimal(sylvie_data["sale"]["unit_price"]) == Decimal("200000")
         assert Decimal(sylvie_data["sale"]["total_amount"]) == Decimal("600000")

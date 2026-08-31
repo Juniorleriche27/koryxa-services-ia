@@ -87,6 +87,7 @@ async def update_whatsapp_config(
 # GESTION DES EXPÉDITEURS AUTORISÉS (Chantier 1)
 # -------------------------------------------------------------
 
+
 @router.get("/authorized-numbers", response_model=WhatsAppAuthorizedSenderList)
 async def list_authorized_numbers(s: SessionDep, o: OrgDep, _: ManageDep):
     """Liste tous les numéros WhatsApp autorisés pour l'organisation."""
@@ -176,6 +177,7 @@ async def test_whatsapp_connection(s: SessionDep, o: OrgDep, _: ManageDep):
 async def get_whatsapp_session_qr(o: OrgDep):
     """Récupère le QR Code de session temps réel généré par le bridge Baileys."""
     import httpx
+
     headers = _bridge_headers()
     for base_url in ("http://koryxa-whatsapp-bridge:8097", "http://127.0.0.1:8097"):
         try:
@@ -192,11 +194,14 @@ async def get_whatsapp_session_qr(o: OrgDep):
 async def get_whatsapp_session_status(o: OrgDep):
     """Vérifie le statut de la session WhatsApp Multi-Device."""
     import httpx
+
     headers = _bridge_headers()
     for base_url in ("http://koryxa-whatsapp-bridge:8097", "http://127.0.0.1:8097"):
         try:
             async with httpx.AsyncClient(timeout=6.0) as client:
-                resp = await client.get(f"{base_url}/v1/session/status?org_id={o.id}", headers=headers)
+                resp = await client.get(
+                    f"{base_url}/v1/session/status?org_id={o.id}", headers=headers
+                )
                 if resp.status_code == 200:
                     return resp.json()
         except Exception:
@@ -208,11 +213,14 @@ async def get_whatsapp_session_status(o: OrgDep):
 async def disconnect_whatsapp_session(o: OrgDep, _: ManageDep):
     """Déconnecte la session WhatsApp active."""
     import httpx
+
     headers = _bridge_headers()
     for base_url in ("http://koryxa-whatsapp-bridge:8097", "http://127.0.0.1:8097"):
         try:
             async with httpx.AsyncClient(timeout=6.0) as client:
-                resp = await client.post(f"{base_url}/v1/session/disconnect?org_id={o.id}", headers=headers)
+                resp = await client.post(
+                    f"{base_url}/v1/session/disconnect?org_id={o.id}", headers=headers
+                )
                 if resp.status_code == 200:
                     return resp.json()
         except Exception:
@@ -224,11 +232,14 @@ async def disconnect_whatsapp_session(o: OrgDep, _: ManageDep):
 async def reset_whatsapp_session(o: OrgDep, _: ManageDep):
     """Réinitialise complètement la session et regénère un QR Code neuf."""
     import httpx
+
     headers = _bridge_headers()
     for base_url in ("http://koryxa-whatsapp-bridge:8097", "http://127.0.0.1:8097"):
         try:
             async with httpx.AsyncClient(timeout=8.0) as client:
-                resp = await client.post(f"{base_url}/v1/session/reset?org_id={o.id}", headers=headers)
+                resp = await client.post(
+                    f"{base_url}/v1/session/reset?org_id={o.id}", headers=headers
+                )
                 if resp.status_code == 200:
                     return resp.json()
         except Exception:
@@ -252,9 +263,7 @@ async def report_whatsapp_session_alert(
     if not configured_secret or not secret or not hmac.compare_digest(secret, configured_secret):
         from app.core.errors import ApplicationError
 
-        raise ApplicationError(
-            "invalid_proxy_secret", "Authentification d'alerte invalide", 401
-        )
+        raise ApplicationError("invalid_proxy_secret", "Authentification d'alerte invalide", 401)
     payload = await request.json()
     org_id = payload.get("organization_id")
     event_type = payload.get("event") or "whatsapp_session_alert"

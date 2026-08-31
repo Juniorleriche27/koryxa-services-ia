@@ -195,8 +195,12 @@ class OrganizationService:
         content_type: str,
         content: bytes,
     ) -> Organization:
-        if content_type not in LOGO_CONTENT_TYPES or not self._has_valid_signature(content_type, content):
-            raise ApplicationError("invalid_logo", "Le logo doit être une image PNG, JPEG ou WebP", 400)
+        if content_type not in LOGO_CONTENT_TYPES or not self._has_valid_signature(
+            content_type, content
+        ):
+            raise ApplicationError(
+                "invalid_logo", "Le logo doit être une image PNG, JPEG ou WebP", 400
+            )
         if not content or len(content) > LOGO_MAX_BYTES:
             raise ApplicationError(
                 "logo_too_large",

@@ -164,7 +164,6 @@ class FastTriageEngine:
             (Language.FR, Tone.FORMAL, TriageCategory.INAPPROPRIATE): [
                 "Je reste à votre service pour vous apporter une assistance respectueuse et professionnelle.",
             ],
-
             # FRENCH - WARM (Vouvoiement chaleureux & bienveillant)
             (Language.FR, Tone.WARM, TriageCategory.GREETING): [
                 "Bonjour {user_name} ! Comment puis-je vous aider aujourd'hui ?",
@@ -184,7 +183,6 @@ class FastTriageEngine:
             (Language.FR, Tone.WARM, TriageCategory.INAPPROPRIATE): [
                 "Restons courtois s'il vous plaît. Je suis là pour vous aider avec bienveillance.",
             ],
-
             # FRENCH - CASUAL (Tutoiement convivial)
             (Language.FR, Tone.CASUAL, TriageCategory.GREETING): [
                 "Salut {user_name} ! Comment je peux t'aider aujourd'hui ?",
@@ -204,7 +202,6 @@ class FastTriageEngine:
             (Language.FR, Tone.CASUAL, TriageCategory.INAPPROPRIATE): [
                 "On garde le sourire et le respect ! Que puis-je faire pour toi ?",
             ],
-
             # FRENCH - CONCISE
             (Language.FR, Tone.CONCISE, TriageCategory.GREETING): [
                 "Bonjour. Que souhaitez-vous savoir ?",
@@ -221,7 +218,6 @@ class FastTriageEngine:
             (Language.FR, Tone.CONCISE, TriageCategory.INAPPROPRIATE): [
                 "Merci de rester respectueux.",
             ],
-
             # ENGLISH - FORMAL
             (Language.EN, Tone.FORMAL, TriageCategory.GREETING): [
                 "Good day {user_name}. How may I assist you today?",
@@ -238,7 +234,6 @@ class FastTriageEngine:
             (Language.EN, Tone.FORMAL, TriageCategory.INAPPROPRIATE): [
                 "I am here to assist you with professional courtesy.",
             ],
-
             # ENGLISH - WARM
             (Language.EN, Tone.WARM, TriageCategory.GREETING): [
                 "Hello {user_name}! How can I help you today?",
@@ -255,7 +250,6 @@ class FastTriageEngine:
             (Language.EN, Tone.WARM, TriageCategory.INAPPROPRIATE): [
                 "Let's please keep our conversation respectful. How can I help you?",
             ],
-
             # SPANISH - WARM
             (Language.ES, Tone.WARM, TriageCategory.GREETING): [
                 "¡Hola {user_name}! ¿Cómo puedo ayudarte hoy?",
@@ -273,7 +267,6 @@ class FastTriageEngine:
             (Language.ES, Tone.WARM, TriageCategory.INAPPROPRIATE): [
                 "Mantengamos una conversación respetuosa, por favor.",
             ],
-
             # PORTUGUESE - WARM
             (Language.PT, Tone.WARM, TriageCategory.GREETING): [
                 "Olá {user_name}! Como posso ajudar você hoje?",
@@ -291,7 +284,6 @@ class FastTriageEngine:
             (Language.PT, Tone.WARM, TriageCategory.INAPPROPRIATE): [
                 "Vamos manter uma conversa respeitosa, por favor.",
             ],
-
             # ARABIC - WARM
             (Language.AR, Tone.WARM, TriageCategory.GREETING): [
                 "مرحباً {user_name}! كيف يمكنني مساعدتك اليوم؟",
@@ -319,7 +311,7 @@ class FastTriageEngine:
             key = (self.config.language, Tone.WARM, category)
             if key not in self.responses:
                 key = (Language.FR, Tone.WARM, category)
-        
+
         choices = self.responses.get(key, ["Bonjour, comment puis-je vous aider ?"])
         resp = random.choice(choices)
 

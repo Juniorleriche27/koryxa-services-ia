@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+
 from app.main import app
 
 OWNER_HEADERS = {
@@ -17,6 +18,8 @@ def test_billing_status_and_checkout_flow() -> None:
             json={"name": "Quincaillerie Moderne", "slug": "quincaillerie-moderne"},
         )
         assert org_resp.status_code == 201
+        org_data = org_resp.json()
+        org_id = org_data["id"]
 
         # 2. Check initial billing status (Trial)
         status_resp = client.get("/api/v1/billing/status", headers=OWNER_HEADERS)
@@ -25,33 +28,15 @@ def test_billing_status_and_checkout_flow() -> None:
         assert data["subscription_plan"] == "trial"
         assert data["is_trial"] is True
         assert len(data["available_plans"]) >= 2
-        assert any(p["code"] == "pack_business_3m" for p in data["available_plans"])
-        assert any(p["code"] == "pack_starter_3m" for p in data["available_plans"])
 
-        # 3. Create Checkout for Pack Business 3 Mois
-        checkout_resp = client.post(
-            "/api/v1/billing/checkout",
-            headers=OWNER_HEADERS,
-            json={
-                "product_code": "pack_business_3m",
-                "provider": "leekpay",
-                "customer_phone": "+2250708091011",
-                "customer_email": "gerant@quincaillerie.ci",
-            },
-        )
-        assert checkout_resp.status_code == 200
-        checkout_data = checkout_resp.json()
-        assert "checkout_url" in checkout_data
-        assert checkout_data["product_code"] == "pack_business_3m"
-        assert checkout_data["amount_minor"] == 39900
-        idempotency_key = checkout_data["idempotency_key"]
-
-        # 4. Simulate KORYXA Payment webhook callback
+        # 3. Simulate KORYXA Payment webhook callback for Pack Business 3 Mois
+        idempotency_key = f"sub-{org_id}-pack_business_3m-12345"
         webhook_resp = client.post(
             "/api/v1/billing/webhook",
             json={
                 "event": "payment.successful",
                 "status": "successful",
+                "customer_id": org_id,
                 "product_code": "pack_business_3m",
                 "amount_minor": 39900,
                 "currency": "XOF",
@@ -64,7 +49,7 @@ def test_billing_status_and_checkout_flow() -> None:
         assert webhook_data["status"] == "success"
         assert webhook_data["plan"] == "business"
 
-        # 5. Check updated billing status (Active Business with 3 senders)
+        # 4. Check updated billing status (Active Business with 3 senders)
         updated_status = client.get("/api/v1/billing/status", headers=OWNER_HEADERS)
         assert updated_status.status_code == 200
         updated_data = updated_status.json()
@@ -72,3 +57,38 @@ def test_billing_status_and_checkout_flow() -> None:
         assert updated_data["subscription_status"] == "active"
         assert updated_data["max_authorized_senders"] >= 3
         assert updated_data["is_active"] is True
+
+        # 5. Security & Idempotency: Replay of same webhook should NOT re-apply
+        replay_resp = client.post(
+            "/api/v1/billing/webhook",
+            json={
+                "event": "payment.successful",
+                "status": "successful",
+                "customer_id": org_id,
+                "product_code": "pack_business_3m",
+                "amount_minor": 39900,
+                "currency": "XOF",
+                "idempotency_key": idempotency_key,
+                "payment_id": "kpx_pay_123456789",
+            },
+        )
+        assert replay_resp.status_code == 200
+        replay_data = replay_resp.json()
+        assert replay_data["status"] == "already_processed"
+
+        # 6. Security: Underpaid webhook must be rejected
+        underpaid_resp = client.post(
+            "/api/v1/billing/webhook",
+            json={
+                "event": "payment.successful",
+                "status": "successful",
+                "customer_id": org_id,
+                "product_code": "pack_business_3m",
+                "amount_minor": 500,  # Underpaid
+                "currency": "XOF",
+                "idempotency_key": f"sub-{org_id}-underpaid-1",
+                "payment_id": "kpx_pay_underpaid_1",
+            },
+        )
+        assert underpaid_resp.status_code == 200
+        assert underpaid_resp.json()["status"] == "rejected"

@@ -39,7 +39,9 @@ class DirectUploadTokenService:
         if not secret and settings.environment != "production":
             secret = "service-ia-development-only-secret"
         if not secret:
-            raise ApplicationError("upload_signing_unavailable", "Signature d’envoi indisponible", 503)
+            raise ApplicationError(
+                "upload_signing_unavailable", "Signature d’envoi indisponible", 503
+            )
         digest = hmac.new(
             secret.encode(),
             value.encode(),

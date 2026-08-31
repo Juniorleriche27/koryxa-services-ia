@@ -23,7 +23,9 @@ class BillingTransaction(Base):
     status: Mapped[str] = mapped_column(String(40), default="pending", index=True, nullable=False)
     koryxa_payment_id: Mapped[str | None] = mapped_column(String(120), index=True, nullable=True)
     checkout_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    idempotency_key: Mapped[str] = mapped_column(String(120), unique=True, index=True, nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(
+        String(120), unique=True, index=True, nullable=False
+    )
     customer_phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
     customer_email: Mapped[str | None] = mapped_column(String(180), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

@@ -63,7 +63,9 @@ class BaseSpecializedAgent(ABC):
                 created = await self.knowlia.create_assistant(
                     identity, f"Cora Copilot - {organization.name}"
                 )
-                cfg.knowlia_assistant_id = str(created.get("id") or created.get("assistant_id") or "")
+                cfg.knowlia_assistant_id = str(
+                    created.get("id") or created.get("assistant_id") or ""
+                )
                 if cfg.knowlia_assistant_id:
                     await s.commit()
 

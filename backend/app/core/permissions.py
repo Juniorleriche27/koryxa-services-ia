@@ -137,6 +137,7 @@ async def get_current_member(identity: IdentityDep, session: SessionDep) -> Orga
 
 def require_permission(permission: str) -> Callable[..., object]:
     """Contrôle d'accès basé sur les rôles stricts (RBAC) au niveau de l'organisation."""
+
     async def dependency(identity: IdentityDep, session: SessionDep) -> OrganizationMember:
         member = await get_current_member(identity, session)
 

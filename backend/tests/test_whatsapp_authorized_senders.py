@@ -6,12 +6,16 @@ from app.main import app
 from app.services.whatsapp import normalize_e164
 
 
-def create_org_and_get_id(client: TestClient, tenant_id: str, user_id: str, name: str = "Test Org") -> tuple[dict[str, str], str]:
+def create_org_and_get_id(
+    client: TestClient, tenant_id: str, user_id: str, name: str = "Test Org"
+) -> tuple[dict[str, str], str]:
     headers = {
         "X-Tenant-ID": tenant_id,
         "X-User-ID": user_id,
     }
-    create_res = client.post("/api/v1/organizations", headers=headers, json={"name": name, "slug": tenant_id})
+    create_res = client.post(
+        "/api/v1/organizations", headers=headers, json={"name": name, "slug": tenant_id}
+    )
     assert create_res.status_code == 201
     org_res = client.get("/api/v1/organizations/current", headers=headers)
     assert org_res.status_code == 200
@@ -29,8 +33,12 @@ def test_e164_normalization() -> None:
 
 def test_authorized_numbers_crud_and_tenant_isolation() -> None:
     with TestClient(app) as client:
-        headers_a, org_a_id = create_org_and_get_id(client, "tenant-auth-a", "user-auth-a", "Société A")
-        headers_b, org_b_id = create_org_and_get_id(client, "tenant-auth-b", "user-auth-b", "Société B")
+        headers_a, org_a_id = create_org_and_get_id(
+            client, "tenant-auth-a", "user-auth-a", "Société A"
+        )
+        headers_b, org_b_id = create_org_and_get_id(
+            client, "tenant-auth-b", "user-auth-b", "Société B"
+        )
 
         # 1. Add authorized number in Org A
         add_res = client.post(
@@ -60,12 +68,16 @@ def test_authorized_numbers_crud_and_tenant_isolation() -> None:
         assert dup_res.status_code == 409
 
         # 3. List in Org A vs Org B (Tenant Isolation)
-        list_a = client.get("/api/v1/integrations/whatsapp/authorized-numbers", headers=headers_a).json()
+        list_a = client.get(
+            "/api/v1/integrations/whatsapp/authorized-numbers", headers=headers_a
+        ).json()
         assert list_a["total"] == 1
         assert list_a["items"][0]["phone_number"] == "+2250708091011"
         assert list_a["items"][0]["whatsapp_lid"] == "12345678901234"
 
-        list_b = client.get("/api/v1/integrations/whatsapp/authorized-numbers", headers=headers_b).json()
+        list_b = client.get(
+            "/api/v1/integrations/whatsapp/authorized-numbers", headers=headers_b
+        ).json()
         assert list_b["total"] == 0
 
         # 4. Org B cannot update or delete Org A's sender
@@ -80,7 +92,11 @@ def test_authorized_numbers_crud_and_tenant_isolation() -> None:
         update_a = client.patch(
             f"/api/v1/integrations/whatsapp/authorized-numbers/{sender_id}",
             headers=headers_a,
-            json={"label": "Koffi Responsable Ventes", "whatsapp_lid": "999888777@lid", "is_active": False},
+            json={
+                "label": "Koffi Responsable Ventes",
+                "whatsapp_lid": "999888777@lid",
+                "is_active": False,
+            },
         )
         assert update_a.status_code == 200
         assert update_a.json()["is_active"] is False
@@ -98,7 +114,9 @@ def test_authorized_numbers_crud_and_tenant_isolation() -> None:
 def test_closed_by_default_zero_trust_when_no_senders_configured() -> None:
     """Vérifie que lorsqu'aucun numéro n'est configuré (0 configuré), TOUT message entrant est rejeté."""
     with TestClient(app) as client:
-        headers, org_id = create_org_and_get_id(client, "tenant-zero-trust", "user-zero-trust", "Zero Trust Org")
+        headers, org_id = create_org_and_get_id(
+            client, "tenant-zero-trust", "user-zero-trust", "Zero Trust Org"
+        )
 
         # Aucune liste de numéros autorisés configurée pour cette organisation
         unauth_msg = {
@@ -123,7 +141,9 @@ def test_closed_by_default_zero_trust_when_no_senders_configured() -> None:
 
 def test_authorized_sender_vs_unauthorized_sender_execution() -> None:
     with TestClient(app) as client:
-        headers, org_id = create_org_and_get_id(client, "tenant-senders-flow", "user-senders-flow", "Entreprise Flow")
+        headers, org_id = create_org_and_get_id(
+            client, "tenant-senders-flow", "user-senders-flow", "Entreprise Flow"
+        )
 
         # Configure an authorized sender
         auth_phone = "+2250102030405"
@@ -182,7 +202,9 @@ def test_authorized_sender_vs_unauthorized_sender_execution() -> None:
 def test_whatsapp_lid_sender_authorization() -> None:
     """Vérifie l'autorisation par identifiant LID WhatsApp."""
     with TestClient(app) as client:
-        headers, org_id = create_org_and_get_id(client, "tenant-lid-flow", "user-lid-flow", "LID Flow Org")
+        headers, org_id = create_org_and_get_id(
+            client, "tenant-lid-flow", "user-lid-flow", "LID Flow Org"
+        )
 
         # Inscrire un collaborateur par son LID
         lid_val = "109827364512938"
@@ -242,4 +264,3 @@ def test_whatsapp_session_alert_endpoint() -> None:
         data = res.json()
         assert data["status"] == "recorded"
         assert data["alert_event"] == "whatsapp_session_reconnecting"
-

@@ -169,7 +169,11 @@ class RegisterService:
             deposit_pct = Decimal(str(values["deposit_percentage"]))
             paid_amount = max(Decimal("0.00"), (total_amount * deposit_pct) / Decimal("100"))
 
-        if values.get("payment_status") == PaymentStatus.PAID and paid_amount == Decimal("0.00") and total_amount > 0:
+        if (
+            values.get("payment_status") == PaymentStatus.PAID
+            and paid_amount == Decimal("0.00")
+            and total_amount > 0
+        ):
             paid_amount = total_amount
 
         if paid_amount >= total_amount and total_amount > 0:
@@ -182,14 +186,16 @@ class RegisterService:
         # Initial payment history if paid
         history = list(values.get("payment_history") or [])
         if paid_amount > Decimal("0.00") and not history:
-            history.append({
-                "date": str(data.sale_date),
-                "amount": str(paid_amount),
-                "method": data.payment_method or "Espèces",
-                "comment": "Paiement / Acompte initial",
-                "recorded_by": user,
-                "resulting_balance": str(max(Decimal("0.00"), total_amount - paid_amount)),
-            })
+            history.append(
+                {
+                    "date": str(data.sale_date),
+                    "amount": str(paid_amount),
+                    "method": data.payment_method or "Espèces",
+                    "comment": "Paiement / Acompte initial",
+                    "recorded_by": user,
+                    "resulting_balance": str(max(Decimal("0.00"), total_amount - paid_amount)),
+                }
+            )
         values["payment_history"] = history
 
         obj = Sale(organization_id=org, created_by_user_id=user, updated_by_user_id=user, **values)
@@ -198,7 +204,11 @@ class RegisterService:
 
         # Automatic Stock Decrement if product tracks inventory
         if target_offer and target_offer.track_stock:
-            current_qty = target_offer.stock_quantity if target_offer.stock_quantity is not None else Decimal("0.00")
+            current_qty = (
+                target_offer.stock_quantity
+                if target_offer.stock_quantity is not None
+                else Decimal("0.00")
+            )
             sold_qty = data.quantity if data.quantity is not None else Decimal("1.00")
             target_offer.stock_quantity = max(Decimal("0.00"), current_qty - sold_qty)
             target_offer.updated_by_user_id = user
@@ -242,9 +252,7 @@ class RegisterService:
         obj.payment_history = current_history
         obj.updated_by_user_id = user
 
-        await self._history(
-            s, org, "sale", rid, "payment_recorded", user, dict(history_entry)
-        )
+        await self._history(s, org, "sale", rid, "payment_recorded", user, dict(history_entry))
         await s.commit()
         await s.refresh(obj)
         return obj
@@ -258,7 +266,10 @@ class RegisterService:
         if data.due_date:
             obj.due_date = data.due_date
 
-        if before_type in (DocumentType.QUOTE, DocumentType.PROFORMA) and data.target_type == DocumentType.INVOICE:
+        if (
+            before_type in (DocumentType.QUOTE, DocumentType.PROFORMA)
+            and data.target_type == DocumentType.INVOICE
+        ):
             if obj.reference.startswith("DEV-") or obj.reference.startswith("PRO-"):
                 obj.reference = await generate_next_sale_reference(s, org, DocumentType.INVOICE)
         elif before_type != DocumentType.RECEIPT and data.target_type == DocumentType.RECEIPT:
@@ -455,7 +466,9 @@ class RegisterService:
         await self._history(s, org, typ, rid, "archived", user, {})
         await s.commit()
 
-    async def update_sale_payment_status(self, s, org, user, rid, payment_status, payment_method=None):
+    async def update_sale_payment_status(
+        self, s, org, user, rid, payment_status, payment_method=None
+    ):
         obj = await self.get_sale(s, org, rid)
         before = {"payment_status": obj.payment_status, "payment_method": obj.payment_method}
         obj.payment_status = payment_status
@@ -463,8 +476,16 @@ class RegisterService:
             obj.payment_method = payment_method
         obj.updated_by_user_id = user
         await self._history(
-            s, org, "sale", rid, "payment_status_updated", user,
-            {"before": before, "after": {"payment_status": payment_status, "payment_method": obj.payment_method}}
+            s,
+            org,
+            "sale",
+            rid,
+            "payment_status_updated",
+            user,
+            {
+                "before": before,
+                "after": {"payment_status": payment_status, "payment_method": obj.payment_method},
+            },
         )
         await s.commit()
         await s.refresh(obj)
@@ -509,7 +530,6 @@ class RegisterService:
         # Strict Mathematical Consistency: Total CA = Total Encaissé + Créances en attente
         total_unpaid_amount = max(Decimal("0.00"), total_sales_amount - total_paid_amount)
 
-
         offers_rows = list(
             (
                 await s.scalars(
@@ -532,7 +552,9 @@ class RegisterService:
                     else (off.price if off.price is not None else Decimal("0.00"))
                 )
                 total_stock_value += qty * unit_val
-                min_threshold = off.min_stock_alert if off.min_stock_alert is not None else Decimal("5.00")
+                min_threshold = (
+                    off.min_stock_alert if off.min_stock_alert is not None else Decimal("5.00")
+                )
                 if qty <= min_threshold:
                     low_stock_count += 1
 
@@ -548,8 +570,9 @@ class RegisterService:
         expenses_rows = list(
             (
                 await s.scalars(
-                    select(Expense)
-                    .where(Expense.organization_id == org, Expense.is_archived.is_(False))
+                    select(Expense).where(
+                        Expense.organization_id == org, Expense.is_archived.is_(False)
+                    )
                 )
             ).all()
         )
@@ -565,9 +588,7 @@ class RegisterService:
 
         suppliers_count = int(
             await s.scalar(
-                select(func.count())
-                .select_from(Supplier)
-                .where(Supplier.organization_id == org)
+                select(func.count()).select_from(Supplier).where(Supplier.organization_id == org)
             )
             or 0
         )
@@ -648,7 +669,9 @@ class RegisterService:
         )
         s.add(obj)
         await s.flush()
-        await self._history(s, org, "expenses", obj.id, "create", user, {"reference": obj.reference})
+        await self._history(
+            s, org, "expenses", obj.id, "create", user, {"reference": obj.reference}
+        )
         await s.commit()
         await s.refresh(obj)
         return obj
@@ -699,7 +722,9 @@ class RegisterService:
             raise ApplicationError("not_found", "Dépense introuvable", 404)
         return obj
 
-    async def update_expense(self, s: AsyncSession, org: str, user: str, rid: str, data: ExpenseUpdate):
+    async def update_expense(
+        self, s: AsyncSession, org: str, user: str, rid: str, data: ExpenseUpdate
+    ):
         obj = await self.get_expense(s, org, rid)
         before = {
             "amount": str(obj.amount),
@@ -731,7 +756,9 @@ class RegisterService:
         obj.updated_by_user_id = user
         await s.flush()
         after = {"payment_status": str(obj.payment_status), "payment_method": obj.payment_method}
-        await self._history(s, org, "expenses", obj.id, "update_payment_status", user, diff(before, after))
+        await self._history(
+            s, org, "expenses", obj.id, "update_payment_status", user, diff(before, after)
+        )
         await s.commit()
         await s.refresh(obj)
         return obj
@@ -792,12 +819,16 @@ class RegisterService:
         return {"items": items, "total": total, "page": page, "page_size": page_size}
 
     async def get_supplier(self, s: AsyncSession, org: str, rid: str):
-        obj = await s.scalar(select(Supplier).where(Supplier.organization_id == org, Supplier.id == rid))
+        obj = await s.scalar(
+            select(Supplier).where(Supplier.organization_id == org, Supplier.id == rid)
+        )
         if not obj:
             raise ApplicationError("not_found", "Fournisseur introuvable", 404)
         return obj
 
-    async def update_supplier(self, s: AsyncSession, org: str, user: str, rid: str, data: SupplierUpdate):
+    async def update_supplier(
+        self, s: AsyncSession, org: str, user: str, rid: str, data: SupplierUpdate
+    ):
         obj = await self.get_supplier(s, org, rid)
         for k, v in data.model_dump(exclude_unset=True).items():
             setattr(obj, k, v)
@@ -866,7 +897,9 @@ class RegisterService:
         total_revenue = total_income_paid + total_income_unpaid
         total_costs = total_expenses_paid + total_expenses_unpaid
         if total_revenue > Decimal("0.00"):
-            estimated_gross_margin = ((total_revenue - total_costs) / total_revenue) * Decimal("100")
+            estimated_gross_margin = ((total_revenue - total_costs) / total_revenue) * Decimal(
+                "100"
+            )
         else:
             estimated_gross_margin = Decimal("0.00")
 
@@ -881,5 +914,3 @@ class RegisterService:
             "primary_currency": primary_currency,
             "recent_expenses": expenses[:10],
         }
-
-

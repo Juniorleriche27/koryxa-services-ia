@@ -52,16 +52,16 @@ class PaymentStatus(StrEnum):
 
 
 class DocumentType(StrEnum):
-    QUOTE = "quote"           # Devis
-    PROFORMA = "proforma"     # Facture Pro Forma
-    INVOICE = "invoice"       # Facture
-    RECEIPT = "receipt"       # Reçu / Facture Acquittée
+    QUOTE = "quote"  # Devis
+    PROFORMA = "proforma"  # Facture Pro Forma
+    INVOICE = "invoice"  # Facture
+    RECEIPT = "receipt"  # Reçu / Facture Acquittée
 
 
 class ExpenseDocumentType(StrEnum):
-    EXPENSE_RECEIPT = "expense_receipt"   # Reçu d'achat / Justificatif
-    SUPPLIER_INVOICE = "supplier_invoice" # Facture fournisseur
-    VOUCHER = "voucher"                   # Bon de caisse / Décaissement
+    EXPENSE_RECEIPT = "expense_receipt"  # Reçu d'achat / Justificatif
+    SUPPLIER_INVOICE = "supplier_invoice"  # Facture fournisseur
+    VOUCHER = "voucher"  # Bon de caisse / Décaissement
 
 
 def str_enum_type(enum_cls: type[StrEnum], length: int = 40, **kwargs: Any) -> SafeStrEnum:

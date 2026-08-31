@@ -16,7 +16,9 @@ depends_on = None
 def upgrade() -> None:
     op.add_column("organizations", sa.Column("logo_storage_key", sa.String(500), nullable=True))
     op.add_column("organizations", sa.Column("logo_content_type", sa.String(100), nullable=True))
-    op.add_column("organizations", sa.Column("logo_updated_at", sa.DateTime(timezone=True), nullable=True))
+    op.add_column(
+        "organizations", sa.Column("logo_updated_at", sa.DateTime(timezone=True), nullable=True)
+    )
 
 
 def downgrade() -> None:

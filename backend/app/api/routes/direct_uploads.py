@@ -74,6 +74,7 @@ async def direct_import_upload(
     content = await file.read(get_settings().max_upload_bytes + 1)
     if len(content) > get_settings().max_upload_bytes:
         from app.core.errors import ApplicationError
+
         raise ApplicationError("file_too_large", "Le fichier dépasse la limite de 100 Mo", 413)
     job, headers, mapping = await ImportService().preview(
         session,

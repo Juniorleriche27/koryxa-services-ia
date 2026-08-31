@@ -66,7 +66,15 @@ class OperationsSOPAgent(BaseSpecializedAgent):
             "thinking_summary": f"Structuration de la procédure opérationnelle ({sector_label})...",
             "action_executed": None,
             "suggested_actions": [
-                {"title": "Consulter les Procédures", "action_type": "navigate", "payload": {"path": "/espace/procedures"}},
-                {"title": "Créer une Procédure", "action_type": "navigate", "payload": {"path": "/espace/procedures"}},
+                {
+                    "title": "Consulter les Procédures",
+                    "action_type": "navigate",
+                    "payload": {"path": "/espace/procedures"},
+                },
+                {
+                    "title": "Créer une Procédure",
+                    "action_type": "navigate",
+                    "payload": {"path": "/espace/procedures"},
+                },
             ],
         }

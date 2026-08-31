@@ -94,29 +94,89 @@ class CoraOrchestrator(BaseSpecializedAgent):
         # Suggested actions localized per language
         suggested_dict = {
             "fr": [
-                SuggestedAction(title="Situation de trésorerie", action_type="send_chat", payload={"prompt": "Quelle est ma trésorerie réelle et mon solde de caisse ?"}),
-                SuggestedAction(title="Chiffre d'affaires", action_type="send_chat", payload={"prompt": "Quel est mon chiffre d'affaires global ?"}),
-                SuggestedAction(title="Créances à relancer", action_type="send_chat", payload={"prompt": "Quels sont les impayés prioritaires ?"}),
+                SuggestedAction(
+                    title="Situation de trésorerie",
+                    action_type="send_chat",
+                    payload={"prompt": "Quelle est ma trésorerie réelle et mon solde de caisse ?"},
+                ),
+                SuggestedAction(
+                    title="Chiffre d'affaires",
+                    action_type="send_chat",
+                    payload={"prompt": "Quel est mon chiffre d'affaires global ?"},
+                ),
+                SuggestedAction(
+                    title="Créances à relancer",
+                    action_type="send_chat",
+                    payload={"prompt": "Quels sont les impayés prioritaires ?"},
+                ),
             ],
             "en": [
-                SuggestedAction(title="Cash position", action_type="send_chat", payload={"prompt": "What is my actual cash in hand?"}),
-                SuggestedAction(title="Total Revenue", action_type="send_chat", payload={"prompt": "What is my total turnover?"}),
-                SuggestedAction(title="Debt recovery", action_type="send_chat", payload={"prompt": "Which clients should I follow up with for unpaid debts?"}),
+                SuggestedAction(
+                    title="Cash position",
+                    action_type="send_chat",
+                    payload={"prompt": "What is my actual cash in hand?"},
+                ),
+                SuggestedAction(
+                    title="Total Revenue",
+                    action_type="send_chat",
+                    payload={"prompt": "What is my total turnover?"},
+                ),
+                SuggestedAction(
+                    title="Debt recovery",
+                    action_type="send_chat",
+                    payload={"prompt": "Which clients should I follow up with for unpaid debts?"},
+                ),
             ],
             "es": [
-                SuggestedAction(title="Situación de caja", action_type="send_chat", payload={"prompt": "¿Cuál es mi saldo real en caja?"}),
-                SuggestedAction(title="Facturación total", action_type="send_chat", payload={"prompt": "¿Cuál es mi facturación global?"}),
-                SuggestedAction(title="Cobros pendientes", action_type="send_chat", payload={"prompt": "¿Cuáles son las deudas pendientes de cobro?"}),
+                SuggestedAction(
+                    title="Situación de caja",
+                    action_type="send_chat",
+                    payload={"prompt": "¿Cuál es mi saldo real en caja?"},
+                ),
+                SuggestedAction(
+                    title="Facturación total",
+                    action_type="send_chat",
+                    payload={"prompt": "¿Cuál es mi facturación global?"},
+                ),
+                SuggestedAction(
+                    title="Cobros pendientes",
+                    action_type="send_chat",
+                    payload={"prompt": "¿Cuáles son las deudas pendientes de cobro?"},
+                ),
             ],
             "pt": [
-                SuggestedAction(title="Saldo de caixa", action_type="send_chat", payload={"prompt": "Qual é o meu saldo real em caixa?"}),
-                SuggestedAction(title="Faturação total", action_type="send_chat", payload={"prompt": "Qual é a minha faturação total?"}),
-                SuggestedAction(title="Cobranças pendentes", action_type="send_chat", payload={"prompt": "Quais são as dívidas pendentes a cobrar?"}),
+                SuggestedAction(
+                    title="Saldo de caixa",
+                    action_type="send_chat",
+                    payload={"prompt": "Qual é o meu saldo real em caixa?"},
+                ),
+                SuggestedAction(
+                    title="Faturação total",
+                    action_type="send_chat",
+                    payload={"prompt": "Qual é a minha faturação total?"},
+                ),
+                SuggestedAction(
+                    title="Cobranças pendentes",
+                    action_type="send_chat",
+                    payload={"prompt": "Quais são as dívidas pendentes a cobrar?"},
+                ),
             ],
             "ar": [
-                SuggestedAction(title="السيولة النقدية", action_type="send_chat", payload={"prompt": "ما هو الرصيد الفعلي في الصندوق؟"}),
-                SuggestedAction(title="إجمالي الإيرادات", action_type="send_chat", payload={"prompt": "ما هو إجمالي الإيرادات والمبيعات؟"}),
-                SuggestedAction(title="الديون المستحقة", action_type="send_chat", payload={"prompt": "ما هي الديون والعملاء الواجب تحصيل مبالغهم؟"}),
+                SuggestedAction(
+                    title="السيولة النقدية",
+                    action_type="send_chat",
+                    payload={"prompt": "ما هو الرصيد الفعلي في الصندوق؟"},
+                ),
+                SuggestedAction(
+                    title="إجمالي الإيرادات",
+                    action_type="send_chat",
+                    payload={"prompt": "ما هو إجمالي الإيرادات والمبيعات؟"},
+                ),
+                SuggestedAction(
+                    title="الديون المستحقة",
+                    action_type="send_chat",
+                    payload={"prompt": "ما هي الديون والعملاء الواجب تحصيل مبالغهم؟"},
+                ),
             ],
         }
         current_suggested = suggested_dict.get(lang, suggested_dict["fr"])
@@ -131,12 +191,79 @@ class CoraOrchestrator(BaseSpecializedAgent):
 
         # 1. Politeness Gateway Triage (< 1ms)
         triage = self.politeness.triage(last_user_msg)
-        is_sales_query = any(w in msg_lower for w in ["chiffre", "vente", "recette", "revenu", "combien on a vendu", "turnover", "revenue", "sales", "facturacion", "ventas", "faturação", "vendas", "مبيعات", "إيرادات", "ارباح"])
-        is_cash_query = any(w in msg_lower for w in ["argent", "trésorerie", "tresorerie", "caisse", "solde", "dépense", "depense", "cash", "treasury", "balance", "expense", "tesoreria", "caja", "gasto", "saldo", "despesa", "صندوق", "سيولة", "مصروف"])
-        is_debt_query = any(w in msg_lower for w in ["créance", "creance", "impayé", "impaye", "relance", "doit", "debt", "unpaid", "receivable", "cobro", "deuda", "divida", "cobrança", "ديون", "مستحقات", "ذمم"])
+        is_sales_query = any(
+            w in msg_lower
+            for w in [
+                "chiffre",
+                "vente",
+                "recette",
+                "revenu",
+                "combien on a vendu",
+                "turnover",
+                "revenue",
+                "sales",
+                "facturacion",
+                "ventas",
+                "faturação",
+                "vendas",
+                "مبيعات",
+                "إيرادات",
+                "ارباح",
+            ]
+        )
+        is_cash_query = any(
+            w in msg_lower
+            for w in [
+                "argent",
+                "trésorerie",
+                "tresorerie",
+                "caisse",
+                "solde",
+                "dépense",
+                "depense",
+                "cash",
+                "treasury",
+                "balance",
+                "expense",
+                "tesoreria",
+                "caja",
+                "gasto",
+                "saldo",
+                "despesa",
+                "صندوق",
+                "سيولة",
+                "مصروف",
+            ]
+        )
+        is_debt_query = any(
+            w in msg_lower
+            for w in [
+                "créance",
+                "creance",
+                "impayé",
+                "impaye",
+                "relance",
+                "doit",
+                "debt",
+                "unpaid",
+                "receivable",
+                "cobro",
+                "deuda",
+                "divida",
+                "cobrança",
+                "ديون",
+                "مستحقات",
+                "ذمم",
+            ]
+        )
 
         # Instant greeting bypass (0ms, skips heavy register loading)
-        if not triage.is_rag_query and not is_sales_query and not is_cash_query and not is_debt_query:
+        if (
+            not triage.is_rag_query
+            and not is_sales_query
+            and not is_cash_query
+            and not is_debt_query
+        ):
             if lang == "en":
                 polite_reply = f"Hello {responsible}! Great to assist you at the helm of {org_name} ({sector_label}).\n\nHow can I help you today? I can analyze your figures, record live transactions, check your cash position, or guide your daily executive decisions."
             elif lang == "es":
@@ -151,7 +278,9 @@ class CoraOrchestrator(BaseSpecializedAgent):
                 reply=polite_reply,
                 provider_used="Politeness Gateway",
                 model_used="koryxa-politeness-agent",
-                agent_name="Cora · Directrice des Opérations" if lang == "fr" else f"Cora · Operations AI ({target_lang})",
+                agent_name="Cora · Directrice des Opérations"
+                if lang == "fr"
+                else f"Cora · Operations AI ({target_lang})",
                 agent_badge="🧑‍💼 Coach Exécutif",
                 thinking_summary="Accueil courtois exécutif",
                 action_executed=None,
@@ -172,9 +301,7 @@ class CoraOrchestrator(BaseSpecializedAgent):
         total_sales_count = int(summary.get("total_sales_count", 0))
 
         recouvrement_rate = (
-            round((total_sales_paid / total_sales_amount) * 100)
-            if total_sales_amount > 0
-            else 100
+            round((total_sales_paid / total_sales_amount) * 100) if total_sales_amount > 0 else 100
         )
 
         unpaid_sales_rows = [
@@ -189,25 +316,65 @@ class CoraOrchestrator(BaseSpecializedAgent):
         ]
 
         if unpaid_sales_rows:
-            unpaid_details_list = "\n".join([
-                f"• {u['client']} : {u['amount']:,.0f} {currency} (Réf: {u['ref']})".replace(",", " ")
-                for u in unpaid_sales_rows[:5]
-            ])
+            unpaid_details_list = "\n".join(
+                [
+                    f"• {u['client']} : {u['amount']:,.0f} {currency} (Réf: {u['ref']})".replace(
+                        ",", " "
+                    )
+                    for u in unpaid_sales_rows[:5]
+                ]
+            )
             unpaid_summary = f"\n{unpaid_details_list}"
         else:
             unpaid_summary = "Aucun impayé en cours (tous vos clients sont à jour)."
 
         # 1. Direct Action Intents (e.g. "Enregistre une vente", "Enregistre une dépense")
-        is_sale_action = any(w in msg_lower for w in [
-            "enregistre", "ajoute", "crée", "cree", "note", "nouvelle vente", "vends", "vendu", 
-            "encaisse", "facture", "vente de", "vente d'"
-        ]) and any(w in msg_lower for w in [
-            "vente", "carton", "sac", "article", "client", "produit", "service", "écolage", "ecolage",
-            "koffi", "yao", "paul", "jean", "biscuit", "boite", "paquet", "bouteille", "f", "cfa", "xof"
-        ])
+        is_sale_action = any(
+            w in msg_lower
+            for w in [
+                "enregistre",
+                "ajoute",
+                "crée",
+                "cree",
+                "note",
+                "nouvelle vente",
+                "vends",
+                "vendu",
+                "encaisse",
+                "facture",
+                "vente de",
+                "vente d'",
+            ]
+        ) and any(
+            w in msg_lower
+            for w in [
+                "vente",
+                "carton",
+                "sac",
+                "article",
+                "client",
+                "produit",
+                "service",
+                "écolage",
+                "ecolage",
+                "koffi",
+                "yao",
+                "paul",
+                "jean",
+                "biscuit",
+                "boite",
+                "paquet",
+                "bouteille",
+                "f",
+                "cfa",
+                "xof",
+            ]
+        )
 
         if is_sale_action:
-            sales_action = await self.sales_agent._try_record_sale(s, org_id, user_id, last_user_msg, currency)
+            sales_action = await self.sales_agent._try_record_sale(
+                s, org_id, user_id, last_user_msg, currency
+            )
             if sales_action:
                 return AIChatResponse(
                     reply=sales_action["reply"],
@@ -217,11 +384,28 @@ class CoraOrchestrator(BaseSpecializedAgent):
                     agent_badge=sales_action["agent_badge"],
                     thinking_summary=sales_action.get("thinking_summary"),
                     action_executed=sales_action.get("action_executed"),
-                    suggested_actions=[SuggestedAction(**a) for a in sales_action.get("suggested_actions", [])],
+                    suggested_actions=[
+                        SuggestedAction(**a) for a in sales_action.get("suggested_actions", [])
+                    ],
                 )
 
-        if any(w in msg_lower for w in ["enregistre une dépense", "enregistre la dépense", "ajoute une dépense", "enregistrer dépense", "nouvelle dépense", "payé une dépense", "décaissement", "dépense de", "depense de"]):
-            expense_action = await self.finance_agent._try_record_expense(s, org_id, user_id, last_user_msg, currency)
+        if any(
+            w in msg_lower
+            for w in [
+                "enregistre une dépense",
+                "enregistre la dépense",
+                "ajoute une dépense",
+                "enregistrer dépense",
+                "nouvelle dépense",
+                "payé une dépense",
+                "décaissement",
+                "dépense de",
+                "depense de",
+            ]
+        ):
+            expense_action = await self.finance_agent._try_record_expense(
+                s, org_id, user_id, last_user_msg, currency
+            )
             if expense_action:
                 return AIChatResponse(
                     reply=expense_action["reply"],
@@ -231,24 +415,69 @@ class CoraOrchestrator(BaseSpecializedAgent):
                     agent_badge=expense_action["agent_badge"],
                     thinking_summary=expense_action.get("thinking_summary"),
                     action_executed=expense_action.get("action_executed"),
-                    suggested_actions=[SuggestedAction(**a) for a in expense_action.get("suggested_actions", [])],
+                    suggested_actions=[
+                        SuggestedAction(**a) for a in expense_action.get("suggested_actions", [])
+                    ],
                 )
 
         # 2. Specific Metric Questions (< 5ms)
-        is_sales_query = any(w in msg_lower for w in [
-            "chiffre d'affaire", "chiffre daffaire", "mon ca", "notre ca", "total des ventes", "total vente", 
-            "combien on a vendu", "combien j'ai vendu", "point sur les ventes", "point des ventes", "bilan des ventes", 
-            "statistiques de vente", "turnover", "revenue", "sales total", "facturacion total"
-        ])
-        is_cash_query = any(w in msg_lower for w in [
-            "trésorerie", "tresorerie", "solde de caisse", "en caisse", "argent disponible", "caisse disponible", 
-            "point de trésorerie", "point de tresorerie", "situation de caisse", "combien j'ai en caisse", 
-            "combien on a en caisse", "cash balance", "cash in hand", "saldo de caja"
-        ])
-        is_debt_query = any(w in msg_lower for w in [
-            "impayé", "impaye", "créance", "creance", "qui me doit", "qui nous doit", "relance client", 
-            "facture en retard", "unpaid", "receivable", "deudas pendientes", "cobros pendientes"
-        ])
+        is_sales_query = any(
+            w in msg_lower
+            for w in [
+                "chiffre d'affaire",
+                "chiffre daffaire",
+                "mon ca",
+                "notre ca",
+                "total des ventes",
+                "total vente",
+                "combien on a vendu",
+                "combien j'ai vendu",
+                "point sur les ventes",
+                "point des ventes",
+                "bilan des ventes",
+                "statistiques de vente",
+                "turnover",
+                "revenue",
+                "sales total",
+                "facturacion total",
+            ]
+        )
+        is_cash_query = any(
+            w in msg_lower
+            for w in [
+                "trésorerie",
+                "tresorerie",
+                "solde de caisse",
+                "en caisse",
+                "argent disponible",
+                "caisse disponible",
+                "point de trésorerie",
+                "point de tresorerie",
+                "situation de caisse",
+                "combien j'ai en caisse",
+                "combien on a en caisse",
+                "cash balance",
+                "cash in hand",
+                "saldo de caja",
+            ]
+        )
+        is_debt_query = any(
+            w in msg_lower
+            for w in [
+                "impayé",
+                "impaye",
+                "créance",
+                "creance",
+                "qui me doit",
+                "qui nous doit",
+                "relance client",
+                "facture en retard",
+                "unpaid",
+                "receivable",
+                "deudas pendientes",
+                "cobros pendientes",
+            ]
+        )
 
         if is_sales_query:
             if lang == "en":
@@ -271,7 +500,9 @@ class CoraOrchestrator(BaseSpecializedAgent):
                 reply=reply,
                 provider_used="Financial Register Core",
                 model_used="koryxa-finance-agent",
-                agent_name="Cora · Directrice des Opérations" if lang == "fr" else f"Cora · Operations AI ({target_lang})",
+                agent_name="Cora · Directrice des Opérations"
+                if lang == "fr"
+                else f"Cora · Operations AI ({target_lang})",
                 agent_badge="🧑‍💼 Coach Exécutif",
                 thinking_summary=f"Calcul en temps réel du chiffre d'affaires pour {org_name}",
                 action_executed=None,
@@ -361,7 +592,9 @@ class CoraOrchestrator(BaseSpecializedAgent):
                 reply=llm_reply,
                 provider_used="Knowlia Intelligence Core",
                 model_used="koryxa-cora-orchestrator",
-                agent_name="Cora · Directrice des Opérations" if lang == "fr" else f"Cora · Operations AI ({target_lang})",
+                agent_name="Cora · Directrice des Opérations"
+                if lang == "fr"
+                else f"Cora · Operations AI ({target_lang})",
                 agent_badge="🧑‍💼 Coach Exécutif",
                 thinking_summary=f"Analyse contextuelle ({target_lang}) pour {org_name}...",
                 action_executed=None,
@@ -384,7 +617,9 @@ class CoraOrchestrator(BaseSpecializedAgent):
             reply=default_reply,
             provider_used="Cora Intelligence (KORYXA Core)",
             model_used="koryxa-cora-orchestrator",
-            agent_name="Cora · Directrice des Opérations" if lang == "fr" else f"Cora · Operations AI ({target_lang})",
+            agent_name="Cora · Directrice des Opérations"
+            if lang == "fr"
+            else f"Cora · Operations AI ({target_lang})",
             agent_badge="🧑‍💼 Coach Exécutif",
             thinking_summary=f"Conseil opérationnel pour {org_name}",
             action_executed=None,

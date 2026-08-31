@@ -83,7 +83,9 @@ def upgrade() -> None:
             "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
         ),
     )
-    op.create_index("ix_attendance_records_organization_id", "attendance_records", ["organization_id"])
+    op.create_index(
+        "ix_attendance_records_organization_id", "attendance_records", ["organization_id"]
+    )
     op.create_index("ix_attendance_records_employee_id", "attendance_records", ["employee_id"])
     op.create_index("ix_attendance_records_date", "attendance_records", ["date"])
     op.create_index("ix_attendance_records_status", "attendance_records", ["status"])

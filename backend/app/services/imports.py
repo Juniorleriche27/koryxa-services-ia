@@ -36,20 +36,58 @@ FIELD_MAPS = {
         "cost_price": ["cost_price", "prix_achat", "cout", "coût"],
     },
     "sales": {
-        "reference": ["reference", "référence", "ref", "n_facture", "num_facture", "facture", "recu", "reçu"],
+        "reference": [
+            "reference",
+            "référence",
+            "ref",
+            "n_facture",
+            "num_facture",
+            "facture",
+            "recu",
+            "reçu",
+        ],
         "sale_date": ["sale_date", "date", "date_vente", "date vente", "date_facture"],
         "client_name": ["client_name", "client", "nom_client", "acheteur", "nom"],
-        "item_label": ["item_label", "produit", "service", "offre", "article", "designation", "désignation", "libelle"],
+        "item_label": [
+            "item_label",
+            "produit",
+            "service",
+            "offre",
+            "article",
+            "designation",
+            "désignation",
+            "libelle",
+        ],
         "quantity": ["quantity", "quantite", "quantité", "qte", "nombre"],
         "unit_price": ["unit_price", "prix_unitaire", "pu", "prix", "tarif"],
         "discount": ["discount", "remise", "rabais", "reduction"],
-        "payment_method": ["payment_method", "mode_paiement", "mode paiement", "reglement", "règlement"],
-        "payment_status": ["payment_status", "etat_paiement", "statut", "statut_paiement", "paye", "payé"],
+        "payment_method": [
+            "payment_method",
+            "mode_paiement",
+            "mode paiement",
+            "reglement",
+            "règlement",
+        ],
+        "payment_status": [
+            "payment_status",
+            "etat_paiement",
+            "statut",
+            "statut_paiement",
+            "paye",
+            "payé",
+        ],
     },
     "depenses": {
         "reference": ["reference", "référence", "ref", "n_piece", "piece", "justificatif"],
         "expense_date": ["expense_date", "date", "date_depense", "date dépense"],
-        "beneficiary": ["beneficiary", "beneficiaire", "bénéficiaire", "fournisseur", "prestataire", "nom"],
+        "beneficiary": [
+            "beneficiary",
+            "beneficiaire",
+            "bénéficiaire",
+            "fournisseur",
+            "prestataire",
+            "nom",
+        ],
         "category": ["category", "categorie", "catégorie", "type_charge", "type"],
         "amount": ["amount", "montant", "total", "prix", "ttc"],
         "payment_method": ["payment_method", "mode_paiement", "mode paiement", "reglement"],
@@ -91,7 +129,7 @@ REQUIRED = {
 class ImportService:
     def parse(self, filename: str, content: bytes) -> list[dict[str, object]]:
         extension = filename.lower().rsplit(".", 1)[-1]
-        
+
         # CSV & TSV (Multi-delimiter detection)
         if extension in {"csv", "tsv", "txt"}:
             text = content.decode("utf-8-sig", errors="replace")
@@ -104,7 +142,7 @@ class ImportService:
                 delimiter = ";"
             elif "|" in sample and sample.count("|") > sample.count(","):
                 delimiter = "|"
-            
+
             reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
             rows = [dict(row) for row in reader if any(v and str(v).strip() for v in row.values())]
             return rows
@@ -129,11 +167,19 @@ class ImportService:
                 if not values:
                     return []
                 # Clean headers
-                headers = [str(value or f"Col_{idx+1}").strip() for idx, value in enumerate(values[0])]
+                headers = [
+                    str(value or f"Col_{idx + 1}").strip() for idx, value in enumerate(values[0])
+                ]
                 rows = []
                 for row in values[1:]:
                     if any(v is not None and str(v).strip() for v in row):
-                        rows.append({headers[index]: value for index, value in enumerate(row) if index < len(headers)})
+                        rows.append(
+                            {
+                                headers[index]: value
+                                for index, value in enumerate(row)
+                                if index < len(headers)
+                            }
+                        )
                 return rows
             except Exception as e:
                 raise ApplicationError(
@@ -149,7 +195,11 @@ class ImportService:
         )
 
     def suggest(self, headers: list[str], register_type: str) -> dict[str, str]:
-        reg_key = "depenses" if register_type == "expenses" else ("offers" if register_type == "products" else register_type)
+        reg_key = (
+            "depenses"
+            if register_type == "expenses"
+            else ("offers" if register_type == "products" else register_type)
+        )
         reg_map = FIELD_MAPS.get(reg_key, {})
         suggestions: dict[str, str] = {}
         for header in headers:
@@ -169,17 +219,23 @@ class ImportService:
         filename: str,
         content: bytes,
     ) -> tuple[ImportJob, list[str], dict[str, str]]:
-        reg_key = "depenses" if register_type == "expenses" else ("offers" if register_type == "products" else register_type)
+        reg_key = (
+            "depenses"
+            if register_type == "expenses"
+            else ("offers" if register_type == "products" else register_type)
+        )
         if reg_key not in FIELD_MAPS:
             raise ApplicationError("invalid_register", f"Registre invalide : {register_type}", 400)
-        
+
         rows = self.parse(filename, content)
         if not rows:
-            raise ApplicationError("empty_file", "Le fichier ne contient aucune ligne exploitable", 422)
-        
+            raise ApplicationError(
+                "empty_file", "Le fichier ne contient aucune ligne exploitable", 422
+            )
+
         headers = list(rows[0].keys())
         mapping = self.suggest(headers, reg_key)
-        
+
         duplicates: list[int] = []
         seen: set[tuple[str, ...]] = set()
         for row_number, row in enumerate(rows, start=2):
@@ -187,7 +243,7 @@ class ImportService:
             if signature in seen:
                 duplicates.append(row_number)
             seen.add(signature)
-            
+
         job = ImportJob(
             organization_id=organization_id,
             register_type=reg_key,
@@ -222,7 +278,7 @@ class ImportService:
             raise ApplicationError("import_not_found", "Import introuvable", 404)
         if job.status != ImportStatus.PREVIEW:
             raise ApplicationError("import_not_pending", "Import déjà validé ou archivé", 409)
-        
+
         required_fields = REQUIRED.get(job.register_type, set())
         mapped_targets = set(mapping.values())
         missing = required_fields - mapped_targets
@@ -232,10 +288,10 @@ class ImportService:
                 f"Veuillez faire correspondre les champs obligatoires suivants : {', '.join(sorted(missing))}",
                 422,
             )
-            
+
         imported_ids: list[str] = []
         errors: list[dict[str, object]] = []
-        
+
         for row_number, row in enumerate(job.preview_rows, start=2):
             data = {target: row.get(source) for source, target in mapping.items() if target}
             try:
@@ -245,7 +301,7 @@ class ImportService:
                 imported_ids.append(record.id)
             except Exception as exc:
                 errors.append({"row": row_number, "message": str(exc)})
-                
+
         if errors and len(errors) > len(job.preview_rows) * 0.5:
             await session.rollback()
             job = await session.scalar(
@@ -261,7 +317,7 @@ class ImportService:
             await session.commit()
             await session.refresh(job)
             return job
-            
+
         job.status = ImportStatus.COMPLETED
         job.column_mapping = mapping
         job.imported_record_ids = imported_ids
@@ -293,7 +349,7 @@ class ImportService:
                 created_by_user_id=user_id,
                 updated_by_user_id=user_id,
             )
-            
+
         if register_type == "sales":
             quantity = self._decimal(data.get("quantity"), default=Decimal("1.00"))
             unit_price = self._decimal(data.get("unit_price"), default=Decimal("0.00"))
@@ -302,7 +358,7 @@ class ImportService:
             payment_status = self._payment_status(data.get("payment_status"))
             paid_amount = total_amt if payment_status == PaymentStatus.PAID else Decimal("0.00")
             ref = str(data.get("reference") or f"IMP-VENTE-{uuid4().hex[:6].upper()}").strip()
-            
+
             return Sale(
                 organization_id=organization_id,
                 reference=ref,
@@ -321,13 +377,13 @@ class ImportService:
                 created_by_user_id=user_id,
                 updated_by_user_id=user_id,
             )
-            
+
         if register_type in {"depenses", "expenses"}:
             amt = self._decimal(data.get("amount"), default=Decimal("0.00"))
             ref = str(data.get("reference") or f"IMP-DEPENSE-{uuid4().hex[:6].upper()}").strip()
             payment_status = self._payment_status(data.get("payment_status"))
             paid_amt = amt if payment_status == PaymentStatus.PAID else Decimal("0.00")
-            
+
             return Expense(
                 organization_id=organization_id,
                 reference=ref,
@@ -344,7 +400,7 @@ class ImportService:
                 created_by_user_id=user_id,
                 updated_by_user_id=user_id,
             )
-            
+
         if register_type in {"fournisseurs", "suppliers"}:
             return Supplier(
                 organization_id=organization_id,
@@ -357,7 +413,7 @@ class ImportService:
                 created_by_user_id=user_id,
                 updated_by_user_id=user_id,
             )
-            
+
         return Procedure(
             organization_id=organization_id,
             title=self._required_text(data, "title"),
@@ -459,7 +515,19 @@ class ImportService:
     @staticmethod
     def _payment_status(value: object) -> PaymentStatus:
         normalized = str(value or "paid").strip().lower()
-        if any(w in normalized for w in ["impayé", "impaye", "non payé", "non paye", "unpaid", "attente", "credit", "crédit"]):
+        if any(
+            w in normalized
+            for w in [
+                "impayé",
+                "impaye",
+                "non payé",
+                "non paye",
+                "unpaid",
+                "attente",
+                "credit",
+                "crédit",
+            ]
+        ):
             return PaymentStatus.UNPAID
         if any(w in normalized for w in ["partiel", "partial", "acompte"]):
             return PaymentStatus.PARTIAL

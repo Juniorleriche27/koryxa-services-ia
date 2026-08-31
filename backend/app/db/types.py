@@ -8,14 +8,17 @@ from sqlalchemy.types import String, TypeDecorator
 
 class SafeStrEnum(TypeDecorator):
     """Case-insensitive, resilient StrEnum type decorator.
-    
+
     Reads both uppercase ('PAID', 'VALIDATED') and lowercase ('paid', 'validated') values
     from database columns and safely converts them to the target Python StrEnum.
     """
+
     impl = String(40)
     cache_ok = True
 
-    def __init__(self, enum_cls: type[StrEnum], length: int = 40, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self, enum_cls: type[StrEnum], length: int = 40, *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.impl = String(length)
         self.enum_cls = enum_cls

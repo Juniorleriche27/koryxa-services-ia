@@ -74,4 +74,6 @@ async def update_current_logo(
 @router.get("/current/logo", response_model=None)
 async def current_logo(organization: OrganizationDep, _: MemberDep) -> Response:
     content, content_type = OrganizationService().read_logo(organization)
-    return Response(content=content, media_type=content_type, headers={"Cache-Control": "private, max-age=3600"})
+    return Response(
+        content=content, media_type=content_type, headers={"Cache-Control": "private, max-age=3600"}
+    )

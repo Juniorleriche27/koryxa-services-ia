@@ -136,7 +136,9 @@ class AutomationService:
         ]
 
         if sales_by_method:
-            methods_str = ", ".join([f"{k}: {v:,.0f} {sales_currency}" for k, v in sales_by_method.items()])
+            methods_str = ", ".join(
+                [f"{k}: {v:,.0f} {sales_currency}" for k, v in sales_by_method.items()]
+            )
             msg_lines.append(f"📱 *Modes d'encaissement :* {methods_str}")
 
         msg_lines.append("")
@@ -145,7 +147,9 @@ class AutomationService:
             for item in low_stock_alerts[:5]:
                 icon = "⛔" if item.is_out_of_stock else "⚠️"
                 unit = f" {item.billing_unit}" if item.billing_unit else ""
-                msg_lines.append(f" {icon} {item.name} : {item.stock_quantity:g}{unit} restant(s) (alerte: {item.min_stock_alert:g})")
+                msg_lines.append(
+                    f" {icon} {item.name} : {item.stock_quantity:g}{unit} restant(s) (alerte: {item.min_stock_alert:g})"
+                )
         else:
             msg_lines.append("📦 *Stock :* Tous les niveaux sont conformes ✓")
 

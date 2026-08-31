@@ -17,11 +17,27 @@ depends_on = None
 
 def upgrade() -> None:
     with op.batch_alter_table("organizations", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("subscription_plan", sa.String(length=40), server_default="trial", nullable=False))
-        batch_op.add_column(sa.Column("subscription_status", sa.String(length=40), server_default="trial", nullable=False))
-        batch_op.add_column(sa.Column("subscription_period_months", sa.Integer(), server_default="3", nullable=False))
-        batch_op.add_column(sa.Column("subscription_ends_at", sa.DateTime(timezone=True), nullable=True))
-        batch_op.add_column(sa.Column("max_authorized_senders", sa.Integer(), server_default="3", nullable=False))
+        batch_op.add_column(
+            sa.Column(
+                "subscription_plan", sa.String(length=40), server_default="trial", nullable=False
+            )
+        )
+        batch_op.add_column(
+            sa.Column(
+                "subscription_status", sa.String(length=40), server_default="trial", nullable=False
+            )
+        )
+        batch_op.add_column(
+            sa.Column(
+                "subscription_period_months", sa.Integer(), server_default="3", nullable=False
+            )
+        )
+        batch_op.add_column(
+            sa.Column("subscription_ends_at", sa.DateTime(timezone=True), nullable=True)
+        )
+        batch_op.add_column(
+            sa.Column("max_authorized_senders", sa.Integer(), server_default="3", nullable=False)
+        )
 
     op.create_table(
         "billing_transactions",
@@ -39,11 +55,21 @@ def upgrade() -> None:
         sa.Column("idempotency_key", sa.String(length=120), nullable=False),
         sa.Column("customer_phone", sa.String(length=40), nullable=True),
         sa.Column("customer_email", sa.String(length=180), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
     )
     op.create_index("ix_billing_transactions_org_id", "billing_transactions", ["organization_id"])
-    op.create_index("ix_billing_transactions_idempotency_key", "billing_transactions", ["idempotency_key"], unique=True)
+    op.create_index(
+        "ix_billing_transactions_idempotency_key",
+        "billing_transactions",
+        ["idempotency_key"],
+        unique=True,
+    )
     op.create_index("ix_billing_transactions_status", "billing_transactions", ["status"])
 
 

@@ -67,7 +67,15 @@ class RadarSentinelAgent(BaseSpecializedAgent):
             "thinking_summary": f"Audit de conformité et détection des anomalies ({sector_label})...",
             "action_executed": None,
             "suggested_actions": [
-                {"title": "Consulter le Radar & Qualité", "action_type": "navigate", "payload": {"path": "/espace/radar"}},
-                {"title": "Voir les Actions Kanban", "action_type": "navigate", "payload": {"path": "/espace/actions"}},
+                {
+                    "title": "Consulter le Radar & Qualité",
+                    "action_type": "navigate",
+                    "payload": {"path": "/espace/radar"},
+                },
+                {
+                    "title": "Voir les Actions Kanban",
+                    "action_type": "navigate",
+                    "payload": {"path": "/espace/actions"},
+                },
             ],
         }

@@ -17,9 +17,7 @@ depends_on = None
 
 def upgrade() -> None:
     with op.batch_alter_table("whatsapp_authorized_senders", schema=None) as batch_op:
-        batch_op.add_column(
-            sa.Column("whatsapp_lid", sa.String(length=64), nullable=True)
-        )
+        batch_op.add_column(sa.Column("whatsapp_lid", sa.String(length=64), nullable=True))
         batch_op.create_index("ix_whatsapp_authorized_senders_whatsapp_lid", ["whatsapp_lid"])
 
 

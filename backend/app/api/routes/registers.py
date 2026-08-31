@@ -67,7 +67,9 @@ async def generate_reference(
     if type == "expense":
         ref = await generate_next_expense_reference(s, o.id)
     else:
-        doc_type = DocumentType(type) if type in [e.value for e in DocumentType] else DocumentType.INVOICE
+        doc_type = (
+            DocumentType(type) if type in [e.value for e in DocumentType] else DocumentType.INVOICE
+        )
         ref = await generate_next_sale_reference(s, o.id, doc_type)
     return ReferenceGenerationResponse(reference=ref, document_type=type)
 
@@ -249,7 +251,9 @@ async def history(typ: str, rid: str, s: SessionDep, o: OrgDep, _: ReadDep):
 
 # ------------------ EXPENSES ENDPOINTS ------------------
 @router.post("/expenses", response_model=ExpenseRead, status_code=201)
-async def create_expense(data: ExpenseCreate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep):
+async def create_expense(
+    data: ExpenseCreate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep
+):
     return await svc.create_expense(s, o.id, i.user_id, data)
 
 
@@ -302,7 +306,9 @@ async def delete_expense(rid: str, s: SessionDep, i: IdentityDep, o: OrgDep, _: 
 
 # ------------------ SUPPLIERS ENDPOINTS ------------------
 @router.post("/suppliers", response_model=SupplierRead, status_code=201)
-async def create_supplier(data: SupplierCreate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep):
+async def create_supplier(
+    data: SupplierCreate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep
+):
     return await svc.create_supplier(s, o.id, i.user_id, data)
 
 
@@ -346,5 +352,3 @@ async def delete_supplier(rid: str, s: SessionDep, i: IdentityDep, o: OrgDep, _:
 @router.get("/cashflow-summary", response_model=CashflowSummary)
 async def cashflow_summary(s: SessionDep, o: OrgDep, _: ReadDep):
     return await svc.get_cashflow_summary(s, o.id)
-
-

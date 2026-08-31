@@ -42,9 +42,7 @@ async def update_ai_config(data: AIConfigUpdate, s: SessionDep, o: OrgDep, _: Ma
 
 
 @router.post("/chat", response_model=AIChatResponse)
-async def copilot_chat(
-    data: AIChatRequest, s: SessionDep, i: IdentityDep, o: OrgDep, _: ReadDep
-):
+async def copilot_chat(data: AIChatRequest, s: SessionDep, i: IdentityDep, o: OrgDep, _: ReadDep):
     return await ai_service.chat(s, o.id, i.user_id, data)
 
 

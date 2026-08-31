@@ -87,9 +87,7 @@ class EmailService:
     def _send(message: EmailMessage) -> None:
         settings = get_settings()
         if not settings.smtp_host or not settings.smtp_username:
-            raise ApplicationError(
-                "email_unavailable", "L’envoi d’e-mail n’est pas configuré", 503
-            )
+            raise ApplicationError("email_unavailable", "L’envoi d’e-mail n’est pas configuré", 503)
         password = settings.smtp_password.get_secret_value() if settings.smtp_password else ""
         if settings.smtp_use_ssl:
             with smtplib.SMTP_SSL(

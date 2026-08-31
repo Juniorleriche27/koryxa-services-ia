@@ -44,13 +44,28 @@ class FinanceAgent(BaseSpecializedAgent):
         domain = domain or {}
         sector_label = domain.get("sector_label", "Commerce & Entreprise")
         agent_role = domain.get("role_finance", self.role_title)
-        is_education = "scol" in sector_label.lower() or "ecole" in sector_label.lower() or "éduc" in sector_label.lower()
+        is_education = (
+            "scol" in sector_label.lower()
+            or "ecole" in sector_label.lower()
+            or "éduc" in sector_label.lower()
+        )
 
         # Action: Detect "Enregistre une dépense / vacation / charge..."
         expense_triggers = [
-            "enregistre une dépense", "enregistre la dépense", "ajoute une dépense", "enregistrer dépense",
-            "nouvelle dépense", "payé une dépense", "dépense de", "règlement vacation", "reglement vacation",
-            "vacation de", "salaire de", "achat fourniture", "décaissement de", "decaissement de",
+            "enregistre une dépense",
+            "enregistre la dépense",
+            "ajoute une dépense",
+            "enregistrer dépense",
+            "nouvelle dépense",
+            "payé une dépense",
+            "dépense de",
+            "règlement vacation",
+            "reglement vacation",
+            "vacation de",
+            "salaire de",
+            "achat fourniture",
+            "décaissement de",
+            "decaissement de",
         ]
         if any(w in msg_lower for w in expense_triggers):
             action_res = await self._try_record_expense(s, org, user, user_message, currency)
@@ -64,9 +79,7 @@ class FinanceAgent(BaseSpecializedAgent):
         total_sales_unpaid = float(context.get("total_sales_unpaid", 0))
         net_cash = total_sales_paid - total_expenses_paid
         recouvrement_rate = (
-            round((total_sales_paid / total_sales_amount) * 100)
-            if total_sales_amount > 0
-            else 100
+            round((total_sales_paid / total_sales_amount) * 100) if total_sales_amount > 0 else 100
         )
 
         llm_prompt = (
@@ -111,12 +124,22 @@ class FinanceAgent(BaseSpecializedAgent):
         return {
             "reply": reply,
             "agent_name": f"{agent_role} (KORYXA Expert)",
-            "agent_badge": "🎓 Intendance & Trésorerie" if is_education else "📊 Finance & Trésorerie",
+            "agent_badge": "🎓 Intendance & Trésorerie"
+            if is_education
+            else "📊 Finance & Trésorerie",
             "thinking_summary": f"Analyse rigoureuse de la trésorerie et conformité ({sector_label})...",
             "action_executed": None,
             "suggested_actions": [
-                {"title": "Voir la Trésorerie & Dépenses", "action_type": "navigate", "payload": {"path": "/espace/depenses"}},
-                {"title": "Relancer les créances clients", "action_type": "navigate", "payload": {"path": "/espace/ventes"}},
+                {
+                    "title": "Voir la Trésorerie & Dépenses",
+                    "action_type": "navigate",
+                    "payload": {"path": "/espace/depenses"},
+                },
+                {
+                    "title": "Relancer les créances clients",
+                    "action_type": "navigate",
+                    "payload": {"path": "/espace/ventes"},
+                },
             ],
         }
 
@@ -124,7 +147,9 @@ class FinanceAgent(BaseSpecializedAgent):
         self, s: AsyncSession, org: str, user: str, msg: str, currency: str
     ) -> dict[str, Any] | None:
         # Regex to capture amount and beneficiary/category
-        amount_match = re.search(r"(\d+(?:[\s.,]\d+)?)\s*(?:f|cfa|xof|eur|\$|francs?)?", msg, re.IGNORECASE)
+        amount_match = re.search(
+            r"(\d+(?:[\s.,]\d+)?)\s*(?:f|cfa|xof|eur|\$|francs?)?", msg, re.IGNORECASE
+        )
         if not amount_match:
             return None
 
@@ -136,7 +161,15 @@ class FinanceAgent(BaseSpecializedAgent):
 
         # Detect category
         category = "Divers"
-        for cat in ["Loyer", "Salaires", "Marchandises", "Énergie", "Transport", "Marketing", "Taxes"]:
+        for cat in [
+            "Loyer",
+            "Salaires",
+            "Marchandises",
+            "Énergie",
+            "Transport",
+            "Marketing",
+            "Taxes",
+        ]:
             if cat.lower() in msg.lower():
                 category = cat
                 break
@@ -194,6 +227,10 @@ class FinanceAgent(BaseSpecializedAgent):
                 "category": category,
             },
             "suggested_actions": [
-                {"title": "Consulter les Dépenses", "action_type": "navigate", "payload": {"path": "/espace/depenses"}},
+                {
+                    "title": "Consulter les Dépenses",
+                    "action_type": "navigate",
+                    "payload": {"path": "/espace/depenses"},
+                },
             ],
         }

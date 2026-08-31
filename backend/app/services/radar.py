@@ -80,7 +80,6 @@ DEFAULTS = {
 }
 
 
-
 class RadarService:
     async def set_config(self, s, org, user, code, data):
         if code not in DEFAULTS:
@@ -360,7 +359,9 @@ class RadarService:
 
         # ------------------ EXPENSES & CASHFLOW CHECKS ------------------
         for exp in expenses:
-            delay = int(self.params(configs, "expense.payment_overdue").get("payment_delay_days", 30))
+            delay = int(
+                self.params(configs, "expense.payment_overdue").get("payment_delay_days", 30)
+            )
             if (
                 exp.payment_status == PaymentStatus.UNPAID
                 and exp.expense_date + timedelta(days=delay) < today

@@ -54,7 +54,11 @@ class AIConfigRead(AIConfigBase):
     )
     available_providers: list[dict[str, str]] = Field(
         default_factory=lambda: [
-            {"id": "knowlia", "name": "Knowlia Intelligence", "description": "Mémoire et intelligence d'entreprise via la passerelle IA KORYXA"},
+            {
+                "id": "knowlia",
+                "name": "Knowlia Intelligence",
+                "description": "Mémoire et intelligence d'entreprise via la passerelle IA KORYXA",
+            },
         ]
     )
 
@@ -82,7 +86,9 @@ class AIChatRequest(BaseModel):
 
 class SuggestedAction(BaseModel):
     title: str
-    action_type: str  # e.g., "navigate", "create_sale", "create_expense", "run_radar", "send_reminder"
+    action_type: (
+        str  # e.g., "navigate", "create_sale", "create_expense", "run_radar", "send_reminder"
+    )
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -118,7 +124,9 @@ class PaymentReminderRequest(BaseModel):
     paid_amount: float = 0.0
     balance_due: float | None = None
     due_date: str | None = None
-    due_status: str | None = None  # "upcoming" (avant échéance), "due_today" (jour J), "overdue" (en retard)
+    due_status: str | None = (
+        None  # "upcoming" (avant échéance), "due_today" (jour J), "overdue" (en retard)
+    )
     currency: str = "XOF"
     reference: str
     overdue_days: int = 0

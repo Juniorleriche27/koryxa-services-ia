@@ -12,9 +12,15 @@ class WhatsAppWebhookQuery(BaseModel):
 
 
 class WhatsAppAuthorizedSenderCreate(BaseModel):
-    phone_number: str = Field(min_length=6, max_length=32, description="Numéro au format E.164 (+225...)")
-    whatsapp_lid: str | None = Field(default=None, max_length=64, description="LID WhatsApp associé si connu")
-    label: str | None = Field(default=None, max_length=100, description="Nom ou rôle du collaborateur")
+    phone_number: str = Field(
+        min_length=6, max_length=32, description="Numéro au format E.164 (+225...)"
+    )
+    whatsapp_lid: str | None = Field(
+        default=None, max_length=64, description="LID WhatsApp associé si connu"
+    )
+    label: str | None = Field(
+        default=None, max_length=100, description="Nom ou rôle du collaborateur"
+    )
     is_active: bool = True
 
 

@@ -70,15 +70,27 @@ class QuerySanitizer:
         ]
 
         # Compile regexes
-        all_prefixes = self.fr_prefixes + self.en_prefixes + self.es_prefixes + self.pt_prefixes + self.ar_prefixes
-        all_suffixes = self.fr_suffixes + self.en_suffixes + self.es_suffixes + self.pt_suffixes + self.ar_suffixes
+        all_prefixes = (
+            self.fr_prefixes
+            + self.en_prefixes
+            + self.es_prefixes
+            + self.pt_prefixes
+            + self.ar_prefixes
+        )
+        all_suffixes = (
+            self.fr_suffixes
+            + self.en_suffixes
+            + self.es_suffixes
+            + self.pt_suffixes
+            + self.ar_suffixes
+        )
         self._prefix_regexes = [re.compile(p, re.IGNORECASE) for p in all_prefixes]
         self._suffix_regexes = [re.compile(s, re.IGNORECASE) for s in all_suffixes]
 
     def sanitize(self, query: str) -> str:
         """
         Removes conversational wrappers and returns clean semantic query.
-        
+
         Example:
             Input: "Bonjour, pourriez-vous me dire comment renouveler mon passeport svp ?"
             Output: "comment renouveler mon passeport"
@@ -96,7 +108,7 @@ class QuerySanitizer:
             for pattern in self._prefix_regexes:
                 match = pattern.match(cleaned)
                 if match:
-                    cleaned = cleaned[match.end():].strip()
+                    cleaned = cleaned[match.end() :].strip()
                     changed = True
 
         # Progressively strip matching suffixes
@@ -108,7 +120,7 @@ class QuerySanitizer:
             for pattern in self._suffix_regexes:
                 match = pattern.search(cleaned)
                 if match:
-                    cleaned = cleaned[:match.start()].strip()
+                    cleaned = cleaned[: match.start()].strip()
                     changed = True
 
         # Clean trailing punctuation like stray commas, question marks or semicolons

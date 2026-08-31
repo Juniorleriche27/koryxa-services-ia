@@ -42,20 +42,48 @@ class VoiceService:
     def __init__(self, register_service: RegisterService | None = None) -> None:
         self.register_service = register_service or RegisterService()
 
-    def parse_transcript(self, request: VoiceParseRequest | str, default_currency: str = "XOF") -> VoiceParseResponse:
+    def parse_transcript(
+        self, request: VoiceParseRequest | str, default_currency: str = "XOF"
+    ) -> VoiceParseResponse:
         raw_text = request.transcript if isinstance(request, VoiceParseRequest) else str(request)
         text = clean_speech_duplicates(raw_text.strip())
         lower = text.lower()
 
         # Determine Intent
         intent = VoiceIntent.UNKNOWN
-        if any(w in lower for w in ["dépense", "depense", "achat carburant", "achat fournitures", "charge", "frais", "décaissement", "decaissement", "payé fournisseur", "achat matériel", "loyer", "électricité", "facture fournisseur", "carburant"]):
+        if any(
+            w in lower
+            for w in [
+                "dépense",
+                "depense",
+                "achat carburant",
+                "achat fournitures",
+                "charge",
+                "frais",
+                "décaissement",
+                "decaissement",
+                "payé fournisseur",
+                "achat matériel",
+                "loyer",
+                "électricité",
+                "facture fournisseur",
+                "carburant",
+            ]
+        ):
             intent = VoiceIntent.EXPENSE
-        elif any(w in lower for w in ["vente", "vendu", "encaissé", "facturé", "achat client", "vends", "client"]):
+        elif any(
+            w in lower
+            for w in ["vente", "vendu", "encaissé", "facturé", "achat client", "vends", "client"]
+        ):
             intent = VoiceIntent.SALE
-        elif any(w in lower for w in ["procédure", "processus", "méthode", "étapes", "consigne", "protocole"]):
+        elif any(
+            w in lower
+            for w in ["procédure", "processus", "méthode", "étapes", "consigne", "protocole"]
+        ):
             intent = VoiceIntent.PROCEDURE
-        elif any(w in lower for w in ["offre", "tarif", "prix officiel", "prestation", "catalogue"]):
+        elif any(
+            w in lower for w in ["offre", "tarif", "prix officiel", "prestation", "catalogue"]
+        ):
             intent = VoiceIntent.OFFER
         else:
             # Default heuristics: if numbers and client/product mentioned, assume sale
@@ -168,7 +196,18 @@ class VoiceService:
             ("MTN Mobile Money", ["mtn money", "momo", "mtn mobile money", "mtn"]),
             ("Airtel Money", ["airtel money", "airtel"]),
             ("Mixx by Yas", ["mixx by yas", "mixx"]),
-            ("Espèces", ["espèces", "especes", "cash", "en liquide", "liquide", "main à main", "au comptant"]),
+            (
+                "Espèces",
+                [
+                    "espèces",
+                    "especes",
+                    "cash",
+                    "en liquide",
+                    "liquide",
+                    "main à main",
+                    "au comptant",
+                ],
+            ),
             ("Virement Bancaire", ["virement bancaire", "virement", "compte bancaire"]),
             ("Chèque", ["chèque", "cheque"]),
             ("Carte Bancaire", ["carte bancaire", "carte", "cb", "visa", "mastercard"]),
@@ -181,11 +220,46 @@ class VoiceService:
                 break
 
         # Status checks
-        if any(w in lower for w in ["non payé", "non payee", "non paye", "impayé", "impayee", "impaye", "à crédit", "a credit", "crédit", "credit", "reste à payer", "en attente"]):
+        if any(
+            w in lower
+            for w in [
+                "non payé",
+                "non payee",
+                "non paye",
+                "impayé",
+                "impayee",
+                "impaye",
+                "à crédit",
+                "a credit",
+                "crédit",
+                "credit",
+                "reste à payer",
+                "en attente",
+            ]
+        ):
             status = PaymentStatus.UNPAID
-        elif any(w in lower for w in ["partiel", "partielle", "acompte", "avance", "partiellement"]):
+        elif any(
+            w in lower for w in ["partiel", "partielle", "acompte", "avance", "partiellement"]
+        ):
             status = PaymentStatus.PARTIAL
-        elif any(w in lower for w in ["payé", "payee", "paye", "encaissé", "encaissee", "encaisse", "réglé", "regle", "soldé", "solde"]) or detected_method:
+        elif (
+            any(
+                w in lower
+                for w in [
+                    "payé",
+                    "payee",
+                    "paye",
+                    "encaissé",
+                    "encaissee",
+                    "encaisse",
+                    "réglé",
+                    "regle",
+                    "soldé",
+                    "solde",
+                ]
+            )
+            or detected_method
+        ):
             status = PaymentStatus.PAID
         else:
             status = PaymentStatus.UNPAID
@@ -204,13 +278,40 @@ class VoiceService:
             m = re.search(pat, text)
             if m:
                 cand = m.group(1).strip()
-                cand = re.sub(r"(?i)^(?:m\.|mr\.|monsieur|mme|madame|le\s+client)\s*", "", cand).strip()
+                cand = re.sub(
+                    r"(?i)^(?:m\.|mr\.|monsieur|mme|madame|le\s+client)\s*", "", cand
+                ).strip()
                 cand = re.sub(r"(?i)\s+et$", "", cand).strip()
-                if len(cand) >= 2 and not bool(re.search(r"^\d", cand)) and cand.lower() not in ["moov", "moov money", "wave", "orange", "orange money", "mtn", "cfa", "euro", "virement", "espèces", "especes", "cash", "un", "une", "le", "la", "les"]:
+                if (
+                    len(cand) >= 2
+                    and not bool(re.search(r"^\d", cand))
+                    and cand.lower()
+                    not in [
+                        "moov",
+                        "moov money",
+                        "wave",
+                        "orange",
+                        "orange money",
+                        "mtn",
+                        "cfa",
+                        "euro",
+                        "virement",
+                        "espèces",
+                        "especes",
+                        "cash",
+                        "un",
+                        "une",
+                        "le",
+                        "la",
+                        "les",
+                    ]
+                ):
                     return cand.title()
         return None
 
-    def _parse_single_sale_segment(self, text: str, default_currency: str = "XOF") -> VoiceSaleCandidate:
+    def _parse_single_sale_segment(
+        self, text: str, default_currency: str = "XOF"
+    ) -> VoiceSaleCandidate:
         currency = self._extract_currency(text, default_currency)
         payment_method, payment_status = self._extract_payment_method(text)
         client_name = self._extract_client_name(text)
@@ -224,8 +325,21 @@ class VoiceService:
         )
         if subject_match:
             cand_client = subject_match.group(1).strip()
-            cand_client = re.sub(r"(?i)^(?:le\s+client|la\s+cliente|m\.|mr\.|monsieur|mme|madame)\s*", "", cand_client).strip()
-            if len(cand_client) >= 2 and cand_client.lower() not in ["on", "nous", "j'ai", "je", "vente", "il", "elle", "j"]:
+            cand_client = re.sub(
+                r"(?i)^(?:le\s+client|la\s+cliente|m\.|mr\.|monsieur|mme|madame)\s*",
+                "",
+                cand_client,
+            ).strip()
+            if len(cand_client) >= 2 and cand_client.lower() not in [
+                "on",
+                "nous",
+                "j'ai",
+                "je",
+                "vente",
+                "il",
+                "elle",
+                "j",
+            ]:
                 client_name = cand_client.capitalize()
                 cleaned = subject_match.group(2).strip()
 
@@ -235,11 +349,27 @@ class VoiceService:
 
         # 3. Convert spoken French number words
         word_numbers = {
-            "deux": "2", "trois": "3", "quatre": "4",
-            "cinq": "5", "six": "6", "sept": "7", "huit": "8", "neuf": "9",
-            "dix": "10", "onze": "11", "douze": "12", "treize": "13", "quatorze": "14",
-            "quinze": "15", "seize": "16", "vingt": "20", "trente": "30",
-            "quarante": "40", "cinquante": "50", "soixante": "60", "cent": "100",
+            "deux": "2",
+            "trois": "3",
+            "quatre": "4",
+            "cinq": "5",
+            "six": "6",
+            "sept": "7",
+            "huit": "8",
+            "neuf": "9",
+            "dix": "10",
+            "onze": "11",
+            "douze": "12",
+            "treize": "13",
+            "quatorze": "14",
+            "quinze": "15",
+            "seize": "16",
+            "vingt": "20",
+            "trente": "30",
+            "quarante": "40",
+            "cinquante": "50",
+            "soixante": "60",
+            "cent": "100",
         }
         for word, num in word_numbers.items():
             cleaned = re.sub(rf"(?i)\b{word}\b(?=\s+[a-zA-ZÀ-ÿ])", num, cleaned)
@@ -250,7 +380,7 @@ class VoiceService:
         num_match = re.match(r"(?i)^(\d{1,4})\s+", cleaned)
         if un_match:
             quantity = Decimal("1")
-            cleaned = cleaned[un_match.end():].strip()
+            cleaned = cleaned[un_match.end() :].strip()
         elif num_match:
             try:
                 num_val = Decimal(num_match.group(1))
@@ -258,27 +388,37 @@ class VoiceService:
                     quantity = Decimal("1")
                 else:
                     quantity = num_val
-                    cleaned = cleaned[num_match.end():].strip()
+                    cleaned = cleaned[num_match.end() :].strip()
             except Exception:
                 quantity = Decimal("1")
 
         # 5. Extract price & per-unit indicator
-        is_per_unit = bool(re.search(
-            r"(?i)\b(?:par\s+(?:unité|unite|pièce|piece|article|sac|carton|ordinateur|personne|heure|jour|mois|licence|boite|bouteille|exemplaire|kg|kilo|litre|produit)|l'unité|l'unite|chacun|la\s+pièce|la\s+piece|pièce|piece|l'une|un\s+carton|le\s+carton|le\s+sac|un\s+sac|l'article|le\s+produit)\b",
-            text,
-        ))
+        is_per_unit = bool(
+            re.search(
+                r"(?i)\b(?:par\s+(?:unité|unite|pièce|piece|article|sac|carton|ordinateur|personne|heure|jour|mois|licence|boite|bouteille|exemplaire|kg|kilo|litre|produit)|l'unité|l'unite|chacun|la\s+pièce|la\s+piece|pièce|piece|l'une|un\s+carton|le\s+carton|le\s+sac|un\s+sac|l'article|le\s+produit)\b",
+                text,
+            )
+        )
         has_a_price = bool(re.search(r"(?i)\b(?:à|a|au\s+prix\s+de)\s+\d+", text))
         if has_a_price:
             is_per_unit = True
 
-        is_explicit_total = bool(re.search(r"(?i)\b(?:pour|montant\s+total\s+de|total\s+de)\s+\d+", text)) and not has_a_price
+        is_explicit_total = (
+            bool(re.search(r"(?i)\b(?:pour|montant\s+total\s+de|total\s+de)\s+\d+", text))
+            and not has_a_price
+        )
 
-        price_match = re.search(r"(?i)(?:à|a|au\s+prix\s+de|pour|montant\s+de)\s+(\d+(?:[\s\.]\d{3})*(?:,\d+)?)\s*(?:f|fcfa|cfa|francs?|euros?|€)?", text)
+        price_match = re.search(
+            r"(?i)(?:à|a|au\s+prix\s+de|pour|montant\s+de)\s+(\d+(?:[\s\.]\d{3})*(?:,\d+)?)\s*(?:f|fcfa|cfa|francs?|euros?|€)?",
+            text,
+        )
         unit_price = Decimal("0")
         total_amount = Decimal("0")
 
         if price_match:
-            p_val = Decimal(price_match.group(1).replace(" ", "").replace(".", "").replace(",", "."))
+            p_val = Decimal(
+                price_match.group(1).replace(" ", "").replace(".", "").replace(",", ".")
+            )
             if is_explicit_total:
                 total_amount = p_val
                 unit_price = total_amount / quantity
@@ -311,8 +451,14 @@ class VoiceService:
         )
         if item_match:
             cand_item = item_match.group(1).strip()
-            cand_item = re.sub(r"(?i)\b(?:cartons?|sacs?|pièces?|pieces?|bouteilles?|boites?)\s+de\s+", "", cand_item).strip()
-            cand_item = re.sub(r"(?i)\s+(?:un|le)\s+(?:carton|sac|piece|article)$", "", cand_item).strip()
+            cand_item = re.sub(
+                r"(?i)\b(?:cartons?|sacs?|pièces?|pieces?|bouteilles?|boites?)\s+de\s+",
+                "",
+                cand_item,
+            ).strip()
+            cand_item = re.sub(
+                r"(?i)\s+(?:un|le)\s+(?:carton|sac|piece|article)$", "", cand_item
+            ).strip()
             if len(cand_item) >= 2:
                 item_label = cand_item[0].upper() + cand_item[1:]
 
@@ -331,7 +477,7 @@ class VoiceService:
             payment_method=payment_method,
             payment_status=payment_status,
             sales_channel="Capture Vocale",
-            comment=f"Transcription vocale : \"{text}\"",
+            comment=f'Transcription vocale : "{text}"',
         )
 
     def _parse_sale(self, text: str, default_currency: str = "XOF") -> VoiceParseResponse:
@@ -370,7 +516,9 @@ class VoiceService:
                 "client": primary_sale.client_name or "Comptoir",
                 "client_name": primary_sale.client_name or "Comptoir",
                 "payment_method": primary_sale.payment_method or "Non spécifié",
-                "payment_status": primary_sale.payment_status.value if hasattr(primary_sale.payment_status, "value") else str(primary_sale.payment_status),
+                "payment_status": primary_sale.payment_status.value
+                if hasattr(primary_sale.payment_status, "value")
+                else str(primary_sale.payment_status),
                 "sales_count": len(sales),
             },
             summary_message=summary,
@@ -394,7 +542,7 @@ class VoiceService:
             currency=currency,
             price=price,
             category="Services & Prestations",
-            description=f"Offre générée par commande vocale : \"{text}\"",
+            description=f'Offre générée par commande vocale : "{text}"',
         )
 
         return VoiceParseResponse(
@@ -402,7 +550,11 @@ class VoiceService:
             confidence=0.85 if price else 0.6,
             original_transcript=text,
             offer=candidate,
-            extracted_entities={"name": name, "price": str(price) if price else "0", "currency": currency},
+            extracted_entities={
+                "name": name,
+                "price": str(price) if price else "0",
+                "currency": currency,
+            },
             summary_message=f"Offre « {name} » configurée au tarif de {price or 0} {currency}.",
         )
 
@@ -414,8 +566,12 @@ class VoiceService:
             if len(clean_s) > 3:
                 steps.append({"position": i + 1, "title": clean_s[0].upper() + clean_s[1:]})
 
-        title_match = re.search(r"(?i)(?:procédure|processus|méthode)\s+(?:de\s+|pour\s+)?([^,;\.]+)", text)
-        title = title_match.group(1).strip().capitalize() if title_match else "Procédure Opérationnelle"
+        title_match = re.search(
+            r"(?i)(?:procédure|processus|méthode)\s+(?:de\s+|pour\s+)?([^,;\.]+)", text
+        )
+        title = (
+            title_match.group(1).strip().capitalize() if title_match else "Procédure Opérationnelle"
+        )
 
         candidate = VoiceProcedureCandidate(
             title=title,
@@ -441,13 +597,29 @@ class VoiceService:
 
         lower = text.lower()
         category = "Charges d'exploitation"
-        if any(w in lower for w in ["carburant", "essence", "gasoil", "déplacement", "deplacement", "transport", "taxi"]):
+        if any(
+            w in lower
+            for w in [
+                "carburant",
+                "essence",
+                "gasoil",
+                "déplacement",
+                "deplacement",
+                "transport",
+                "taxi",
+            ]
+        ):
             category = "Carburant & Déplacements"
-        elif any(w in lower for w in ["fournitures", "bureau", "papier", "rame", "stylos", "encre"]):
+        elif any(
+            w in lower for w in ["fournitures", "bureau", "papier", "rame", "stylos", "encre"]
+        ):
             category = "Fournitures & Petit Matériel"
         elif any(w in lower for w in ["loyer", "bail", "local"]):
             category = "Loyer & Charges Locatives"
-        elif any(w in lower for w in ["électricité", "electricite", "eau", "cie", "sodeci", "internet", "connexion"]):
+        elif any(
+            w in lower
+            for w in ["électricité", "electricite", "eau", "cie", "sodeci", "internet", "connexion"]
+        ):
             category = "Fluides & Télécoms"
         elif any(w in lower for w in ["salaire", "prime", "avance sur salaire", "paie"]):
             category = "Rémunérations & Salaires"
@@ -458,8 +630,14 @@ class VoiceService:
         today = date.today()
         ref = f"DEP-{today.strftime('%Y%m%d')}-{uuid4().hex[:4].upper()}"
 
-        clean_desc = re.sub(r"(?i)^(?:dépense|depense|dépenses|depenses|achat|frais|décaissement|paiement)\s+(?:de\s+)?", "", text.strip())
-        clean_desc = clean_desc[0].upper() + clean_desc[1:] if clean_desc else "Dépense d'exploitation"
+        clean_desc = re.sub(
+            r"(?i)^(?:dépense|depense|dépenses|depenses|achat|frais|décaissement|paiement)\s+(?:de\s+)?",
+            "",
+            text.strip(),
+        )
+        clean_desc = (
+            clean_desc[0].upper() + clean_desc[1:] if clean_desc else "Dépense d'exploitation"
+        )
 
         candidate = VoiceExpenseCandidate(
             reference=ref,
@@ -501,22 +679,21 @@ class VoiceService:
                 created_sales = []
                 for item in payload:
                     sale_data = SaleCreate.model_validate(item)
-                    sale = await self.register_service.create_sale(
-                        s, org_id, user_id, sale_data
-                    )
+                    sale = await self.register_service.create_sale(s, org_id, user_id, sale_data)
                     created_sales.append(sale.id)
                 return {"type": "sales_batch", "count": len(created_sales), "ids": created_sales}
             else:
                 sale_data = SaleCreate.model_validate(payload)
-                sale = await self.register_service.create_sale(
-                    s, org_id, user_id, sale_data
-                )
-                return {"type": "sale", "id": sale.id, "reference": sale.reference, "item_label": sale.item_label}
+                sale = await self.register_service.create_sale(s, org_id, user_id, sale_data)
+                return {
+                    "type": "sale",
+                    "id": sale.id,
+                    "reference": sale.reference,
+                    "item_label": sale.item_label,
+                }
         elif request.intent == VoiceIntent.EXPENSE:
             expense_data = ExpenseCreate.model_validate(request.payload)
-            expense = await self.register_service.create_expense(
-                s, org_id, user_id, expense_data
-            )
+            expense = await self.register_service.create_expense(s, org_id, user_id, expense_data)
             return {"type": "expense", "id": expense.id, "reference": expense.reference}
         elif request.intent == VoiceIntent.OFFER:
             offer_data = OfferCreate.model_validate(request.payload)
@@ -538,6 +715,7 @@ class VoiceService:
         content_type: str = "audio/webm",
     ) -> VoiceTranscriptionResponse:
         from app.core.config import get_settings
+
         settings = get_settings()
 
         if not audio_bytes or len(audio_bytes) < 10:

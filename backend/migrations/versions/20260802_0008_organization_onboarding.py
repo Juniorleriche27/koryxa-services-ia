@@ -16,10 +16,17 @@ depends_on = None
 def upgrade() -> None:
     op.add_column("organizations", sa.Column("sector", sa.String(length=120), nullable=True))
     op.add_column("organizations", sa.Column("country", sa.String(length=120), nullable=True))
-    op.add_column("organizations", sa.Column("responsible_name", sa.String(length=180), nullable=True))
-    op.add_column("organizations", sa.Column("responsible_role", sa.String(length=120), nullable=True))
+    op.add_column(
+        "organizations", sa.Column("responsible_name", sa.String(length=180), nullable=True)
+    )
+    op.add_column(
+        "organizations", sa.Column("responsible_role", sa.String(length=120), nullable=True)
+    )
     op.add_column("organizations", sa.Column("primary_goal", sa.String(length=50), nullable=True))
-    op.add_column("organizations", sa.Column("onboarding_completed_at", sa.DateTime(timezone=True), nullable=True))
+    op.add_column(
+        "organizations",
+        sa.Column("onboarding_completed_at", sa.DateTime(timezone=True), nullable=True),
+    )
 
 
 def downgrade() -> None:

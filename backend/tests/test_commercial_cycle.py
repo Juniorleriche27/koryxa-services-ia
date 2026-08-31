@@ -48,7 +48,9 @@ def test_commercial_cycle_full_flow() -> None:
             "target_type": "invoice",
             "due_date": str(date.today() + timedelta(days=15)),
         }
-        res_convert = client.post(f"/api/v1/registers/sales/{quote['id']}/convert", json=convert_payload, headers=auth)
+        res_convert = client.post(
+            f"/api/v1/registers/sales/{quote['id']}/convert", json=convert_payload, headers=auth
+        )
         assert res_convert.status_code == 200
         invoice = res_convert.json()
         assert invoice["document_type"] == "invoice"
@@ -61,7 +63,11 @@ def test_commercial_cycle_full_flow() -> None:
             "payment_date": str(date.today()),
             "comment": "Acompte initial de 30% à la signature",
         }
-        res_pay_1 = client.post(f"/api/v1/registers/sales/{invoice['id']}/record-payment", json=payment_payload_1, headers=auth)
+        res_pay_1 = client.post(
+            f"/api/v1/registers/sales/{invoice['id']}/record-payment",
+            json=payment_payload_1,
+            headers=auth,
+        )
         assert res_pay_1.status_code == 200
         partial_sale = res_pay_1.json()
         assert partial_sale["payment_status"] == "partial"
@@ -81,7 +87,9 @@ def test_commercial_cycle_full_flow() -> None:
             "tone": "courteous",
             "channel": "whatsapp",
         }
-        res_reminder = client.post("/api/v1/ai/generate-payment-reminder", json=reminder_payload, headers=auth)
+        res_reminder = client.post(
+            "/api/v1/ai/generate-payment-reminder", json=reminder_payload, headers=auth
+        )
         assert res_reminder.status_code == 200
         reminder_data = res_reminder.json()
         assert "350 000 XOF" in reminder_data["body"] or "350000" in reminder_data["body"]
@@ -93,7 +101,11 @@ def test_commercial_cycle_full_flow() -> None:
             "payment_date": str(date.today()),
             "comment": "Règlement final du solde",
         }
-        res_pay_2 = client.post(f"/api/v1/registers/sales/{invoice['id']}/record-payment", json=payment_payload_2, headers=auth)
+        res_pay_2 = client.post(
+            f"/api/v1/registers/sales/{invoice['id']}/record-payment",
+            json=payment_payload_2,
+            headers=auth,
+        )
         assert res_pay_2.status_code == 200
         final_sale = res_pay_2.json()
         assert final_sale["payment_status"] == "paid"

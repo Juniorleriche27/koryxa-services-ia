@@ -152,7 +152,9 @@ def test_direct_upload_token_supports_tsv_import() -> None:
         preview = client.post(
             payload["upload_url"],
             data={"token": payload["token"]},
-            files={"file": ("offres.tsv", b"nom\tprix\nAudit\t2500\n", "text/tab-separated-values")},
+            files={
+                "file": ("offres.tsv", b"nom\tprix\nAudit\t2500\n", "text/tab-separated-values")
+            },
         )
     assert preview.status_code == 200
     assert preview.json()["row_count"] == 1

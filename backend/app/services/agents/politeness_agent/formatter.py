@@ -76,7 +76,13 @@ class ResponsePolisher:
             r"^\s*(لم يتم العثور على مستندات|لا أعرف|لا توجد معلومات|المعلومات غير متوفرة|لا أستطيع الإجابة)[\s\.\!]*$",
         ]
 
-        all_dry = self.dry_phrases_fr + self.dry_phrases_en + self.dry_phrases_es + self.dry_phrases_pt + self.dry_phrases_ar
+        all_dry = (
+            self.dry_phrases_fr
+            + self.dry_phrases_en
+            + self.dry_phrases_es
+            + self.dry_phrases_pt
+            + self.dry_phrases_ar
+        )
         self._dry_regexes = [re.compile(p, re.IGNORECASE) for p in all_dry]
 
     def is_dry_negative_response(self, text: str) -> bool:
@@ -126,7 +132,11 @@ class ResponsePolisher:
         if self.config.auto_greet and user_greeted and not was_softened:
             # Check if LLM already started with a greeting
             has_greeting = bool(
-                re.match(r"^\s*(bonjour|bonsoir|salut|hello|hi|hey|hola|olá|ola|مرحبا|أهلا|اهلا)[\s,\.\!]", text, re.IGNORECASE)
+                re.match(
+                    r"^\s*(bonjour|bonsoir|salut|hello|hi|hey|hola|olá|ola|مرحبا|أهلا|اهلا)[\s,\.\!]",
+                    text,
+                    re.IGNORECASE,
+                )
             )
             if not has_greeting:
                 if self.config.custom_greeting_template:
@@ -145,7 +155,7 @@ class ResponsePolisher:
                     greeting = ""
                 else:
                     greeting = "Bonjour ! "
-                
+
                 if greeting:
                     text = f"{greeting}{text}"
 
@@ -179,7 +189,10 @@ class ResponsePolisher:
     def _french_to_casual(self, text: str) -> str:
         """Softly replace obvious formal markers with casual ones when in CASUAL mode."""
         replacements = [
-            (r"\bN'hésitez pas à me poser d'autres questions\b", "N'hésite pas si tu as d'autres questions"),
+            (
+                r"\bN'hésitez pas à me poser d'autres questions\b",
+                "N'hésite pas si tu as d'autres questions",
+            ),
             (r"\bJe reste à votre disposition\b", "Je reste dispo si besoin"),
             (r"\bSi vous avez des questions\b", "Si tu as des questions"),
             (r"\bJe vous invite à\b", "Je t'invite à"),
@@ -193,7 +206,10 @@ class ResponsePolisher:
     def _french_to_vouvoiement(self, text: str) -> str:
         """Softly replace accidental casual markers when in FORMAL/WARM mode."""
         replacements = [
-            (r"\bN'hésite pas si tu as d'autres questions\b", "N'hésitez pas si vous avez d'autres questions"),
+            (
+                r"\bN'hésite pas si tu as d'autres questions\b",
+                "N'hésitez pas si vous avez d'autres questions",
+            ),
             (r"\bJe reste dispo si besoin\b", "Je reste à votre entière disposition"),
             (r"\bSi tu as des questions\b", "Si vous avez des questions"),
             (r"\bJe t'invite à\b", "Je vous invite à"),

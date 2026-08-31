@@ -98,9 +98,10 @@ def test_owner_can_complete_organization_onboarding() -> None:
         assert response.json()["onboarding_completed_at"] is not None
 
         # Verify that the WhatsApp number is now automatically in authorized senders
-        senders_resp = client.get("/api/v1/integrations/whatsapp/authorized-numbers", headers=OWNER_HEADERS)
+        senders_resp = client.get(
+            "/api/v1/integrations/whatsapp/authorized-numbers", headers=OWNER_HEADERS
+        )
         assert senders_resp.status_code == 200
         senders = senders_resp.json()["items"]
         assert len(senders) >= 1
         assert any(s["phone_number"] == "+22890123456" for s in senders)
-
