@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import time
 from datetime import UTC, datetime, timedelta
-from hmac import compare_digest
 from typing import Any
 
 import httpx
@@ -108,7 +107,6 @@ class BillingService:
         ).rstrip("/")
         self.project_code = self.settings.koryxa_pay_project_code or "service-ia"
         self.project_key = self.settings.koryxa_pay_project_key
-        self.webhook_secret = self.settings.koryxa_pay_webhook_secret
 
     def get_plan_by_code(self, product_code: str) -> BillingPlanOffer | None:
         return next((p for p in PLANS_CATALOG if p.code == product_code), None)
@@ -258,18 +256,6 @@ class BillingService:
             amount_minor=plan_offer.amount_minor,
             currency=plan_offer.currency,
         )
-
-    def verify_webhook_auth(self, auth_header: str | None, secret_header: str | None) -> bool:
-        if not self.webhook_secret:
-            logger.error("webhook_secret_not_configured_rejecting_request")
-            return False
-
-        expected_secret = self.webhook_secret.get_secret_value()
-        if secret_header and compare_digest(secret_header.strip(), expected_secret):
-            return True
-        if auth_header and compare_digest(auth_header.strip(), f"Bearer {expected_secret}"):
-            return True
-        return False
 
     async def _verify_payment_with_gateway(self, payment_id: str) -> bool:
         if not self.project_key:

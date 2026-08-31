@@ -36,7 +36,6 @@ class Settings(BaseSettings):
     koryxa_pay_api_url: str = "https://api-pay.koryxa.fr"
     koryxa_pay_project_code: str | None = None
     koryxa_pay_project_key: SecretStr | None = None
-    koryxa_pay_webhook_secret: SecretStr | None = None
 
     @model_validator(mode="after")
     def validate_production_security(self) -> "Settings":
@@ -48,8 +47,6 @@ class Settings(BaseSettings):
             raise ValueError("SERVICE_IA_KORYXA_PAY_PROJECT_CODE est requis en production")
         if self.environment == "production" and not self.koryxa_pay_project_key:
             raise ValueError("SERVICE_IA_KORYXA_PAY_PROJECT_KEY est requis en production")
-        if self.environment == "production" and not self.koryxa_pay_webhook_secret:
-            raise ValueError("SERVICE_IA_KORYXA_PAY_WEBHOOK_SECRET est requis en production")
         if self.environment == "production" and self.encryption_key == self.proxy_secret:
             raise ValueError(
                 "SERVICE_IA_ENCRYPTION_KEY doit être distinct de SERVICE_IA_PROXY_SECRET"

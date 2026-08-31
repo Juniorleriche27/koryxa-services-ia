@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import get_current_organization, require_permission
@@ -46,13 +46,5 @@ async def create_checkout(
 async def handle_payment_webhook(
     session: SessionDep,
     payload: BillingWebhookPayload,
-    x_koryxa_webhook_secret: Annotated[str | None, Header(alias="X-Koryxa-Webhook-Secret")] = None,
-    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
 ) -> dict[str, Any]:
-    service = BillingService()
-    if not service.verify_webhook_auth(authorization, x_koryxa_webhook_secret):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Signature ou secret de webhook KORYXA Payment invalide.",
-        )
-    return await service.handle_payment_webhook(session, payload)
+    return await BillingService().handle_payment_webhook(session, payload)

@@ -9,7 +9,6 @@ os.environ["SERVICE_IA_KNOWLIA_TIMEOUT_SECONDS"] = "0.1"
 os.environ["SERVICE_IA_FILE_STORAGE_PATH"] = "/tmp/koryxa-service-ia-test-files"
 os.environ["SERVICE_IA_KORYXA_PAY_PROJECT_CODE"] = "service-ia-test"
 os.environ["SERVICE_IA_KORYXA_PAY_PROJECT_KEY"] = "test-project-key"
-os.environ["SERVICE_IA_KORYXA_PAY_WEBHOOK_SECRET"] = "test-webhook-secret"
 
 from app.db.base import Base
 from app.db.session import engine

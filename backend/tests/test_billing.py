@@ -9,7 +9,6 @@ OWNER_HEADERS = {
     "X-User-ID": "owner-billing",
     "X-Koryxa-Source": "koryxa-admin",
 }
-WEBHOOK_HEADERS = {"X-Koryxa-Webhook-Secret": "test-webhook-secret"}
 
 
 class GatewayResponse:
@@ -72,17 +71,17 @@ def test_billing_status_and_checkout_flow(monkeypatch: Any) -> None:
         assert checkout_resp.status_code == 200
         idempotency_key = checkout_resp.json()["idempotency_key"]
 
-        # The webhook is always closed when its authentication header is absent.
-        unauthenticated = client.post(
+        # An unknown callback cannot create a subscription: the backend reconciles it with Payment.
+        unknown_callback = client.post(
             "/api/v1/billing/webhook",
-            json={"status": "successful", "payment_id": "kpx_pay_123456789"},
+            json={"status": "successful", "payment_id": "unknown-payment"},
         )
-        assert unauthenticated.status_code == 401
+        assert unknown_callback.status_code == 200
+        assert unknown_callback.json() == {"status": "rejected", "reason": "unknown_transaction"}
 
         # 4. Simulate an authenticated KORYXA Payment callback.
         webhook_resp = client.post(
             "/api/v1/billing/webhook",
-            headers=WEBHOOK_HEADERS,
             json={
                 "event": "payment.successful",
                 "status": "successful",
@@ -111,7 +110,6 @@ def test_billing_status_and_checkout_flow(monkeypatch: Any) -> None:
         # 5. Security & Idempotency: Replay of same webhook should NOT re-apply
         replay_resp = client.post(
             "/api/v1/billing/webhook",
-            headers=WEBHOOK_HEADERS,
             json={
                 "event": "payment.successful",
                 "status": "successful",
@@ -130,7 +128,6 @@ def test_billing_status_and_checkout_flow(monkeypatch: Any) -> None:
         # 6. Security: an unknown payment can never create a subscription.
         underpaid_resp = client.post(
             "/api/v1/billing/webhook",
-            headers=WEBHOOK_HEADERS,
             json={
                 "event": "payment.successful",
                 "status": "successful",
