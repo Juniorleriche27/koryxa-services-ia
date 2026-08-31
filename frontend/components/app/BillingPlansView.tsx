@@ -122,6 +122,14 @@ const DEFAULT_PLANS: PlanOffer[] = [
   },
 ];
 
+const formatFcfa = (amount: number) =>
+  new Intl.NumberFormat("fr-FR").format(amount).replace(/\u202f/g, " ");
+
+const paymentTotals = (plan: PlanOffer) => {
+  const processingFee = Math.round(plan.amount_minor * 0.03);
+  return { processingFee, total: plan.amount_minor + processingFee };
+};
+
 export function BillingPlansView() {
   const [billingData, setBillingData] = useState<BillingStatusData | null>(null);
   const [billingCycle, setBillingCycle] = useState<"3months" | "monthly">("3months");
@@ -171,6 +179,8 @@ export function BillingPlansView() {
 
   const starterPlan = billingCycle === "3months" ? DEFAULT_PLANS[0] : DEFAULT_PLANS[2];
   const businessPlan = billingCycle === "3months" ? DEFAULT_PLANS[1] : DEFAULT_PLANS[3];
+  const starterTotals = paymentTotals(starterPlan);
+  const businessTotals = paymentTotals(businessPlan);
 
   return (
     <div className="space-y-10 max-w-6xl mx-auto pb-16">
@@ -306,6 +316,10 @@ export function BillingPlansView() {
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-100">
+            <div className="mb-3 rounded-xl bg-slate-50 px-4 py-3 text-center text-[11px] font-semibold text-slate-600">
+              Frais de traitement : {formatFcfa(starterTotals.processingFee)} FCFA · Total à payer :{" "}
+              <strong className="text-slate-950">{formatFcfa(starterTotals.total)} FCFA</strong>
+            </div>
             <button
               type="button"
               onClick={() => handleCheckout(starterPlan.code)}
@@ -376,6 +390,10 @@ export function BillingPlansView() {
           </div>
 
           <div className="mt-8 pt-6 border-t border-emerald-100">
+            <div className="mb-3 rounded-xl bg-emerald-50 px-4 py-3 text-center text-[11px] font-semibold text-emerald-800">
+              Frais de traitement : {formatFcfa(businessTotals.processingFee)} FCFA · Total à payer :{" "}
+              <strong className="text-emerald-950">{formatFcfa(businessTotals.total)} FCFA</strong>
+            </div>
             <button
               type="button"
               onClick={() => handleCheckout(businessPlan.code)}

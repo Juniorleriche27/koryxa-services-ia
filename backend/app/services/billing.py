@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 PLANS_CATALOG: list[BillingPlanOffer] = [
     BillingPlanOffer(
         code="pack_starter_3m",
-        name="Pack Lancement STARTER (3 Mois)",
+        name="Starter Solo",
         plan="starter",
         period_months=3,
         amount_minor=19900,
@@ -46,7 +46,7 @@ PLANS_CATALOG: list[BillingPlanOffer] = [
     ),
     BillingPlanOffer(
         code="pack_business_3m",
-        name="Pack Lancement BUSINESS (3 Mois)",
+        name="Business Multi-Vendeurs",
         plan="business",
         period_months=3,
         amount_minor=39900,
@@ -181,6 +181,13 @@ class BillingService:
             "amount_minor": plan_offer.amount_minor,
             "currency": plan_offer.currency,
             "idempotency_key": idempotency_key,
+            "metadata": {
+                "description": f"Abonnement Service IA — {plan_offer.name}",
+                "customer": {
+                    "email": request.customer_email,
+                    "phone": request.customer_phone,
+                },
+            },
         }
 
         checkout_url: str | None = None
