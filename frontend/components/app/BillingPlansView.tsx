@@ -151,7 +151,6 @@ export function BillingPlansView() {
         method: "POST",
         body: JSON.stringify({
           product_code: planCode,
-          provider: "leekpay",
           customer_phone: phoneNumber.trim() || undefined,
         }),
       });

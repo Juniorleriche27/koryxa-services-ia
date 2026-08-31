@@ -180,7 +180,6 @@ class BillingService:
             "customer_id": organization.id,
             "amount_minor": plan_offer.amount_minor,
             "currency": plan_offer.currency,
-            "provider": request.provider or "leekpay",
             "idempotency_key": idempotency_key,
         }
 
@@ -237,7 +236,7 @@ class BillingService:
             period_months=plan_offer.period_months,
             amount_minor=plan_offer.amount_minor,
             currency=plan_offer.currency,
-            provider=request.provider or "leekpay",
+            provider="orchestrator",
             status="pending",
             koryxa_payment_id=payment_id,
             checkout_url=checkout_url,

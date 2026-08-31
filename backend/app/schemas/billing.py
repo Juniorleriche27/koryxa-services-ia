@@ -27,9 +27,6 @@ class BillingCheckoutRequest(BaseModel):
     product_code: str = Field(
         description="Ex: pack_starter_3m, pack_business_3m, pack_starter_1m, pack_business_1m"
     )
-    provider: str = Field(
-        default="leekpay", description="Passerelle de paiement (ex: leekpay pour Wave/Orange/MTN)"
-    )
     customer_phone: str | None = Field(default=None, description="Numéro Mobile Money du client")
     customer_email: str | None = Field(default=None, description="Email du client")
 
