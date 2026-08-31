@@ -7,7 +7,8 @@ import { EmptyState } from "../Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { BusinessCategorySettings } from "../BusinessCategorySettings";
 import { AutomationsHubView } from "../AutomationsHubView";
-import { ShieldCheck, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { ShieldCheck, AlertTriangle, CreditCard, ArrowRight, Sparkles } from "lucide-react";
 
 export type RadarRule = {
   id: string;
@@ -63,6 +64,30 @@ export function SettingsSection({
 
   return (
     <>
+      {/* Banner Formule & Facturation */}
+      <div className="mb-6 rounded-3xl border-2 border-emerald-500/40 bg-linear-to-r from-emerald-950 via-teal-950 to-slate-950 p-6 text-white shadow-md">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-bold text-emerald-300">
+              <Sparkles size={14} />
+              Formules & Facturation KORYXA
+            </div>
+            <h3 className="text-lg font-extrabold text-white">Offre Spéciale Lancement · Pack 3 Mois</h3>
+            <p className="text-xs text-slate-300 max-w-xl">
+              Passez à la formule Starter (19 900 F) ou Business Multi-Vendeurs (39 900 F pour 3 mois) et réglez en 1 clic par <strong>Wave, Orange Money ou MTN</strong>.
+            </p>
+          </div>
+          <Link
+            href="/espace/parametres/facturation"
+            className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400 px-4 py-2.5 text-xs font-extrabold text-slate-950 shadow-sm transition hover:bg-emerald-300 active:scale-95 cursor-pointer shrink-0"
+          >
+            <CreditCard size={14} />
+            <span>Gérer mon Abonnement</span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
+
       <BusinessCategorySettings />
       <AutomationsHubView />
 

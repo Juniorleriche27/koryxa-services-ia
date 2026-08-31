@@ -9,6 +9,7 @@ import {
   Building2,
   ChevronDown,
   ChevronRight,
+  CreditCard,
   ExternalLink,
   FileCheck2,
   FileSpreadsheet,
@@ -111,6 +112,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       title: t("group_system"),
       items: [
         { label: t("nav_whatsapp"), href: "/espace/whatsapp", icon: MessageSquare },
+        { label: "Formules & Facturation", href: "/espace/parametres/facturation", icon: CreditCard },
         { label: t("nav_imports"), href: "/espace/imports", icon: FileSpreadsheet },
         { label: t("nav_organization"), href: "/espace/organisation", icon: Building2 },
         { label: t("nav_settings"), href: "/espace/parametres", icon: Settings },
