@@ -488,7 +488,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Language Switcher */}
             <LanguageSelector />
 
-            <Link href="/" className="app-public-link hidden lg:inline-flex" title="Retourner sur le site public">
+            <Link href="https://service-ia.koryxa.fr" className="app-public-link hidden lg:inline-flex" title="Retourner sur le site public">
               <ExternalLink size={15} />
               <span>{t("public_site")}</span>
             </Link>
