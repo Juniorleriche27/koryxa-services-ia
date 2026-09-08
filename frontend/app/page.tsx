@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { ArrowRight, Bot, Code2, Globe2, Sparkles, Workflow } from "lucide-react";
 
 import { PillarGrid, PremiumCta, SectionHeading } from "@/components/marketing/ServiceMarketing";
@@ -10,7 +12,13 @@ const capabilities = [
   [Workflow, "Automatisation", "Processus reliés et mesurables"],
 ] as const;
 
-export default function HomePage() {
+export default async function HomePage() {
+  const headersList = await headers();
+  const host = headersList.get("x-forwarded-host") || headersList.get("host") || "";
+  if (host.startsWith("entreprise.") || host.includes("entreprise.koryxa.fr")) {
+    redirect("/espace");
+  }
+
   return (
     <div className="pb-12">
       <section className="relative overflow-hidden border-b border-emerald-100 bg-white">
@@ -38,34 +46,29 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="relative mx-auto mt-16 max-w-6xl">
-            <div className="kx-orbit left-[8%] top-[5%] h-72 w-72" />
-            <div className="kx-orbit bottom-[-8%] right-[4%] h-80 w-80 [animation-direction:reverse]" />
-            <div className="relative rounded-[2rem] border border-emerald-100 bg-white/95 p-6 text-center shadow-[0_30px_80px_rgba(0,168,107,.14)] backdrop-blur sm:p-8">
-              <p className="text-xs font-bold uppercase tracking-[.2em] text-emerald-600">KORYXA System</p>
-              <h2 className="mx-auto mt-3 max-w-3xl text-balance text-3xl font-semibold tracking-[-.035em] text-[var(--kx-text)] sm:text-4xl">Un projet orchestré, pas une accumulation d’outils.</h2>
-              <p className="mx-auto mt-3 max-w-2xl text-balance leading-7 text-[var(--kx-muted)]">Stratégie, design, technologie et accompagnement réunis dans un même système.</p>
-              <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {capabilities.map(([Icon, title, text], index) => (
-                  <article key={title} className={`kx-card kx-reveal kx-reveal-${index + 1} flex min-h-56 flex-col items-center rounded-[1.5rem] p-5 text-center`}>
-                    <div className="flex w-full items-start justify-between gap-3">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600"><Icon className="h-5 w-5" /></span>
-                      <span className="text-xs font-bold text-emerald-600">0{index + 1}</span>
-                    </div>
-                    <h3 className="mt-6 text-balance text-xl font-semibold text-[var(--kx-text)]">{title}</h3>
-                    <p className="mt-2 text-balance text-sm leading-6 text-[var(--kx-muted)]">{text}</p>
-                  </article>
-                ))}
+          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {capabilities.map(([Icon, title, desc]) => (
+              <div key={title} className="rounded-3xl border border-emerald-100 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+                  <Icon className="h-6 w-6" />
+                </span>
+                <strong className="mt-4 block text-base text-slate-950">{title}</strong>
+                <p className="mt-1 text-sm leading-6 text-slate-500">{desc}</p>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
-      <section className="mx-auto w-full max-w-[var(--marketing-max-w)] px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
-        <SectionHeading eyebrow="Nos expertises" title="Six pôles reliés par une même exigence." text="Chaque pôle possède ses propres méthodes, ses propres outils et ses propres livrables — avec un niveau de qualité commun." />
+
+      <div className="mx-auto w-full max-w-[var(--marketing-max-w)] px-4 sm:px-6 lg:px-8">
+        <SectionHeading
+          eyebrow="Domaines d'expertise"
+          title="Une offre structurée pour concevoir, automatiser et piloter"
+          text="Chaque pôle combine design soigné, ingénierie robuste et intégration directe avec vos outils métier."
+        />
         <PillarGrid />
-      </section>
-      <section className="mx-auto w-full max-w-[var(--marketing-max-w)] px-4 pb-12 sm:px-6 lg:px-8"><PremiumCta /></section>
+        <PremiumCta />
+      </div>
     </div>
   );
 }

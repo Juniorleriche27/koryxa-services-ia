@@ -1,7 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Matchers
 const isPublicProjectRequest = (pathname: string) =>
   pathname === "/api/service-ia/requests" || pathname.startsWith("/api/service-ia/requests/");
 
@@ -10,13 +9,16 @@ const isEspaceRoute = createRouteMatcher(["/espace(.*)"]);
 
 export default clerkMiddleware(async (auth, request: NextRequest) => {
   const url = request.nextUrl.clone();
-  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || request.nextUrl.hostname || "";
   const pathname = url.pathname;
 
-  // Détection du domaine entreprise.koryxa.fr
-  const isEntrepriseDomain = host.startsWith("entreprise.") || host.includes("entreprise.koryxa.fr");
+  const isEntrepriseDomain =
+    host.startsWith("entreprise.") ||
+    host.includes("entreprise.koryxa.fr") ||
+    request.nextUrl.hostname.startsWith("entreprise.") ||
+    request.nextUrl.hostname.includes("entreprise.koryxa.fr");
 
-  // 1. Gestion des APIs
+  // 1. API
   if (isServiceIaApi(request)) {
     if (isPublicProjectRequest(pathname)) {
       return NextResponse.next();
@@ -28,9 +30,8 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     return NextResponse.next();
   }
 
-  // 2. Gestion sur le domaine entreprise.koryxa.fr
+  // 2. Domaine entreprise.koryxa.fr
   if (isEntrepriseDomain) {
-    // Vérification de l'authentification pour tout le domaine entreprise
     const { userId } = await auth();
     if (!userId) {
       const signInUrl = new URL("https://accounts.koryxa.fr/sign-in");
@@ -38,22 +39,15 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
       return NextResponse.redirect(signInUrl);
     }
 
-    // Réécriture racine vers /espace
+    // Redirection automatique de la racine vers /espace
     if (pathname === "/" || pathname === "") {
-      url.pathname = "/espace";
-      return NextResponse.rewrite(url);
-    }
-
-    // Si le chemin ne commence pas par /espace et n'est pas une ressource statique, on réécrit vers /espace/*
-    if (!pathname.startsWith("/espace") && !pathname.startsWith("/_next") && !pathname.startsWith("/api")) {
-      url.pathname = `/espace${pathname}`;
-      return NextResponse.rewrite(url);
+      return NextResponse.redirect(new URL("/espace", request.url));
     }
 
     return NextResponse.next();
   }
 
-  // 3. Gestion sur le domaine public (service-ia.koryxa.fr)
+  // 3. Domaine public (service-ia.koryxa.fr)
   if (isEspaceRoute(request)) {
     const { userId } = await auth();
     if (!userId) {
@@ -69,13 +63,6 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, sitemap.xml, robots.txt
-     * - public files (images, svg, etc.)
-     */
     "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)).*)",
   ],
 };
