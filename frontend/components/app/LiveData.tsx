@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { serviceIaFetch } from "@/lib/service-ia/api";
+import { serviceIaFetch, getPersistedCache } from "@/lib/service-ia/api";
 
 import {
   RegistersSection,
@@ -31,29 +31,36 @@ import { SaleItem } from "./RegistersTable";
 // Common API page structure
 export type ApiPage<T> = { items: T[]; total: number; page: number; page_size: number };
 
-// Generic Data Fetcher Hook
+// Generic Data Fetcher Hook with instant cache hydration
 export function useApi<T>(path: string) {
-  const [data, setData] = useState<T | null>(null);
+  const [data, setData] = useState<T | null>(() => getPersistedCache<T>(path));
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !getPersistedCache<T>(path));
 
-  const reload = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      setData(await serviceIaFetch<T>(path));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "API indisponible");
-    } finally {
-      setLoading(false);
-    }
-  }, [path]);
+  const reload = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      setError("");
+      try {
+        const fresh = await serviceIaFetch<T>(path);
+        setData(fresh);
+      } catch (e) {
+        if (!data) {
+          setError(e instanceof Error ? e.message : "API indisponible");
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [path, data]
+  );
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    const hasCached = !!getPersistedCache<T>(path);
+    void reload(hasCached);
+  }, [path]);
 
-  return { data, error, loading, reload };
+  return { data, error, loading, reload: () => reload(false) };
 }
 
 // 1. LiveRegister Component (Offers, Sales, Procedures)

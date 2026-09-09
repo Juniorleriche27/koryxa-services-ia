@@ -71,6 +71,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     created_by_user_id?: string;
   }>({ name: "Organisation KORYXA", business_category: "retail" });
   const [organizationLoaded, setOrganizationLoaded] = useState(false);
+  const [logoBroken, setLogoBroken] = useState(false);
+
+  useEffect(() => {
+    setLogoBroken(false);
+  }, [organization.logo_updated_at]);
   const { user } = useUser();
   const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress || "Compte KORYXA";
   const initials = userName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
@@ -317,11 +322,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="app-company-card">
           <div className="app-company-avatar">
-            {organization.logo_updated_at ? (
+            {organization.logo_updated_at && !logoBroken ? (
               <img
                 className="h-full w-full rounded-xl object-contain bg-white p-0.5"
                 src={`/api/service-ia/organizations/current/logo?v=${encodeURIComponent(organization.logo_updated_at)}`}
                 alt={organization.name}
+                onError={() => setLogoBroken(true)}
               />
             ) : (
               <span className="app-company-initials">

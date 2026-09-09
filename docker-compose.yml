@@ -16,7 +16,7 @@ services:
       SERVICE_IA_KNOWLIA_BASE_URL: ${KNOWLIA_BASE_URL:-http://prod_knowlia:8080}
       SERVICE_IA_FILE_STORAGE_PATH: /data/files
     volumes:
-      - service_ia_files:/data/files
+      - ${SERVICE_IA_HOST_STORAGE_PATH:-/opt/data/koryxa-services-ia/files}:/data/files
     logging:
       driver: "json-file"
       options:
@@ -90,7 +90,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  service_ia_files:
   whatsapp_bridge_sessions:
 
 networks:

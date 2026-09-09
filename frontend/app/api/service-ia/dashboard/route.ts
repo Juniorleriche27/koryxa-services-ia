@@ -92,7 +92,7 @@ export async function GET() {
         organization: organization || { name: "Organisation KORYXA" },
       },
       {
-        headers: { "Cache-Control": "private, no-store" },
+        headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" },
       },
     );
   } catch (error) {

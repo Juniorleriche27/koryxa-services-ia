@@ -11,9 +11,9 @@ COPY alembic.ini ./
 COPY migrations ./migrations
 COPY entrypoint.sh ./entrypoint.sh
 RUN pip install --no-cache-dir -r requirements.lock && pip install --no-cache-dir --no-deps .
-RUN mkdir -p /app/storage/files \
+RUN mkdir -p /app/storage/files /data/files \
     && chmod +x /app/entrypoint.sh \
-    && chown -R app:app /app/storage
+    && chown -R app:app /app/storage /data/files
 USER app
 EXPOSE 8080
 CMD ["/app/entrypoint.sh"]
