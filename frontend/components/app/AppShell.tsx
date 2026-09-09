@@ -304,7 +304,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <BrandLogo className="app-brand-logo" />
           <div>
             <strong>KORYXA</strong>
-            <small>Service IA & Web</small>
+            <small>CAURI</small>
           </div>
           <button className="app-icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Fermer le menu">
             <X size={20} />
