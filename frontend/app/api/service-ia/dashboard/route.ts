@@ -1,6 +1,11 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { requireServiceIaIdentity } from "@/lib/auth-server";
+
+// Pin Vercel function to Frankfurt — closest region to the Netcup VPS (Germany).
+// This alone saves ~80-150 ms of cross-region latency on every cold call.
+export const preferredRegion = "fra1";
+export const runtime = "nodejs";
 
 function backendUrl() {
   return (process.env.SERVICE_IA_API_URL || process.env.NEXT_PUBLIC_SERVICE_IA_API_URL || "")
@@ -13,7 +18,7 @@ export async function GET() {
   const proxySecret = (process.env.SERVICE_IA_PROXY_SECRET || "").trim();
   if (!apiBase || !proxySecret) {
     return NextResponse.json(
-      { error: { message: "Passerelle Service IA non configurée." } },
+      { error: { message: "Passerelle Service IA non configuree." } },
       { status: 503 },
     );
   }
@@ -32,31 +37,15 @@ export async function GET() {
       "X-Koryxa-Proxy-Secret": proxySecret,
     });
 
-    // Run all data fetches in parallel concurrently in a single roundtrip
-    const paths = {
-      organization: "organizations/current",
-      summary: "registers/summary",
-      alerts: "radar/alerts",
-      actions: "workflow/actions",
-    } as const;
+    // Single round-trip: backend runs asyncio.gather() for all queries in parallel.
+    // Previously 4 separate fetch() calls; now 1 TCP connection, 1 round-trip.
+    const response = await fetch(`${apiBase}/dashboard`, {
+      headers,
+      cache: "no-store",
+    });
 
-    const entries = await Promise.all(
-      Object.entries(paths).map(async ([key, path]) => {
-        const response = await fetch(`${apiBase}/${path}`, { headers, cache: "no-store" });
-        if (response.status === 404 && key === "organization") {
-          return [key, null] as const;
-        }
-        if (!response.ok) {
-          throw new Error(`${path} responded with ${response.status}`);
-        }
-        return [key, await response.json()] as const;
-      }),
-    );
-    const dataMap = Object.fromEntries(entries);
-
-    // Auto-provision only if organization is genuinely missing (first visit)
-    let organization = dataMap.organization;
-    if (!organization) {
+    // Auto-provision org on first visit (404 = org not yet created for this user)
+    if (response.status === 404) {
       const provisionHeaders = new Headers(headers);
       provisionHeaders.set("Content-Type", "application/json");
       const slugSuffix = identity.koryxaUserId
@@ -75,26 +64,25 @@ export async function GET() {
       if (!provisionResponse.ok && provisionResponse.status !== 409) {
         throw new Error(`organization provisioning responded with ${provisionResponse.status}`);
       }
-      const orgRes = await fetch(`${apiBase}/organizations/current`, {
-        headers,
-        cache: "no-store",
-      });
-      if (orgRes.ok) {
-        organization = await orgRes.json();
+      // Retry dashboard after provisioning
+      const retry = await fetch(`${apiBase}/dashboard`, { headers, cache: "no-store" });
+      if (!retry.ok) {
+        throw new Error(`dashboard retry responded with ${retry.status}`);
       }
+      const data = await retry.json();
+      return NextResponse.json(data, {
+        headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" },
+      });
     }
 
-    return NextResponse.json(
-      {
-        summary: dataMap.summary,
-        alerts: dataMap.alerts,
-        actions: dataMap.actions,
-        organization: organization || { name: "Organisation KORYXA" },
-      },
-      {
-        headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" },
-      },
-    );
+    if (!response.ok) {
+      throw new Error(`dashboard responded with ${response.status}`);
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data, {
+      headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" },
+    });
   } catch (error) {
     const unauthenticated = error instanceof Error && error.message === "UNAUTHENTICATED";
     console.error("Service IA dashboard request failed", {
