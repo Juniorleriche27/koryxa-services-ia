@@ -15,8 +15,12 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
   const isEntrepriseDomain =
     host.startsWith("entreprise.") ||
     host.includes("entreprise.koryxa.fr") ||
+    host.startsWith("cauri.") ||
+    host.includes("cauri.koryxa.fr") ||
     request.nextUrl.hostname.startsWith("entreprise.") ||
-    request.nextUrl.hostname.includes("entreprise.koryxa.fr");
+    request.nextUrl.hostname.includes("entreprise.koryxa.fr") ||
+    request.nextUrl.hostname.startsWith("cauri.") ||
+    request.nextUrl.hostname.includes("cauri.koryxa.fr");
 
   // 1. API
   if (isServiceIaApi(request)) {

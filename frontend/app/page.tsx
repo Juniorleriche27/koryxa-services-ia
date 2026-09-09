@@ -15,9 +15,15 @@ const capabilities = [
 export default async function HomePage() {
   const headersList = await headers();
   const host = headersList.get("x-forwarded-host") || headersList.get("host") || "";
-  if (host.startsWith("entreprise.") || host.includes("entreprise.koryxa.fr")) {
+  if (
+    host.startsWith("entreprise.") ||
+    host.includes("entreprise.koryxa.fr") ||
+    host.startsWith("cauri.") ||
+    host.includes("cauri.koryxa.fr")
+  ) {
     redirect("/espace");
   }
+
 
   return (
     <div className="pb-12">
