@@ -25,6 +25,10 @@ from app.models.registers import (
     Supplier,
 )
 from app.models.workflow import ActionStatus, CorrectiveAction
+from app.schemas.organizations import OrganizationRead
+from app.schemas.radar import RadarAlertRead
+from app.schemas.registers import SaleRead
+from app.schemas.workflow import ActionRead
 
 router = APIRouter()
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -196,4 +200,18 @@ async def get_dashboard(s: SessionDep, organization: OrgDep, _: MemberDep) -> di
         _fetch_alerts(s, org_id),
         _fetch_actions(s, org_id),
     )
-    return {"organization": organization, "summary": summary, "alerts": alerts, "actions": actions}
+    # Serialize ORM objects with Pydantic schemas before returning
+    summary["recent_sales"] = [
+        SaleRead.model_validate(sale, from_attributes=True).model_dump(mode="json")
+        for sale in summary.get("recent_sales", [])
+    ]
+    # Convert Decimal to float for JSON serialization
+    for key, val in summary.items():
+        if hasattr(val, "__class__") and val.__class__.__name__ == "Decimal":
+            summary[key] = float(val)
+    return {
+        "organization": OrganizationRead.model_validate(organization, from_attributes=True).model_dump(mode="json"),
+        "summary": summary,
+        "alerts": [RadarAlertRead.model_validate(a, from_attributes=True).model_dump(mode="json") for a in alerts],
+        "actions": [ActionRead.model_validate(a, from_attributes=True).model_dump(mode="json") for a in actions],
+    }
