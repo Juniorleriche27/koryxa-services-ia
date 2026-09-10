@@ -61,6 +61,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  const [copilotMinimized, setCopilotMinimized] = useState(false);
   const [organization, setOrganization] = useState<{
     name: string;
     business_category?: string;
@@ -199,7 +201,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [copilotOpen, setCopilotOpen] = useState(false);
+
 
   // Global Cmd+K / Ctrl+K and Cmd+J / Ctrl+J keyboard shortcuts
   useEffect(() => {
@@ -271,10 +273,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }}
       />
 
-      <AICopilotDrawer
-        open={copilotOpen}
-        onClose={() => setCopilotOpen(false)}
-      />
 
       <InteractiveSpotlightTour proConfig={proConfig} />
 
@@ -443,170 +441,178 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {open && <button className="app-overlay" aria-label="Fermer le menu" onClick={() => setOpen(false)} />}
 
-      <main className="app-main">
-        <OfflineSyncBanner />
+      {/* Main + Inline Copilot Panel — side by side like RStudio */}
+      <div className={clsx("app-body", copilotOpen && "copilot-open", copilotOpen && copilotMinimized && "copilot-minimized")}>
+        <main className="app-main">
+          <OfflineSyncBanner />
 
-        <header className="app-topbar">
-          <button className="app-icon-button mobile-only" onClick={() => setOpen(true)} aria-label="Ouvrir le menu">
-            <Menu size={21} />
-          </button>
-
-          <div className="app-topbar-context">
-            <h1 className="text-sm sm:text-base font-bold text-foreground tracking-tight m-0 p-0">
-              {pathname === "/espace" ? t("topbar_eyebrow") : context.eyebrow}
-            </h1>
-          </div>
-
-          <div className="app-topbar-actions">
-            {/* Quick Cmd+K search button */}
-            <button
-              className="kx-topbar-search-trigger"
-              onClick={() => setCommandOpen(true)}
-              title="Ouvrir la palette de commande (Cmd + K / Ctrl + K)"
-            >
-              <Search size={14} />
-              <span className="kx-topbar-search-text">{t("search_prompt")}</span>
-              <kbd className="kx-cmd-kbd">⌘K</kbd>
+          <header className="app-topbar">
+            <button className="app-icon-button mobile-only" onClick={() => setOpen(true)} aria-label="Ouvrir le menu">
+              <Menu size={21} />
             </button>
 
-            {/* Quick Voice Trigger on PC (Hidden on Mobile) */}
-            <button
-              type="button"
-              onClick={() => setVoiceOpen(true)}
-              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition text-xs font-bold shadow-2xs cursor-pointer"
-              title="Dictée Vocale IA (Enregistrer une vente, dépense ou opération)"
+            <div className="app-topbar-context">
+              <h1 className="text-sm sm:text-base font-bold text-foreground tracking-tight m-0 p-0">
+                {pathname === "/espace" ? t("topbar_eyebrow") : context.eyebrow}
+              </h1>
+            </div>
+
+            <div className="app-topbar-actions">
+              {/* Quick Cmd+K search button */}
+              <button
+                className="kx-topbar-search-trigger"
+                onClick={() => setCommandOpen(true)}
+                title="Ouvrir la palette de commande (Cmd + K / Ctrl + K)"
+              >
+                <Search size={14} />
+                <span className="kx-topbar-search-text">{t("search_prompt")}</span>
+                <kbd className="kx-cmd-kbd">⌘K</kbd>
+              </button>
+
+              {/* Quick Voice Trigger on PC (Hidden on Mobile) */}
+              <button
+                type="button"
+                onClick={() => setVoiceOpen(true)}
+                className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition text-xs font-bold shadow-2xs cursor-pointer"
+                title="Dictée Vocale IA (Enregistrer une vente, dépense ou opération)"
+              >
+                <Mic size={15} className="text-emerald-600 dark:text-emerald-400" />
+                <span>{t("vocal_btn")}</span>
+              </button>
+
+              {/* Quick Help & Guidance trigger */}
+              <button
+                type="button"
+                onClick={() => setHelpOpen(true)}
+                className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-emerald-700 hover:border-emerald-400 transition text-xs font-bold shadow-2xs cursor-pointer"
+                title="Centre d'aide & visite guidée"
+              >
+                <HelpCircle size={15} className="text-emerald-600" />
+                <span>{t("guide_btn")}</span>
+              </button>
+
+              {/* Language Switcher */}
+              <LanguageSelector />
+
+              <Link href="https://service-ia.koryxa.fr" className="app-public-link hidden lg:inline-flex" title="Retourner sur le site public">
+                <ExternalLink size={15} />
+                <span>{t("public_site")}</span>
+              </Link>
+
+              <span className="app-live hidden xl:inline-flex">
+                <i />
+                {t("api_connected")}
+              </span>
+
+              <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 sm:h-11 sm:w-11" } }} />
+            </div>
+          </header>
+
+          <div className="app-content pb-24 lg:pb-8">{children}</div>
+
+          {/* Floating Cora bubble — hidden when panel is open */}
+          {!copilotOpen && (
+            <div className="fixed bottom-20 right-4 lg:bottom-7 lg:right-7 z-40 group">
+              <button
+                type="button"
+                data-tour="cora-ia"
+                onClick={() => { setCopilotOpen(true); setCopilotMinimized(false); }}
+                aria-label="Ouvrir Cora, votre assistante IA"
+                title="Demandez à Cora IA (Cmd + J / Ctrl + J)"
+                className="relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-[0_10px_25px_rgba(16,185,129,0.45)] hover:shadow-[0_15px_35px_rgba(16,185,129,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-white/30 dark:border-white/15 cursor-pointer"
+              >
+                <span className="absolute -inset-1 rounded-full bg-emerald-500/25 animate-ping opacity-60 pointer-events-none" />
+                <Bot size={26} strokeWidth={2.3} className="relative z-10" />
+                <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-300 border-2 border-emerald-800 shadow-xs z-20 flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-950" />
+                </span>
+              </button>
+              <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 rounded-xl bg-slate-900/95 text-white text-xs font-bold whitespace-nowrap shadow-xl backdrop-blur-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5 border border-white/10">
+                <Sparkles size={13} className="text-emerald-400" />
+                <span>Cora IA Métier</span>
+                <kbd className="text-[10px] bg-slate-800 px-1 py-0.5 rounded text-slate-300">⌘J</kbd>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Bottom Navigation Bar (Glassmorphism Dock) */}
+          <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/80 px-2 py-1.5 flex items-center justify-around lg:hidden shadow-[0_-10px_25px_rgba(0,0,0,0.06)]">
+            <Link
+              href="/espace"
+              className={clsx(
+                "flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold",
+                pathname === "/espace"
+                  ? "text-primary font-black"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
-              <Mic size={15} className="text-emerald-600 dark:text-emerald-400" />
-              <span>{t("vocal_btn")}</span>
-            </button>
-
-            {/* Quick Help & Guidance trigger */}
-            <button
-              type="button"
-              onClick={() => setHelpOpen(true)}
-              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-emerald-700 hover:border-emerald-400 transition text-xs font-bold shadow-2xs cursor-pointer"
-              title="Centre d'aide & visite guidée"
-            >
-              <HelpCircle size={15} className="text-emerald-600" />
-              <span>{t("guide_btn")}</span>
-            </button>
-
-            {/* Language Switcher */}
-            <LanguageSelector />
-
-            <Link href="https://service-ia.koryxa.fr" className="app-public-link hidden lg:inline-flex" title="Retourner sur le site public">
-              <ExternalLink size={15} />
-              <span>{t("public_site")}</span>
+              <LayoutDashboard size={20} />
+              <span>Cockpit</span>
             </Link>
 
-            <span className="app-live hidden xl:inline-flex">
-              <i />
-              {t("api_connected")}
-            </span>
+            <Link
+              href="/espace/ventes"
+              className={clsx(
+                "flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold",
+                pathname === "/espace/ventes"
+                  ? "text-primary font-black"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <ReceiptText size={20} />
+              <span>Ventes</span>
+            </Link>
 
-            <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 sm:h-11 sm:w-11" } }} />
-          </div>
-        </header>
+            {/* Center Orb Voice Dictation Action Button */}
+            <button
+              type="button"
+              data-tour="voice-mic"
+              onClick={() => setVoiceOpen(true)}
+              className="flex flex-col items-center justify-center -mt-5"
+              aria-label="Dicter une vente"
+            >
+              <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 text-white shadow-[0_8px_20px_rgba(0,168,107,0.4)] flex items-center justify-center active:scale-95 transition-transform border-4 border-background">
+                <Mic size={24} className="text-white animate-pulse" />
+              </div>
+              <span className="text-[9.5px] font-black text-primary mt-0.5 tracking-tight">
+                Dicter
+              </span>
+            </button>
 
-        <div className="app-content pb-24 lg:pb-8">{children}</div>
+            <Link
+              href="/espace/radar"
+              className={clsx(
+                "flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold",
+                pathname === "/espace/radar"
+                  ? "text-primary font-black"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Radar size={20} />
+              <span>Radar</span>
+            </Link>
 
-        {/* Floating Premium CORA AI Round Bubble Widget */}
-        <div className="fixed bottom-20 right-4 lg:bottom-7 lg:right-7 z-40 group">
-          <button
-            type="button"
-            data-tour="cora-ia"
-            onClick={() => setCopilotOpen(true)}
-            aria-label="Ouvrir Cora, votre assistante IA"
-            title="Demandez à Cora IA (Cmd + J / Ctrl + J)"
-            className="relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-[0_10px_25px_rgba(16,185,129,0.45)] hover:shadow-[0_15px_35px_rgba(16,185,129,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-white/30 dark:border-white/15 cursor-pointer"
-          >
-            {/* Ambient glowing pulse aura */}
-            <span className="absolute -inset-1 rounded-full bg-emerald-500/25 animate-ping opacity-60 pointer-events-none" />
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <Menu size={20} />
+              <span>Menu</span>
+            </button>
+          </nav>
+        </main>
 
-            {/* Robot AI Icon */}
-            <Bot size={26} strokeWidth={2.3} className="relative z-10" />
-
-            {/* Online Green Indicator Dot */}
-            <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-300 border-2 border-emerald-800 shadow-xs z-20 flex items-center justify-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-950" />
-            </span>
-          </button>
-
-          {/* Hover Tooltip / Floating Label */}
-          <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 rounded-xl bg-slate-900/95 text-white text-xs font-bold whitespace-nowrap shadow-xl backdrop-blur-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5 border border-white/10">
-            <Sparkles size={13} className="text-emerald-400" />
-            <span>Cora IA Métier</span>
-            <kbd className="text-[10px] bg-slate-800 px-1 py-0.5 rounded text-slate-300">⌘J</kbd>
-          </div>
-        </div>
-
-        {/* Mobile Bottom Navigation Bar (Glassmorphism Dock) */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/80 px-2 py-1.5 flex items-center justify-around lg:hidden shadow-[0_-10px_25px_rgba(0,0,0,0.06)]">
-          <Link
-            href="/espace"
-            className={clsx(
-              "flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold",
-              pathname === "/espace"
-                ? "text-primary font-black"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <LayoutDashboard size={20} />
-            <span>Cockpit</span>
-          </Link>
-
-          <Link
-            href="/espace/ventes"
-            className={clsx(
-              "flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold",
-              pathname === "/espace/ventes"
-                ? "text-primary font-black"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <ReceiptText size={20} />
-            <span>Ventes</span>
-          </Link>
-
-          {/* Center Orb Voice Dictation Action Button */}
-          <button
-            type="button"
-            data-tour="voice-mic"
-            onClick={() => setVoiceOpen(true)}
-            className="flex flex-col items-center justify-center -mt-5"
-            aria-label="Dicter une vente"
-          >
-            <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 text-white shadow-[0_8px_20px_rgba(0,168,107,0.4)] flex items-center justify-center active:scale-95 transition-transform border-4 border-background">
-              <Mic size={24} className="text-white animate-pulse" />
-            </div>
-            <span className="text-[9.5px] font-black text-primary mt-0.5 tracking-tight">
-              Dicter
-            </span>
-          </button>
-
-          <Link
-            href="/espace/radar"
-            className={clsx(
-              "flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold",
-              pathname === "/espace/radar"
-                ? "text-primary font-black"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Radar size={20} />
-            <span>Radar</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
-          >
-            <Menu size={20} />
-            <span>Menu</span>
-          </button>
-        </nav>
-      </main>
+        {/* Inline AI Copilot Panel — appears alongside main content */}
+        <AICopilotDrawer
+          open={copilotOpen}
+          onClose={() => { setCopilotOpen(false); setCopilotMinimized(false); }}
+          minimized={copilotMinimized}
+          onMinimize={() => setCopilotMinimized(true)}
+          onRestore={() => setCopilotMinimized(false)}
+        />
+      </div>
     </div>
   );
 }
+

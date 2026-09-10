@@ -59,7 +59,7 @@
 
 /* Independent, discreet application scrolling and compact sidebar */
 .desktop-only{display:block}.app-sidebar-toggle{position:absolute;top:82px;right:-14px;z-index:3;width:30px;height:30px;border:1px solid #d5eadf;border-radius:10px;background:linear-gradient(145deg,#fff,#eaf8f1);color:#08744f;display:grid;place-items:center;cursor:pointer;box-shadow:0 8px 22px rgba(18,86,56,.16);transition:transform .2s ease,box-shadow .2s ease}.app-sidebar-toggle:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 10px 28px rgba(0,168,107,.22)}
-@media(min-width:761px){.app-shell{height:100vh;min-height:0;overflow:hidden;transition:grid-template-columns .25s ease}.app-main{height:100vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}.app-main::-webkit-scrollbar,.app-sidebar nav::-webkit-scrollbar{display:none;width:0;height:0}.app-sidebar nav{scrollbar-width:none;overscroll-behavior:contain}.app-shell.is-sidebar-collapsed{grid-template-columns:84px minmax(0,1fr)}.is-sidebar-collapsed .app-sidebar{padding-inline:10px}.is-sidebar-collapsed .app-brand{justify-content:center;padding-inline:0}.is-sidebar-collapsed .app-brand>div,.is-sidebar-collapsed .app-company,.is-sidebar-collapsed .app-nav-link span,.is-sidebar-collapsed .app-sidebar-foot>div:last-child{display:none}.is-sidebar-collapsed .app-nav-link{justify-content:center;padding:11px}.is-sidebar-collapsed .app-nav-link:hover{transform:none}.is-sidebar-collapsed .app-sidebar-foot{justify-content:center;padding-inline:0}.is-sidebar-collapsed .app-sidebar-toggle{right:-15px}.is-sidebar-collapsed .app-brand-mark{width:40px;height:40px}}
+@media(min-width:761px){.app-shell{height:100vh;min-height:0;overflow:hidden;transition:grid-template-columns .25s ease}.app-body{height:100vh;min-height:0;overflow:hidden}.app-main{height:100vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}.app-body .app-main{height:100vh;overflow-y:auto}.kx-copilot-panel{height:100vh}.app-main::-webkit-scrollbar,.app-sidebar nav::-webkit-scrollbar{display:none;width:0;height:0}.app-sidebar nav{scrollbar-width:none;overscroll-behavior:contain}.app-shell.is-sidebar-collapsed{grid-template-columns:84px minmax(0,1fr)}.is-sidebar-collapsed .app-sidebar{padding-inline:10px}.is-sidebar-collapsed .app-brand{justify-content:center;padding-inline:0}.is-sidebar-collapsed .app-brand>div,.is-sidebar-collapsed .app-company,.is-sidebar-collapsed .app-nav-link span,.is-sidebar-collapsed .app-sidebar-foot>div:last-child{display:none}.is-sidebar-collapsed .app-nav-link{justify-content:center;padding:11px}.is-sidebar-collapsed .app-nav-link:hover{transform:none}.is-sidebar-collapsed .app-sidebar-foot{justify-content:center;padding-inline:0}.is-sidebar-collapsed .app-sidebar-toggle{right:-15px}.is-sidebar-collapsed .app-brand-mark{width:40px;height:40px}}
 @media(max-width:760px){.desktop-only{display:none}.app-main{height:auto;overflow:visible}.app-shell{height:auto;overflow:visible}}
 .app-topbar-context{min-width:0}.app-topbar-context strong{max-width:min(52vw,680px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.app-public-link{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 12px;border:1px solid #d8e9e0;border-radius:11px;background:#fff;color:#315244;font-size:12px;font-weight:800;transition:.2s ease}.app-public-link:hover{border-color:#83d9ae;color:#008758;transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,168,107,.1)}
 @media(max-width:760px){.app-topbar-context strong{max-width:42vw;font-size:12px}.app-topbar-context .app-eyebrow{font-size:9px}.app-public-link{width:36px;padding:0;justify-content:center}.app-public-link span{display:none}}
@@ -443,11 +443,59 @@
 .kx-cora-label{display:inline-flex;align-items:baseline;gap:4px;color:#fff!important;font-weight:850;letter-spacing:.01em;white-space:nowrap}
 .kx-cora-label small{color:#d8ffeb;font-size:9px;font-weight:900;letter-spacing:.12em}
 
-/* Copilot Drawer */
-.kx-copilot-backdrop{position:fixed;inset:0;background:rgba(10,35,22,.45);backdrop-filter:blur(5px);z-index:9000;display:flex;justify-content:flex-end;animation:kxFadeIn .2s ease}
-.kx-copilot-drawer{width:100%;max-width:540px;height:100vh;max-height:100vh;background:var(--card,#fff);color:var(--foreground,#183629);box-shadow:-12px 0 40px rgba(0,0,0,.2);display:flex;flex-direction:column;overflow:hidden;position:relative;animation:kxSlideLeft .25s cubic-bezier(.16,1,.3,1)}
+/* Copilot Inline Panel — layout container */
+/* app-body: flex row containing main + copilot panel */
+.app-body{display:flex;flex:1 1 auto;min-height:0;overflow:hidden;width:100%}
 
-@keyframes kxSlideLeft{from{transform:translateX(100%)}to{transform:translateX(0)}}
+/* Main shrinks when copilot is open */
+.app-body .app-main{flex:1 1 auto;min-width:0;transition:all .3s cubic-bezier(.16,1,.3,1)}
+
+/* Inline Copilot Panel */
+.kx-copilot-panel{
+  width:380px;
+  flex:0 0 380px;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:var(--card,#fff);
+  border-left:1px solid var(--border,#e1efe7);
+  box-shadow:-8px 0 32px rgba(0,0,0,.08);
+  animation:kxPanelSlideIn .25s cubic-bezier(.16,1,.3,1);
+  position:relative;
+}
+/* Minimized mini-bar */
+.kx-copilot-panel--minimized{
+  width:220px;
+  flex:0 0 220px;
+}
+.kx-copilot-mini-bar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 12px;
+  height:100%;
+  background:linear-gradient(135deg,#0d3826,#072216);
+  color:#fff;
+  flex-direction:column;
+  justify-content:flex-start;
+  writing-mode:vertical-rl;
+  text-orientation:mixed;
+}
+/* Override: mini-bar is a vertical strip */
+.kx-copilot-panel--minimized .kx-copilot-mini-bar{
+  flex-direction:row;
+  writing-mode:horizontal-tb;
+  height:auto;
+  min-height:52px;
+  flex:0 0 auto;
+}
+.kx-copilot-panel--minimized{
+  flex-direction:column;
+  justify-content:flex-start;
+}
+
+@keyframes kxPanelSlideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes kxFadeIn{from{opacity:0}to{opacity:1}}
 @keyframes kxScaleIn{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
 

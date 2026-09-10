@@ -20,6 +20,8 @@ import {
   HelpCircle,
   Clock,
   ChevronDown,
+  PanelRightClose,
+  Minimize2,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { useI18n } from "@/lib/i18n";
@@ -140,13 +142,21 @@ function renderInlineMarkdown(content: string) {
   });
 }
 
+interface AICopilotDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  minimized?: boolean;
+  onMinimize?: () => void;
+  onRestore?: () => void;
+}
+
 export function AICopilotDrawer({
   open,
   onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+  minimized = false,
+  onMinimize,
+  onRestore,
+}: AICopilotDrawerProps) {
   const router = useRouter();
   const { t, lang } = useI18n();
 
@@ -368,48 +378,96 @@ export function AICopilotDrawer({
 
   if (!open) return null;
 
-  return (
-    <div className="kx-copilot-backdrop" onClick={onClose}>
-      <aside className="kx-copilot-drawer" onClick={(e) => e.stopPropagation()}>
-        {/* Drawer Header */}
-        <div className="kx-copilot-header">
-          <div className="kx-copilot-title-group">
-            <div className="kx-copilot-badge-icon">
-              <Bot size={22} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold">Cora</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
-                  {t("copilot_badge")}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Copilote IA & Direction des Opérations
-              </p>
-            </div>
+  // ── Minimized mini-bar ────────────────────────────────────────────────────
+  if (minimized) {
+    return (
+      <aside className="kx-copilot-panel kx-copilot-panel--minimized">
+        <div className="kx-copilot-mini-bar">
+          <div className="kx-copilot-badge-icon" style={{ width: 28, height: 28 }}>
+            <Bot size={16} />
           </div>
+          <span className="text-sm font-bold">Cora IA</span>
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              type="button"
+              onClick={onRestore}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition cursor-pointer"
+              aria-label="Restaurer le panneau"
+              title="Restaurer"
+            >
+              <PanelRightClose size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition cursor-pointer"
+              aria-label="Fermer"
+              title="Fermer"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  // ── Full panel ────────────────────────────────────────────────────────────
+  return (
+    <aside className="kx-copilot-panel">
+      {/* Panel Header */}
+      <div className="kx-copilot-header">
+        <div className="kx-copilot-title-group">
+          <div className="kx-copilot-badge-icon">
+            <Bot size={22} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold">Cora</h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                {t("copilot_badge")}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Copilote IA &amp; Direction des Opérations
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {/* Minimize button */}
+          <button
+            type="button"
+            onClick={onMinimize}
+            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition cursor-pointer"
+            aria-label="Réduire le panneau"
+            title="Réduire"
+          >
+            <Minimize2 size={16} />
+          </button>
+          {/* Close button */}
           <button
             type="button"
             onClick={onClose}
             className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition cursor-pointer"
             aria-label="Fermer le panneau"
+            title="Fermer"
           >
             <X size={18} />
           </button>
         </div>
+      </div>
 
-        {/* Quick Suggestion Chips on Start */}
-        {messages.length <= 1 && (
-          <div className="kx-copilot-quick-prompts">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-              <Sparkles size={12} className="text-emerald-600" />
-              <span>Questions suggérées pour démarrer :</span>
-            </div>
-            <div className="grid grid-cols-1 gap-1.5">
-              {QUICK_PROMPTS.map((prompt, idx) => (
-                <button
-                  key={idx}
+      {/* Quick Suggestion Chips on Start */}
+      {messages.length <= 1 && (
+        <div className="kx-copilot-quick-prompts">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+            <Sparkles size={12} className="text-emerald-600" />
+            <span>Questions suggérées pour démarrer :</span>
+          </div>
+          <div className="grid grid-cols-1 gap-1.5">
+            {QUICK_PROMPTS.map((prompt, idx) => (
+              <button
+                key={idx}
                   type="button"
                   onClick={() => handleSend(prompt)}
                   className="text-left text-xs font-medium px-3 py-2 rounded-xl bg-card border border-border/80 hover:bg-emerald-500/5 hover:border-emerald-500/30 hover:text-emerald-800 dark:hover:text-emerald-300 transition flex items-center justify-between group cursor-pointer shadow-2xs"
@@ -643,6 +701,5 @@ export function AICopilotDrawer({
           </div>
         </div>
       </aside>
-    </div>
   );
 }
