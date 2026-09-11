@@ -94,7 +94,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     nav_feedback: "Retours & Suggestions",
 
     // Topbar
-    topbar_eyebrow: "Mémoire opérationnelle",
+    topbar_eyebrow: "Mémoire & Pilotage",
     search_prompt: "Recherche & actions…",
     vocal_btn: "Vocal",
     guide_btn: "Guide",
@@ -148,8 +148,8 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
 
     // Dashboard Header & KPIs
     dash_eyebrow: "Cockpit Décisionnel",
-    dash_title: "Mémoire Opérationnelle du Dirigeant",
-    dash_desc: "Surveillez le chiffre d'affaires vérifié, le recouvrement des créances et la qualité de structuration de",
+    dash_title: "Mémoire & Pilotage Opérationnel",
+    dash_desc: "Surveillez le chiffre d'affaires vérifié, le recouvrement des créances et la qualité opérationnelle de",
     btn_pdf_report: "Bilan Opérationnel (PDF)",
     btn_new_sale: "Nouvelle vente",
     kpi_turnover: "Chiffre d'Affaires",
@@ -486,7 +486,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     nav_feedback: "Feedback & Suggestions",
 
     // Topbar
-    topbar_eyebrow: "Operational Memory",
+    topbar_eyebrow: "Memory & Operations",
     search_prompt: "Search & actions…",
     vocal_btn: "Voice",
     guide_btn: "Guide",
@@ -540,7 +540,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
 
     // Dashboard Header & KPIs
     dash_eyebrow: "Executive Dashboard",
-    dash_title: "Executive Operational Memory",
+    dash_title: "Operational Memory & Management",
     dash_desc: "Monitor verified revenue, debt recovery, and operational quality for",
     btn_pdf_report: "Executive Report (PDF)",
     btn_new_sale: "New Sale",
@@ -855,7 +855,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     nav_faq: "Preguntas Frecuentes",
     nav_feedback: "Sugerencias",
 
-    topbar_eyebrow: "Memoria operativa",
+    topbar_eyebrow: "Memoria & Gestión",
     search_prompt: "Buscar & acciones…",
     vocal_btn: "Voz",
     guide_btn: "Guía",
@@ -888,7 +888,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     common_date: "Fecha",
     common_amount: "Importe",
     common_currency: "Moneda",
-    common_print: "Imprimir",
+    common_print: "Imprimer",
     common_view: "Ver",
     common_total: "Total",
     common_yes: "Sí",
@@ -907,7 +907,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     common_category: "Categoría",
 
     dash_eyebrow: "Panel de Control",
-    dash_title: "Memoria Operativa del Director",
+    dash_title: "Memoria & Gestión Operativa",
     dash_desc: "Supervise la facturación verificada, cobros pendientes y calidad de",
     btn_pdf_report: "Informe Directivo (PDF)",
     btn_new_sale: "Nueva venta",
@@ -1210,7 +1210,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     nav_faq: "Perguntas Frequentes",
     nav_feedback: "Sugestões",
 
-    topbar_eyebrow: "Memória operacional",
+    topbar_eyebrow: "Memória & Gestão",
     search_prompt: "Pesquisar & ações…",
     vocal_btn: "Voz",
     guide_btn: "Guia",
@@ -1262,7 +1262,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     common_category: "Categoria",
 
     dash_eyebrow: "Painel de Controlo",
-    dash_title: "Memória Operacional da Direção",
+    dash_title: "Memória & Gestão Operacional",
     dash_desc: "Monitore o volume de negócios verificado, cobranças e conformidade de",
     btn_pdf_report: "Relatório de Gestão (PDF)",
     btn_new_sale: "Nova venda",
@@ -1565,7 +1565,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     nav_faq: "الأسئلة الشائعة",
     nav_feedback: "الملاحظات والاقتراحات",
 
-    topbar_eyebrow: "الذاكرة التشغيلية",
+    topbar_eyebrow: "الذاكرة والتشغيل",
     search_prompt: "بحث وتنفيذ أوامر…",
     vocal_btn: "صوتي",
     guide_btn: "دليل",
@@ -1617,7 +1617,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     common_category: "الفئة",
 
     dash_eyebrow: "لوحة القيادة التنفيذية",
-    dash_title: "الذاكرة التشغيلية للمدير التنفيذي",
+    dash_title: "الذاكرة والقيادة التشغيلية",
     dash_desc: "متابعة الإيرادات المعتمدة، تحصيل الديون ومستوى الجودة التشغيلية لمؤسسة",
     btn_pdf_report: "التقرير التنفيذي (PDF)",
     btn_new_sale: "تسجيل عملية بيع",
