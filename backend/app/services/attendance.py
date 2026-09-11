@@ -113,12 +113,22 @@ class AttendanceService:
                 )
 
         today = date.today()
+        effective_emp_id = (data.employee_id.strip() if data.employee_id else None) or employee_id
+        emp_name = data.employee_name.strip() if data.employee_name else None
+
         existing = await s.scalar(
             select(AttendanceRecord).where(
                 and_(
                     AttendanceRecord.organization_id == org.id,
-                    AttendanceRecord.employee_id == employee_id,
                     AttendanceRecord.date == today,
+                    (
+                        (AttendanceRecord.employee_id == effective_emp_id)
+                        | (
+                            (AttendanceRecord.employee_name == emp_name)
+                            if emp_name
+                            else (AttendanceRecord.employee_id == effective_emp_id)
+                        )
+                    ),
                 )
             )
         )
@@ -128,21 +138,20 @@ class AttendanceService:
             # Update check-in or re-confirm
             existing.check_in_lat = data.latitude
             existing.check_in_lng = data.longitude
-            existing.employee_name = data.employee_name or existing.employee_name
+            existing.employee_name = emp_name or existing.employee_name
             existing.notes = data.notes or existing.notes
             await s.commit()
             await s.refresh(existing)
             return AttendanceRecordRead.model_validate(existing)
 
-        # Determine late status (e.g. after 09:30 AM local time default)
-        status = "present"
-        if now.hour >= 9 and now.minute > 30:
-            status = "late"
+        # Determine late status: after 09:30 AM (570 minutes from midnight)
+        current_minute_of_day = now.hour * 60 + now.minute
+        status = "late" if current_minute_of_day > (9 * 60 + 30) else "present"
 
         record = AttendanceRecord(
             organization_id=org.id,
-            employee_id=employee_id,
-            employee_name=data.employee_name,
+            employee_id=effective_emp_id,
+            employee_name=emp_name,
             date=today,
             check_in_time=now,
             check_in_lat=data.latitude,
@@ -164,19 +173,37 @@ class AttendanceService:
         data: AttendanceCheckOutRequest,
     ) -> AttendanceRecordRead:
         today = date.today()
+        effective_emp_id = (data.employee_id.strip() if data.employee_id else None) or employee_id
+        emp_name = data.employee_name.strip() if data.employee_name else None
+
+        # Verify token if provided
+        if data.token and not self.verify_token(org.id, data.token):
+            raise ApplicationError(
+                "invalid_or_expired_token",
+                "Le code QR de pointage a expiré ou est invalide.",
+                400,
+            )
+
         record = await s.scalar(
             select(AttendanceRecord).where(
                 and_(
                     AttendanceRecord.organization_id == org.id,
-                    AttendanceRecord.employee_id == employee_id,
                     AttendanceRecord.date == today,
+                    (
+                        (AttendanceRecord.employee_id == effective_emp_id)
+                        | (
+                            (AttendanceRecord.employee_name == emp_name)
+                            if emp_name
+                            else (AttendanceRecord.employee_id == effective_emp_id)
+                        )
+                    ),
                 )
             )
         )
         if not record:
             raise ApplicationError(
                 "no_check_in_found",
-                "Aucun pointage d'arrivée n'a été trouvé pour aujourd'hui.",
+                "Aucun pointage d'arrivée n'a été trouvé pour aujourd'hui avec cette identité.",
                 404,
             )
 
@@ -223,6 +250,7 @@ class AttendanceService:
 
         present_count = sum(1 for r in records if r.status in {"present", "late"})
         late_count = sum(1 for r in records if r.status == "late")
+        checked_out_count = sum(1 for r in records if r.check_out_time is not None)
         absent_count = max(0, total_members - present_count)
 
         return AttendanceTodaySummary(
@@ -230,6 +258,10 @@ class AttendanceService:
             total_expected_members=total_members,
             present_count=present_count,
             late_count=late_count,
+            checked_out_count=checked_out_count,
             absent_count=absent_count,
+            total_present=present_count,
+            total_late=late_count,
+            total_checked_out=checked_out_count,
             records=[AttendanceRecordRead.model_validate(r) for r in records],
         )

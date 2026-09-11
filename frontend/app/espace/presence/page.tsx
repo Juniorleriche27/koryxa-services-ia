@@ -39,9 +39,14 @@ interface AttendanceRecord {
 
 interface AttendanceTodaySummary {
   date: string;
-  total_present: number;
-  total_late: number;
-  total_checked_out: number;
+  total_expected_members?: number;
+  present_count?: number;
+  late_count?: number;
+  checked_out_count?: number;
+  absent_count?: number;
+  total_present?: number;
+  total_late?: number;
+  total_checked_out?: number;
   records: AttendanceRecord[];
 }
 
@@ -79,11 +84,18 @@ export default function PresencePage() {
   useEffect(() => {
     void loadData();
 
+    // Auto-refresh every 30s so the dashboard reflects live check-ins
+    const refreshTimer = setInterval(() => {
+      void loadData();
+    }, 30000);
+
     serviceIaFetch<any>("/organizations/current")
       .then((org) => {
         if (org.business_category) setBusinessCategory(org.business_category);
       })
       .catch(() => {});
+
+    return () => clearInterval(refreshTimer);
   }, []);
 
   const proConfig = getBusinessCategoryConfig(businessCategory, lang);
@@ -96,6 +108,12 @@ export default function PresencePage() {
       return iso;
     }
   };
+
+  const presentCount = data?.present_count ?? data?.total_present ?? 0;
+  const lateCount = data?.late_count ?? data?.total_late ?? 0;
+  const checkedOutCount = data?.checked_out_count ?? data?.total_checked_out ?? 0;
+  const totalExpected = data?.total_expected_members ?? 0;
+  const absentCount = data?.absent_count ?? Math.max(0, totalExpected - presentCount);
 
   return (
     <>
@@ -133,7 +151,7 @@ export default function PresencePage() {
         />
 
         {/* Daily KPI Counters */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="p-5 rounded-2xl border border-border bg-card shadow-sm flex items-center gap-4">
             <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <UserCheck size={24} />
@@ -143,7 +161,7 @@ export default function PresencePage() {
                 {t("attendance_kpi_present")}
               </span>
               <strong className="text-2xl font-black font-mono text-foreground">
-                {data?.total_present ?? 0}
+                {presentCount}
               </strong>
             </div>
           </div>
@@ -157,7 +175,7 @@ export default function PresencePage() {
                 {t("attendance_kpi_late")}
               </span>
               <strong className="text-2xl font-black font-mono text-foreground">
-                {data?.total_late ?? 0}
+                {lateCount}
               </strong>
             </div>
           </div>
@@ -171,7 +189,21 @@ export default function PresencePage() {
                 Départs enregistrés
               </span>
               <strong className="text-2xl font-black font-mono text-foreground">
-                {data?.total_checked_out ?? 0}
+                {checkedOutCount}
+              </strong>
+            </div>
+          </div>
+
+          <div className="p-5 rounded-2xl border border-border bg-card shadow-sm flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-slate-500/10 text-slate-600 dark:text-slate-400">
+              <Users size={24} />
+            </div>
+            <div>
+              <span className="text-xs font-semibold text-muted-foreground block">
+                Absents / Non pointés
+              </span>
+              <strong className="text-2xl font-black font-mono text-foreground">
+                {absentCount}
               </strong>
             </div>
           </div>

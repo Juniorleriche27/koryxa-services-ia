@@ -8,12 +8,16 @@ class AttendanceCheckInRequest(BaseModel):
     latitude: float | None = Field(None, description="Employee smartphone GPS latitude")
     longitude: float | None = Field(None, description="Employee smartphone GPS longitude")
     employee_name: str | None = None
+    employee_id: str | None = None
     notes: str | None = None
 
 
 class AttendanceCheckOutRequest(BaseModel):
+    token: str | None = Field(None, description="Dynamic TOTP token if required")
     latitude: float | None = None
     longitude: float | None = None
+    employee_name: str | None = None
+    employee_id: str | None = None
     notes: str | None = None
 
 
@@ -28,6 +32,8 @@ class AttendanceRecordRead(BaseModel):
     check_out_time: datetime | None = None
     check_in_lat: float | None = None
     check_in_lng: float | None = None
+    check_out_lat: float | None = None
+    check_out_lng: float | None = None
     status: str
     verified_by: str
     notes: str | None = None
@@ -37,11 +43,16 @@ class AttendanceRecordRead(BaseModel):
 
 class AttendanceTodaySummary(BaseModel):
     date: date
-    total_expected_members: int
-    present_count: int
-    late_count: int
-    absent_count: int
-    records: list[AttendanceRecordRead]
+    total_expected_members: int = 0
+    present_count: int = 0
+    late_count: int = 0
+    checked_out_count: int = 0
+    absent_count: int = 0
+    # Aliases for frontend compatibility
+    total_present: int = 0
+    total_late: int = 0
+    total_checked_out: int = 0
+    records: list[AttendanceRecordRead] = []
 
 
 class AttendanceKioskTokenResponse(BaseModel):
