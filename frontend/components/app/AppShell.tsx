@@ -153,7 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
     const pageContext: Record<string, { eyebrow: string; description: string }> = {
-    "/espace": { eyebrow: t("dash_eyebrow"), description: `${t("page_ctx_dashboard")} (${proConfig.name})` },
+    "/espace": { eyebrow: t("topbar_eyebrow"), description: `${t("page_ctx_dashboard")} (${proConfig.name})` },
     "/espace/offres": { eyebrow: proConfig.registers.offers.title, description: proConfig.registers.offers.subtitle },
     "/espace/ventes": { eyebrow: proConfig.registers.sales.title, description: proConfig.registers.sales.subtitle },
     "/espace/depenses": { eyebrow: proConfig.registers.expenses.title, description: proConfig.registers.expenses.subtitle },

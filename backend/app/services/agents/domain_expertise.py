@@ -116,6 +116,30 @@ DOMAIN_EXPERTISE: dict[str, dict[str, Any]] = {
             "Le solde de livraison de {montant} est désormais payable. Nous vous remercions pour votre collaboration."
         ),
     },
+    "association": {
+        "sector_label": "Association, Fondation, ONG & Communauté",
+        "role_finance": "Trésorier Général & Contrôleur des Fonds Associatifs",
+        "role_sales": "Responsable des Adhésions & Relations Bailleurs",
+        "role_radar": "Auditeur de Conformité & Transparence Statutaire",
+        "role_ops": "Coordinateur des Projets & Vie Associative",
+        "core_concepts": [
+            "Cotisations annuelles des membres et dons ponctuels",
+            "Subventions de projets et justificatifs bailleurs",
+            "Frais de mission terrain et défrayements bénévoles",
+            "Émargement aux assemblées générales et réunions",
+            "Rapprochement bancaire et traçabilité des dépenses de programme",
+        ],
+        "kpi_rules": (
+            "1. Transparence Budgétaire : Justifier chaque décaissement par un reçu et un rattachement à un projet.\n"
+            "2. Renouvellement des Adhésions : Relancer courtoisement les membres en début d'exercice pour les cotisations annuelles.\n"
+            "3. Reporting Bailleurs : Maintenir un registre infalsifiable pour les audits des bailleurs de fonds."
+        ),
+        "example_relance": (
+            "Chère / Cher {client}, nous vous remercions pour votre engagement au sein de notre organisation. "
+            "Votre cotisation annuelle de {montant} pour l'exercice en cours reste en attente. "
+            "Votre soutien est essentiel pour mener à bien nos actions d'impact. Bien solidairement."
+        ),
+    },
 }
 
 
@@ -125,6 +149,8 @@ def get_domain_expertise(sector_key: str | None) -> dict[str, Any]:
     key = sector_key.lower().strip()
     if any(w in key for w in ["educ", "ecole", "scol", "school", "form"]):
         return DOMAIN_EXPERTISE["education"]
+    if any(w in key for w in ["assoc", "ong", "fondation", "commu", "club"]):
+        return DOMAIN_EXPERTISE["association"]
     if any(w in key for w in ["serv", "cons", "agenc", "freel"]):
         return DOMAIN_EXPERTISE["services"]
     if any(w in key for w in ["hosp", "rest", "bar", "cafe", "hotel"]):

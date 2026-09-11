@@ -86,7 +86,7 @@ export function BusinessCategorySettings() {
     setSuccessMsg("");
     setErrorMsg("");
     try {
-      await serviceIaFetch("/organizations/current", {
+      const updatedOrg = await serviceIaFetch<any>("/organizations/current", {
         method: "PATCH",
         body: JSON.stringify({
           business_category: currentCategory,
@@ -95,6 +95,13 @@ export function BusinessCategorySettings() {
           geofence_radius_meters: geofenceRadius,
         }),
       });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("koryxa:organization-updated", {
+            detail: { ...updatedOrg, business_category: currentCategory },
+          })
+        );
+      }
       setSuccessMsg("Paramètres métier et localisation mis à jour avec succès !");
       setTimeout(() => setSuccessMsg(""), 4000);
     } catch (e: any) {
