@@ -125,7 +125,8 @@ export function ExecutiveDashboard({
 
   const currency = summary?.primary_currency || "XOF";
   const totalSales = Number(summary?.total_sales_amount) || 0;
-  const totalPaid = Number(summary?.total_paid_amount) || 0;
+  const rawTotalPaid = Number(summary?.total_paid_amount) || 0;
+  const totalPaid = totalSales > 0 ? Math.min(totalSales, rawTotalPaid) : rawTotalPaid;
   const totalUnpaid =
     summary?.total_unpaid_amount !== undefined && Number(summary.total_unpaid_amount) > 0
       ? Number(summary.total_unpaid_amount)
@@ -261,7 +262,7 @@ export function ExecutiveDashboard({
           <strong>{formatMoney(totalPaid, currency)}</strong>
           <small>
             {totalSales > 0
-              ? `${Math.round((totalPaid / totalSales) * 100)}% ${t("kpi_recovery_rate")}`
+              ? `${Math.min(100, Math.max(0, Math.round((totalPaid / totalSales) * 100)))}% ${t("kpi_recovery_rate")}`
               : `0% ${t("kpi_recovery_rate")}`}
           </small>
         </article>

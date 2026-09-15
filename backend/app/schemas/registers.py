@@ -131,6 +131,17 @@ class SaleBase(BaseModel):
             )
         return f"+{digits}"
 
+    @model_validator(mode="after")
+    def validate_amounts(self):
+        computed_total = (
+            self.total_amount
+            if self.total_amount is not None
+            else max(Decimal("0.00"), self.quantity * self.unit_price - self.discount)
+        )
+        if self.paid_amount > computed_total and computed_total > Decimal("0.00"):
+            self.paid_amount = computed_total
+        return self
+
 
 class SaleCreate(SaleBase):
     reference: str | None = Field(default=None, max_length=100)

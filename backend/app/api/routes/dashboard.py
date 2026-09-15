@@ -69,7 +69,7 @@ async def _fetch_summary(s: AsyncSession, org_id: str) -> dict[str, Any]:
     sr = sales_agg.one()
     total_sales_count = int(sr.total_count or 0)
     total_sales_amount = Decimal(str(sr.total_amount or 0))
-    total_paid_amount = Decimal(str(sr.total_paid or 0))
+    total_paid_amount = min(total_sales_amount, Decimal(str(sr.total_paid or 0)))
     total_partial_amount = Decimal(str(sr.total_partial or 0))
     total_unpaid_amount = max(Decimal("0"), total_sales_amount - total_paid_amount)
     primary_currency = sr.primary_currency or "XOF"

@@ -405,9 +405,10 @@ class CoraOrchestrator(BaseSpecializedAgent):
                     today_sales_unpaid += amt
 
         # Strict consistency: Total Unpaid = Total Sales - Total Paid
+        total_sales_paid = min(total_sales_amount, total_sales_paid)
         total_sales_unpaid = max(Decimal("0.00"), total_sales_amount - total_sales_paid)
         recouvrement_rate = (
-            round(float(total_sales_paid / total_sales_amount) * 100)
+            min(100, max(0, round(float(total_sales_paid / total_sales_amount) * 100)))
             if total_sales_amount > 0
             else 100
         )

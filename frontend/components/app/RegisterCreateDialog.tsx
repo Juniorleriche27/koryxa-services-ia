@@ -130,6 +130,14 @@ export function RegisterCreateDialog({
         }
       }
 
+      if (numPaidAmount > calculatedTotal && calculatedTotal > 0) {
+        setError(
+          `Le montant encaissé (${numPaidAmount.toLocaleString()}) ne peut pas être supérieur au montant total de la vente (${calculatedTotal.toLocaleString()}).`
+        );
+        setSaving(false);
+        return;
+      }
+
       payload = {
         reference: reference.trim() || undefined,
         document_type: docType,

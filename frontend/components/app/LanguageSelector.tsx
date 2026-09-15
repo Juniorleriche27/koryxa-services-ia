@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Globe } from "lucide-react";
 import { SUPPORTED_LANGUAGES, LanguageCode, useI18n } from "@/lib/i18n";
 
 export function LanguageSelector() {
@@ -29,8 +29,8 @@ export function LanguageSelector() {
         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-border/80 bg-card hover:bg-muted/60 text-foreground transition text-xs font-bold shadow-2xs cursor-pointer"
         title="Changer la langue / Change language"
       >
-        <span className="text-sm">{activeOption.flag}</span>
-        <span className="hidden sm:inline text-xs font-semibold">{activeOption.code.toUpperCase()}</span>
+        <Globe size={14} className="text-muted-foreground" />
+        <span className="text-xs font-semibold">{activeOption.code.toUpperCase()}</span>
       </button>
 
       {open && (

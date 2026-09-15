@@ -169,6 +169,9 @@ class RegisterService:
             deposit_pct = Decimal(str(values["deposit_percentage"]))
             paid_amount = max(Decimal("0.00"), (total_amount * deposit_pct) / Decimal("100"))
 
+        # Cap paid_amount to total_amount
+        paid_amount = min(total_amount, max(Decimal("0.00"), paid_amount)) if total_amount > 0 else Decimal("0.00")
+
         if (
             values.get("payment_status") == PaymentStatus.PAID
             and paid_amount == Decimal("0.00")
@@ -178,8 +181,11 @@ class RegisterService:
 
         if paid_amount >= total_amount and total_amount > 0:
             values["payment_status"] = PaymentStatus.PAID
+            paid_amount = total_amount
         elif paid_amount > Decimal("0.00"):
             values["payment_status"] = PaymentStatus.PARTIAL
+        else:
+            values["payment_status"] = PaymentStatus.UNPAID
 
         values["paid_amount"] = paid_amount
 
@@ -519,15 +525,18 @@ class RegisterService:
                 else str(row.payment_status).lower()
             )
             if status_str == "paid":
-                actual_paid = amt if p_amt == Decimal("0.00") else p_amt
+                actual_paid = amt if (p_amt == Decimal("0.00") or p_amt > amt) else p_amt
+                actual_paid = min(amt, max(Decimal("0.00"), actual_paid))
                 total_paid_amount += actual_paid
             elif status_str == "partial":
-                total_paid_amount += p_amt
-                total_partial_amount += max(Decimal("0.00"), amt - p_amt)
+                actual_paid = min(amt, max(Decimal("0.00"), p_amt))
+                total_paid_amount += actual_paid
+                total_partial_amount += max(Decimal("0.00"), amt - actual_paid)
             elif status_str == "unpaid":
                 pass
 
         # Strict Mathematical Consistency: Total CA = Total Encaissé + Créances en attente
+        total_paid_amount = min(total_sales_amount, total_paid_amount)
         total_unpaid_amount = max(Decimal("0.00"), total_sales_amount - total_paid_amount)
 
         offers_rows = list(
