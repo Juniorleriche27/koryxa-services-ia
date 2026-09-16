@@ -35,6 +35,7 @@ import {
   Compass,
   HelpCircle,
   Download,
+  PhoneCall,
 } from "lucide-react";
 
 import clsx from "clsx";
@@ -49,6 +50,7 @@ import { OfflineSyncBanner } from "./OfflineSyncBanner";
 import { AICopilotDrawer } from "./AICopilotDrawer";
 import { InteractiveSpotlightTour } from "./InteractiveSpotlightTour";
 import { QuickHelpModal } from "./QuickHelpModal";
+import { ContactModal } from "./ContactModal";
 import { PwaInstaller } from "./PwaInstaller";
 import { LanguageSelector } from "./LanguageSelector";
 import { useI18n } from "@/lib/i18n";
@@ -61,6 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [copilotMinimized, setCopilotMinimized] = useState(false);
   const [organization, setOrganization] = useState<{
@@ -129,6 +132,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       id: "aide",
       title: t("group_help"),
       items: [
+        { label: "Nous contacter & Démo", href: "/contact", icon: PhoneCall },
         { label: t("nav_manual"), href: "/espace/aide", icon: BookOpen },
         { label: t("nav_faq"), href: "/espace/aide?tab=faq", icon: HelpCircle },
         { label: t("nav_feedback"), href: "/espace/aide?tab=feedback", icon: MessageSquarePlus },
@@ -287,6 +291,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         onOpenCopilot={() => setCopilotOpen(true)}
       />
 
+      <ContactModal
+        open={contactModalOpen}
+        onClose={() => setContactModalOpen(false)}
+      />
+
       <PwaInstaller />
 
       {onboardingRequired && (
@@ -403,6 +412,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
+        {/* Always visible Contact Button in Sidebar */}
+        <div className="p-2.5 border-t border-border/60">
+          <button
+            type="button"
+            onClick={() => {
+              setContactModalOpen(true);
+              setOpen(false);
+            }}
+            title={collapsed ? "Nous contacter / Demander une démo" : undefined}
+            className={clsx(
+              "w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 shadow-2xs",
+              collapsed && "justify-center px-1.5"
+            )}
+          >
+            <PhoneCall size={15} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+            {!collapsed && <span>Nous contacter</span>}
+          </button>
+        </div>
+
         {/* PWA Install Trigger in Sidebar (Hidden if already installed/standalone or dismissed) */}
         {!isStandalone && !installDismissed && (
           <div className="p-2.5 border-t border-border/60 flex items-center gap-1.5">
@@ -478,6 +506,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Mic size={15} className="text-emerald-600 dark:text-emerald-400" />
                 <span>{t("vocal_btn")}</span>
+              </button>
+
+              {/* Direct Contact & Demo Button */}
+              <button
+                type="button"
+                onClick={() => setContactModalOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition text-xs font-bold shadow-2xs cursor-pointer"
+                title="Nous contacter / Demander une démonstration"
+              >
+                <PhoneCall size={14} className="text-emerald-600 dark:text-emerald-400" />
+                <span>Nous contacter</span>
               </button>
 
               {/* Quick Help & Guidance trigger */}
