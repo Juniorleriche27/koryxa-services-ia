@@ -8,8 +8,8 @@ const sans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: 
 const display = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "KORYXA — Mémoire Opérationnelle & Service IA", template: "%s | KORYXA" },
-  description: "Application d'entreprise, facturation, encaissement, stocks, présence et sentinelle IA KORYXA.",
+  title: { default: "KORYXA — Mémoire & Pilotage Opérationnel", template: "%s | KORYXA" },
+  description: "Plateforme d'entreprise, facturation, encaissement, stocks, présence et pilotage opérationnel KORYXA.",
   applicationName: "KORYXA",
   manifest: "/manifest.webmanifest",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://service-ia.koryxa.fr"),
@@ -28,16 +28,16 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "KORYXA — Mémoire Opérationnelle & Service IA",
-    description: "Application d'entreprise, facturation, encaissement, stocks, présence et sentinelle IA KORYXA.",
+    title: "KORYXA — Mémoire & Pilotage Opérationnel",
+    description: "Plateforme d'entreprise, facturation, encaissement, stocks, présence et pilotage opérationnel KORYXA.",
     url: "/",
-    siteName: "KORYXA Service IA",
+    siteName: "KORYXA",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "KORYXA — Mémoire Opérationnelle & Service IA",
-    description: "Application d'entreprise, facturation, encaissement, stocks, présence et sentinelle IA KORYXA.",
+    title: "KORYXA — Mémoire & Pilotage Opérationnel",
+    description: "Plateforme d'entreprise, facturation, encaissement, stocks, présence et pilotage opérationnel KORYXA.",
   },
 };
 

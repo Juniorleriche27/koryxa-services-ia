@@ -17,7 +17,7 @@ import {
   Tag,
   FileCheck2,
   Zap,
-  Sparkles,
+  Compass,
   Search,
   Wallet,
   Building,
@@ -326,7 +326,7 @@ export function ExecutiveDashboard({
       {/* Morning Briefing Banner */}
       <section className="kx-briefing-card">
         <div className="kx-briefing-icon">
-          <Sparkles size={24} />
+          <Compass size={24} />
         </div>
         <div className="kx-briefing-content">
           <h3>{t("briefing_title")}</h3>

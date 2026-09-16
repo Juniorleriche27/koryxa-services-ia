@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import {
   X,
   Send,
-  Bot,
+  MessageSquareText,
+  UserCheck,
   User,
   Zap,
   TrendingUp,
   RotateCcw,
-  Sparkles,
+  Compass,
   CheckCircle2,
   Receipt,
   Wallet,
@@ -384,9 +385,9 @@ export function AICopilotDrawer({
       <aside className="kx-copilot-panel kx-copilot-panel--minimized">
         <div className="kx-copilot-mini-bar">
           <div className="kx-copilot-badge-icon" style={{ width: 28, height: 28 }}>
-            <Bot size={16} />
+            <MessageSquareText size={16} />
           </div>
-          <span className="text-sm font-bold">Cora IA</span>
+          <span className="text-sm font-bold">Cora</span>
           <div className="flex items-center gap-1 ml-auto">
             <button
               type="button"
@@ -419,7 +420,7 @@ export function AICopilotDrawer({
       <div className="kx-copilot-header">
         <div className="kx-copilot-title-group">
           <div className="kx-copilot-badge-icon">
-            <Bot size={22} />
+            <MessageSquareText size={22} />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -429,7 +430,7 @@ export function AICopilotDrawer({
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Copilote IA &amp; Direction des Opérations
+              Mémoire &amp; Direction des Opérations
             </p>
           </div>
         </div>
@@ -461,7 +462,7 @@ export function AICopilotDrawer({
       {messages.length <= 1 && (
         <div className="kx-copilot-quick-prompts">
           <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-            <Sparkles size={12} className="text-emerald-600" />
+            <Compass size={12} className="text-emerald-600" />
             <span>Questions suggérées pour démarrer :</span>
           </div>
           <div className="grid grid-cols-1 gap-1.5">
@@ -491,7 +492,7 @@ export function AICopilotDrawer({
               className={`kx-chat-msg ${m.role === "user" ? "is-user" : "is-assistant"}`}
             >
               <div className="kx-chat-avatar shrink-0">
-                {m.role === "user" ? <User size={16} /> : <Bot size={16} />}
+                {m.role === "user" ? <User size={16} /> : <UserCheck size={16} />}
               </div>
               <div className="kx-chat-bubble-content max-w-[88%]">
                 {/* Assistant Header Info & Duration Timer Badge */}
@@ -561,7 +562,7 @@ export function AICopilotDrawer({
           {streamingText !== null && (
             <div className="kx-chat-msg is-assistant">
               <div className="kx-chat-avatar shrink-0">
-                <Bot size={16} />
+                <UserCheck size={16} />
               </div>
               <div className="kx-chat-bubble-content max-w-[88%]">
                 <div className="flex items-center gap-1.5 mb-1.5">
@@ -584,14 +585,14 @@ export function AICopilotDrawer({
           {loading && (
             <div className="kx-chat-msg is-assistant">
               <div className="kx-chat-avatar shrink-0">
-                <Bot size={16} className="text-emerald-600 animate-spin" />
+                <Compass size={16} className="text-emerald-600 animate-spin" />
               </div>
               <div className="kx-chat-bubble-content max-w-[90%]">
                 <div className="p-3.5 rounded-2xl bg-card border border-emerald-500/30 shadow-sm space-y-2.5">
                   {/* Header with live timer */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <Sparkles size={15} className="text-emerald-600 animate-pulse" />
+                      <Compass size={15} className="text-emerald-600 animate-pulse" />
                       <span className="text-xs font-bold text-foreground">
                         {currentPhase.text}
                       </span>

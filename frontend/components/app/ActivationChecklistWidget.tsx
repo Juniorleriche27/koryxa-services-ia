@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   Circle,
+  Award,
   ChevronDown,
   ChevronUp,
-  Sparkles,
+  Compass,
   ArrowRight,
   X,
-  Award,
 } from "lucide-react";
 import clsx from "clsx";
 import { BusinessCategoryConfig, ActivationStep } from "@/lib/service-ia/business-categories";
@@ -118,7 +118,7 @@ export function ActivationChecklistWidget({
         className="fixed bottom-20 sm:bottom-6 right-6 z-40 flex items-center gap-2 px-3.5 py-2 rounded-full bg-slate-900 text-white shadow-xl hover:bg-slate-800 transition text-xs font-bold border border-slate-700 cursor-pointer"
         title="Ouvrir le guide de démarrage"
       >
-        <Sparkles size={14} className="text-emerald-400" />
+        <Compass size={14} className="text-emerald-400" />
         <span>Guide de démarrage ({completedCount}/{totalCount})</span>
       </button>
     );
@@ -130,7 +130,7 @@ export function ActivationChecklistWidget({
       <div className="p-3.5 bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 text-white flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 grid place-items-center shrink-0 border border-emerald-500/30">
-            {progressPercent === 100 ? <Award size={16} /> : <Sparkles size={16} />}
+            {progressPercent === 100 ? <Award size={16} /> : <Compass size={16} />}
           </div>
           <div className="min-w-0">
             <h4 className="text-xs font-bold truncate text-white leading-tight">
