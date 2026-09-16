@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.identity import KoryxaIdentity, require_koryxa_identity
 from app.db.session import get_session
 from app.models.contact import ContactLead
 
@@ -107,11 +108,13 @@ async def submit_contact_request(
 
 @router.get("/leads")
 async def list_contact_leads(
+    identity: KoryxaIdentity = Depends(require_koryxa_identity),
     db: AsyncSession = Depends(get_session),
     limit: int = 50,
 ) -> Any:
     """
     List all recent contact leads and demo requests stored in database.
+    Requires authenticated KORYXA management identity.
     """
     result = await db.execute(
         select(ContactLead).order_by(desc(ContactLead.created_at)).limit(limit)
