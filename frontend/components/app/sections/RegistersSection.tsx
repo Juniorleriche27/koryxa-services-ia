@@ -175,8 +175,8 @@ export function RegistersSection({
       />
 
       <section className="app-panel">
-        {loading && <TableSkeleton />}
-        {error && <EmptyState title={t("common_error")} detail={error} onRetry={onReload} />}
+        {loading && items.length === 0 && <TableSkeleton />}
+        {error && items.length === 0 && <EmptyState title={t("common_error")} detail={error} onRetry={onReload} />}
         {!loading && !error && items.length === 0 && (
           <EmptyState
             title={t(kind === "sales" ? "sales_empty_title" : "common_all")}

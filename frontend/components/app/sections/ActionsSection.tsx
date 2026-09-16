@@ -82,8 +82,8 @@ export function ActionsSection({
         }
       />
 
-      {loading && <TableSkeleton />}
-      {error && <EmptyState title={t("common_error")} detail={error} onRetry={onReload} />}
+      {loading && !data && <TableSkeleton />}
+      {error && !data && <EmptyState title={t("common_error")} detail={error} onRetry={onReload} />}
       {!loading && !error && (!data || data.length === 0) && (
         <EmptyState
           title={t("actions_empty_title")}

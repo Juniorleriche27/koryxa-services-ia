@@ -11,8 +11,8 @@ const clerkUserCache = new Map<string, { email: string; fullName: string | null;
 const resolveCachedKoryxaIdentity = unstable_cache(
   async (clerkUserId: string, email: string, fullName: string | null) =>
     resolveKoryxaIdentity({ clerkUserId, email, fullName }),
-  ["service-ia-identity-v4"],
-  { revalidate: 180 }, // 3 minutes cache
+  ["service-ia-identity-v5"],
+  { revalidate: 900 }, // 15 minutes cache
 );
 
 export async function requireServiceIaIdentity(): Promise<ServiceIaIdentity> {
@@ -24,8 +24,27 @@ export async function requireServiceIaIdentity(): Promise<ServiceIaIdentity> {
     return resolveCachedKoryxaIdentity(authContext.userId, cached.email, cached.fullName);
   }
 
-  // Clerk reads request headers internally, so it must remain outside the
-  // Next.js cache scope. Only the header-independent KORYXA bridge is cached.
+  // Fast path: Extract email directly from verified Clerk sessionClaims
+  // This eliminates a 400-800ms external HTTP request to api.clerk.com on every cold invocation
+  const claims = authContext.sessionClaims as Record<string, any> | null;
+  const claimEmail = (
+    claims?.email ||
+    claims?.primary_email ||
+    claims?.email_address ||
+    (Array.isArray(claims?.emails) ? claims?.emails[0] : null)
+  )?.toString().trim().toLowerCase();
+  const claimFullName = (claims?.full_name || claims?.name || null)?.toString();
+
+  if (claimEmail) {
+    clerkUserCache.set(authContext.userId, {
+      email: claimEmail,
+      fullName: claimFullName,
+      expiresAt: Date.now() + 15 * 60 * 1000,
+    });
+    return resolveCachedKoryxaIdentity(authContext.userId, claimEmail, claimFullName);
+  }
+
+  // Fallback to clerk.users.getUser only if email is not present in claims
   const clerk = await clerkClient();
   const user = await clerk.users.getUser(authContext.userId);
   const email = (user.primaryEmailAddress?.emailAddress || user.emailAddresses[0]?.emailAddress || "")
@@ -36,7 +55,7 @@ export async function requireServiceIaIdentity(): Promise<ServiceIaIdentity> {
   clerkUserCache.set(authContext.userId, {
     email,
     fullName: user.fullName,
-    expiresAt: Date.now() + 3 * 60 * 1000,
+    expiresAt: Date.now() + 15 * 60 * 1000,
   });
 
   return resolveCachedKoryxaIdentity(authContext.userId, email, user.fullName);

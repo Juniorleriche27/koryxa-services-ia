@@ -53,8 +53,8 @@ export function ValidationsSection({
         description={t("validations_desc")}
       />
 
-      {loading && <EmptyState title={t("common_loading")} detail={t("common_loading")} />}
-      {error && <EmptyState title={t("common_error")} detail={error} />}
+      {loading && !data && <EmptyState title={t("common_loading")} detail={t("common_loading")} />}
+      {error && !data && <EmptyState title={t("common_error")} detail={error} />}
       {!loading && !error && (!data || data.length === 0) && (
         <EmptyState
           title={t("validations_empty_title")}

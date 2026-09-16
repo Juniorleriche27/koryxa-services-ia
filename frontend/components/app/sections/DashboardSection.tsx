@@ -100,10 +100,10 @@ export function DashboardSection({
 
   return (
     <>
-      {loading && <DashboardSkeleton />}
-      {error && <EmptyState title="Données indisponibles" detail={error} />}
+      {loading && !summary && <DashboardSkeleton />}
+      {error && !summary && <EmptyState title="Données indisponibles" detail={error} />}
 
-      {!loading && !error && (
+      {(summary || (!loading && !error)) && (
         <ExecutiveDashboard
           summary={summary}
           alerts={alerts}

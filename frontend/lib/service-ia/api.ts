@@ -15,12 +15,14 @@ export class ServiceIaApiError extends Error {
 export function getPersistedCache<T>(path: string): T | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.sessionStorage.getItem(`koryxa_cache:${path}`);
+    // Check localStorage first for instant hydration across reloads & visits
+    const raw = window.localStorage.getItem(`koryxa_lcache:${path}`) || window.sessionStorage.getItem(`koryxa_cache:${path}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed.expiresAt && parsed.expiresAt > Date.now()) {
       return parsed.value as T;
     }
+    window.localStorage.removeItem(`koryxa_lcache:${path}`);
     window.sessionStorage.removeItem(`koryxa_cache:${path}`);
   } catch {
     // Ignore storage issues
@@ -28,13 +30,12 @@ export function getPersistedCache<T>(path: string): T | null {
   return null;
 }
 
-export function setPersistedCache<T>(path: string, value: T, ttlMs = 120_000): void {
+export function setPersistedCache<T>(path: string, value: T, ttlMs = 600_000): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(
-      `koryxa_cache:${path}`,
-      JSON.stringify({ value, expiresAt: Date.now() + ttlMs })
-    );
+    const payload = JSON.stringify({ value, expiresAt: Date.now() + ttlMs });
+    window.localStorage.setItem(`koryxa_lcache:${path}`, payload);
+    window.sessionStorage.setItem(`koryxa_cache:${path}`, payload);
   } catch {
     // Ignore storage issues
   }
@@ -44,13 +45,18 @@ export function clearPersistedCache(): void {
   if (typeof window === "undefined") return;
   try {
     const keysToRemove: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && k.startsWith("koryxa_lcache:")) keysToRemove.push(k);
+    }
+    keysToRemove.forEach((k) => window.localStorage.removeItem(k));
+
+    const sessionKeys: string[] = [];
     for (let i = 0; i < window.sessionStorage.length; i++) {
       const k = window.sessionStorage.key(i);
-      if (k && k.startsWith("koryxa_cache:")) {
-        keysToRemove.push(k);
-      }
+      if (k && k.startsWith("koryxa_cache:")) sessionKeys.push(k);
     }
-    keysToRemove.forEach((k) => window.sessionStorage.removeItem(k));
+    sessionKeys.forEach((k) => window.sessionStorage.removeItem(k));
   } catch {
     // Ignore
   }
