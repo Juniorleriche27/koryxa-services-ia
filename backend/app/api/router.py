@@ -6,6 +6,7 @@ from app.api.routes import (
     dashboard,
     automations,
     billing,
+    contact,
     direct_uploads,
     health,
     identity,
@@ -23,6 +24,7 @@ from app.api.routes import (
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
+api_router.include_router(contact.router, prefix="/contact", tags=["contact"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(identity.router, prefix="/context", tags=["context"])
 api_router.include_router(organizations.router, prefix="/organizations", tags=["organizations"])

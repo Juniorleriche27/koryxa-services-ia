@@ -13,6 +13,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Download,
+  MessageSquare,
 } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { BusinessCategoryConfig } from "@/lib/service-ia/business-categories";
@@ -177,6 +178,29 @@ export function QuickHelpModal({
                 </li>
               ))}
           </ul>
+        </div>
+
+        {/* Direct Contact Support */}
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-left">
+            <strong className="text-xs font-bold text-foreground block">
+              Besoin d&apos;assistance ou d&apos;une démo personnalisée ?
+            </strong>
+            <span className="text-[11px] text-muted-foreground block">
+              L&apos;équipe KORYXA est disponible directement sur WhatsApp &amp; Email.
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href="https://wa.me/22892092572?text=Bonjour%20KORYXA,%20j'utilise%20CAURI%20et%20j'ai%20besoin%20d'assistance."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs transition"
+            >
+              <MessageSquare size={14} />
+              <span>WhatsApp (+228 92 09 25 72)</span>
+            </a>
+          </div>
         </div>
 
         {/* Keyboard Shortcuts */}
