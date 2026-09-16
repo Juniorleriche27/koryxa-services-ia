@@ -1,11 +1,11 @@
-﻿import logging
+import logging
 import re
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db, async_session_maker
+from app.db.session import get_session
 from app.models.contact import ContactLead
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ class ContactFormResponse(BaseModel):
 @router.post("", response_model=ContactFormResponse, status_code=status.HTTP_201_CREATED)
 async def submit_contact_request(
     data: ContactFormRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> Any:
     """
     Public Contact and Demo Request endpoint.

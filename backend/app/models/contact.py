@@ -1,9 +1,9 @@
-﻿import uuid
+import uuid
 from datetime import datetime, timezone
 from sqlalchemy import String, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database import Base
+from app.db.base import Base
 
 
 class ContactLead(Base):
