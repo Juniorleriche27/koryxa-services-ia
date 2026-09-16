@@ -76,12 +76,63 @@ class EmailService:
             </div></body></html>""",
             subtype="html",
         )
+    async def send_contact_lead_notification(
+        self,
+        lead_name: str,
+        company_name: str,
+        business_sector: str,
+        whatsapp_phone: str,
+        email: str,
+        message_text: str | None,
+    ) -> None:
+        settings = get_settings()
+        target_email = settings.operations_alert_email or "contact@koryxa.fr"
+        if not settings.smtp_host or not settings.smtp_username:
+            return
+
+        message = EmailMessage()
+        message["Subject"] = f"🔥 Nouveau Prospect CAURI : {lead_name} ({company_name})"
+        message["From"] = f"KORYXA <{settings.email_from}>"
+        message["To"] = target_email
+        message.set_content(
+            f"Nouveau contact / demande de démo reçu pour CAURI :\n\n"
+            f"👤 Nom : {lead_name}\n"
+            f"🏢 Entreprise : {company_name}\n"
+            f"🏷️ Secteur : {business_sector}\n"
+            f"📱 WhatsApp : {whatsapp_phone}\n"
+            f"✉️ Email : {email}\n"
+            f"💬 Message : {message_text or 'Aucun message'}\n"
+        )
+        safe_name = html.escape(lead_name)
+        safe_company = html.escape(company_name)
+        safe_sector = html.escape(business_sector)
+        safe_phone = html.escape(whatsapp_phone)
+        safe_email = html.escape(email)
+        safe_msg = html.escape(message_text or 'Aucun message particulier')
+        clean_phone = "".join(c for c in whatsapp_phone if c.isdigit())
+        wa_link = f"https://wa.me/{clean_phone}"
+
+        message.add_alternative(
+            f"""<!doctype html><html><body style="margin:0;background:#f3fbf7;font-family:Arial,sans-serif;color:#153126">
+            <div style="max-width:600px;margin:32px auto;background:white;border:1px solid #dceee4;border-radius:20px;padding:32px">
+            <p style="color:#009b67;font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px">KORYXA · Nouveau Prospect CAURI</p>
+            <h2 style="font-family:Georgia,serif;font-size:24px;margin-top:8px">Demande de Démo Reçue</h2>
+            <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px">
+              <tr style="border-bottom:1px solid #edf2f7"><td style="padding:10px 0;color:#718096;width:120px">Nom :</td><td style="padding:10px 0;font-weight:bold">{safe_name}</td></tr>
+              <tr style="border-bottom:1px solid #edf2f7"><td style="padding:10px 0;color:#718096">Entreprise :</td><td style="padding:10px 0;font-weight:bold">{safe_company}</td></tr>
+              <tr style="border-bottom:1px solid #edf2f7"><td style="padding:10px 0;color:#718096">Secteur :</td><td style="padding:10px 0;font-weight:bold">{safe_sector}</td></tr>
+              <tr style="border-bottom:1px solid #edf2f7"><td style="padding:10px 0;color:#718096">WhatsApp :</td><td style="padding:10px 0;font-weight:bold"><a href="{wa_link}" style="color:#009b67">{safe_phone}</a></td></tr>
+              <tr style="border-bottom:1px solid #edf2f7"><td style="padding:10px 0;color:#718096">Email :</td><td style="padding:10px 0;font-weight:bold"><a href="mailto:{safe_email}" style="color:#009b67">{safe_email}</a></td></tr>
+              <tr><td style="padding:10px 0;color:#718096" colspan="2"><strong>Message / Besoin :</strong><br/><p style="margin-top:6px;color:#2d3748;background:#f7fafc;padding:12px;border-radius:8px">{safe_msg}</p></td></tr>
+            </table>
+            <p style="margin-top:24px"><a href="{wa_link}" style="display:inline-block;background:#25D366;color:white;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:12px">Contacter sur WhatsApp</a></p>
+            </div></body></html>""",
+            subtype="html",
+        )
         try:
             await asyncio.to_thread(self._send, message)
-        except (OSError, smtplib.SMTPException) as exc:
-            raise ApplicationError(
-                "email_delivery_failed", "L’e-mail d’invitation n’a pas pu être envoyé", 502
-            ) from exc
+        except Exception:
+            pass
 
     @staticmethod
     def _send(message: EmailMessage) -> None:

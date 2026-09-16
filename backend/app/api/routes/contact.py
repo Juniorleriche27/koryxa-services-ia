@@ -3,6 +3,7 @@ import re
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field, field_validator
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
@@ -75,6 +76,21 @@ async def submit_contact_request(
             lead.business_sector,
         )
 
+        # Trigger asynchronous email notification to contact@koryxa.fr if configured
+        try:
+            from app.services.email import EmailService
+            email_svc = EmailService()
+            await email_svc.send_contact_lead_notification(
+                lead_name=lead.full_name,
+                company_name=lead.company_name,
+                business_sector=lead.business_sector,
+                whatsapp_phone=lead.whatsapp_phone,
+                email=lead.email,
+                message_text=lead.message,
+            )
+        except Exception as email_err:
+            logger.warning("Could not send lead email notification: %s", email_err)
+
         return ContactFormResponse(
             success=True,
             lead_id=lead.id,
@@ -87,3 +103,31 @@ async def submit_contact_request(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Une erreur est survenue lors de l'enregistrement de votre demande. Veuillez réessayer ou nous écrire directement sur WhatsApp.",
         )
+
+
+@router.get("/leads")
+async def list_contact_leads(
+    db: AsyncSession = Depends(get_session),
+    limit: int = 50,
+) -> Any:
+    """
+    List all recent contact leads and demo requests stored in database.
+    """
+    result = await db.execute(
+        select(ContactLead).order_by(desc(ContactLead.created_at)).limit(limit)
+    )
+    leads = result.scalars().all()
+    return [
+        {
+            "id": lead.id,
+            "full_name": lead.full_name,
+            "company_name": lead.company_name,
+            "business_sector": lead.business_sector,
+            "whatsapp_phone": lead.whatsapp_phone,
+            "email": lead.email,
+            "message": lead.message,
+            "status": lead.status,
+            "created_at": lead.created_at.isoformat() if lead.created_at else None,
+        }
+        for lead in leads
+    ]
