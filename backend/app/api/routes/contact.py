@@ -1,9 +1,10 @@
 import logging
 import re
 from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.identity import KoryxaIdentity, require_koryxa_identity
@@ -103,7 +104,7 @@ async def submit_contact_request(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Une erreur est survenue lors de l'enregistrement de votre demande. Veuillez réessayer ou nous écrire directement sur WhatsApp.",
-        )
+        ) from e
 
 
 @router.get("/leads")

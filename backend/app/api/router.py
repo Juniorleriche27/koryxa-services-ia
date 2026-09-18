@@ -3,10 +3,10 @@ from fastapi import APIRouter
 from app.api.routes import (
     ai,
     attendance,
-    dashboard,
     automations,
     billing,
     contact,
+    dashboard,
     direct_uploads,
     health,
     identity,
