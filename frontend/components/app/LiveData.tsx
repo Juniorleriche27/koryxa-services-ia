@@ -92,6 +92,7 @@ export function LiveDashboard() {
       alerts={dashboard.data?.alerts ?? []}
       actions={dashboard.data?.actions ?? []}
       organizationName={dashboard.data?.organization.name ?? "Organisation KORYXA"}
+      organizationBusinessCategory={dashboard.data?.organization.business_category}
       loading={dashboard.loading}
       error={dashboard.error}
       onReload={dashboard.reload}

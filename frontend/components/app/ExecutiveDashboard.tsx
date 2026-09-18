@@ -27,7 +27,6 @@ import { StatusPill } from "./Ui";
 import { formatMoney, formatDate, formatLabel } from "./RegistersTable";
 import { OperationalAuditReport, OperationalAuditData } from "./OperationalAuditReport";
 import { getBusinessCategoryConfig } from "@/lib/service-ia/business-categories";
-import { serviceIaFetch } from "@/lib/service-ia/api";
 import { useI18n } from "@/lib/i18n";
 
 interface SummaryData {
@@ -83,6 +82,7 @@ interface ExecutiveDashboardProps {
   alerts: AlertItem[];
   actions: ActionItem[];
   organizationName: string;
+  organizationBusinessCategory?: string;
   onOpenCreate: (kind: "offers" | "sales" | "procedures") => void;
   onTriggerRadar: () => void;
   radarRunning: boolean;
@@ -95,6 +95,7 @@ export function ExecutiveDashboard({
   alerts,
   actions,
   organizationName,
+  organizationBusinessCategory,
   onOpenCreate,
   onTriggerRadar,
   radarRunning,
@@ -104,17 +105,7 @@ export function ExecutiveDashboard({
   const { t, lang } = useI18n();
   const [showReport, setShowReport] = useState(false);
   const [reportGeneratedAt] = useState(() => new Date());
-  const [businessCategory, setBusinessCategory] = useState<string>("retail");
-
-  useState(() => {
-    serviceIaFetch<{ business_category?: string }>("/organizations/current")
-      .then((org) => {
-        if (org.business_category) setBusinessCategory(org.business_category);
-      })
-      .catch(() => {});
-  });
-
-  const proConfig = getBusinessCategoryConfig(businessCategory, lang);
+  const proConfig = getBusinessCategoryConfig(organizationBusinessCategory || "retail", lang);
 
   const openAlerts = alerts.filter(
     (a) => a.status !== "resolved" && a.status !== "ignored"

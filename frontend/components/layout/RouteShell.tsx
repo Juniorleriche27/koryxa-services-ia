@@ -1,9 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-import Footer from "@/components/layout/footer";
-import PublicHeader from "@/components/layout/PublicHeader";
+
+// The authenticated application must not download the marketing navigation
+// and footer before it can become interactive.
+const Footer = dynamic(() => import("@/components/layout/footer"));
+const PublicHeader = dynamic(() => import("@/components/layout/PublicHeader"));
 
 export default function RouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();

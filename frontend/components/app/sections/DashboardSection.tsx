@@ -48,6 +48,7 @@ export function DashboardSection({
   alerts,
   actions,
   organizationName,
+  organizationBusinessCategory,
   loading,
   error,
   onReload,
@@ -56,6 +57,7 @@ export function DashboardSection({
   alerts: DashboardAlert[];
   actions: DashboardAction[];
   organizationName: string;
+  organizationBusinessCategory?: string;
   loading: boolean;
   error: string;
   onReload: () => Promise<void>;
@@ -109,6 +111,7 @@ export function DashboardSection({
           alerts={alerts}
           actions={actions}
           organizationName={organizationName}
+          organizationBusinessCategory={organizationBusinessCategory}
           onOpenCreate={(kind) => setCreatingKind(kind)}
           onTriggerRadar={triggerRadar}
           radarRunning={radarRunning}

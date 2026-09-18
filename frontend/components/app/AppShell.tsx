@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -43,18 +44,34 @@ import { UserButton, useUser } from "@clerk/nextjs";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { getBusinessCategoryConfig } from "@/lib/service-ia/business-categories";
 import BrandLogo from "@/components/layout/BrandLogo";
-import { OrganizationOnboarding } from "./OrganizationOnboarding";
-import { CommandPalette } from "./CommandPalette";
-import { VoiceCaptureModal } from "./VoiceCaptureModal";
 import { OfflineSyncBanner } from "./OfflineSyncBanner";
-import { AICopilotDrawer } from "./AICopilotDrawer";
-import { InteractiveSpotlightTour } from "./InteractiveSpotlightTour";
-import { QuickHelpModal } from "./QuickHelpModal";
-import { ContactModal } from "./ContactModal";
-import { PwaInstaller } from "./PwaInstaller";
 import { LanguageSelector } from "./LanguageSelector";
 import { useI18n } from "@/lib/i18n";
 
+const OrganizationOnboarding = dynamic(() =>
+  import("./OrganizationOnboarding").then((module) => module.OrganizationOnboarding)
+);
+const CommandPalette = dynamic(() =>
+  import("./CommandPalette").then((module) => module.CommandPalette)
+);
+const VoiceCaptureModal = dynamic(() =>
+  import("./VoiceCaptureModal").then((module) => module.VoiceCaptureModal)
+);
+const AICopilotDrawer = dynamic(() =>
+  import("./AICopilotDrawer").then((module) => module.AICopilotDrawer)
+);
+const InteractiveSpotlightTour = dynamic(() =>
+  import("./InteractiveSpotlightTour").then((module) => module.InteractiveSpotlightTour)
+);
+const QuickHelpModal = dynamic(() =>
+  import("./QuickHelpModal").then((module) => module.QuickHelpModal)
+);
+const ContactModal = dynamic(() =>
+  import("./ContactModal").then((module) => module.ContactModal)
+);
+const PwaInstaller = dynamic(() =>
+  import("./PwaInstaller").then((module) => module.PwaInstaller)
+);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -177,8 +194,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const context = pageContext[pathname] ?? pageContext["/espace"];
 
   useEffect(() => {
-    const load = () =>
-      serviceIaFetch<{
+    type Organization = {
         name: string;
         business_category?: string;
         latitude?: number | null;
@@ -186,18 +202,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         logo_updated_at?: string | null;
         onboarding_completed_at?: string | null;
         created_by_user_id?: string;
-      }>("/organizations/current")
+    };
+    type DashboardOrganization = { organization: Organization };
+
+    // On the cockpit, reuse the dashboard request instead of issuing a second
+    // identity lookup and a second backend round-trip for the same company.
+    const load = () => {
+      const organizationRequest = pathname === "/espace"
+        ? serviceIaFetch<DashboardOrganization>("/dashboard").then((data) => data.organization)
+        : serviceIaFetch<Organization>("/organizations/current");
+      return organizationRequest
         .then(setOrganization)
         // A transport/authentication failure must never be interpreted as a
         // missing organization, otherwise the UI displays a false onboarding.
         .catch(() => undefined)
         .finally(() => setOrganizationLoaded(true));
+    };
     void load();
     const updated = (event: Event) =>
       setOrganization((event as CustomEvent<any>).detail);
     window.addEventListener("koryxa:organization-updated", updated);
     return () => window.removeEventListener("koryxa:organization-updated", updated);
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("koryxa:sidebar-collapsed") === "true");
@@ -262,39 +288,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={clsx("app-shell", collapsed && "is-sidebar-collapsed")}>
-      <CommandPalette
-        open={commandOpen}
-        onClose={() => setCommandOpen(false)}
-        onOpenVoice={() => setVoiceOpen(true)}
-      />
+      {commandOpen && (
+        <CommandPalette
+          open
+          onClose={() => setCommandOpen(false)}
+          onOpenVoice={() => setVoiceOpen(true)}
+        />
+      )}
 
-      <VoiceCaptureModal
-        open={voiceOpen}
-        onClose={() => setVoiceOpen(false)}
-        onSuccess={() => {
-          // Trigger custom event so tables reload
-          window.dispatchEvent(new CustomEvent("koryxa:record-created"));
-        }}
-      />
+      {voiceOpen && (
+        <VoiceCaptureModal
+          open
+          onClose={() => setVoiceOpen(false)}
+          onSuccess={() => {
+            window.dispatchEvent(new CustomEvent("koryxa:record-created"));
+          }}
+        />
+      )}
 
 
       <InteractiveSpotlightTour proConfig={proConfig} />
 
-      <QuickHelpModal
-        open={helpOpen}
-        onClose={() => setHelpOpen(false)}
-        proConfig={proConfig}
-        onStartTour={() => {
-          window.dispatchEvent(new CustomEvent("koryxa:start-tour"));
-        }}
-        onOpenVoice={() => setVoiceOpen(true)}
-        onOpenCopilot={() => setCopilotOpen(true)}
-      />
+      {helpOpen && (
+        <QuickHelpModal
+          open
+          onClose={() => setHelpOpen(false)}
+          proConfig={proConfig}
+          onStartTour={() => {
+            window.dispatchEvent(new CustomEvent("koryxa:start-tour"));
+          }}
+          onOpenVoice={() => setVoiceOpen(true)}
+          onOpenCopilot={() => setCopilotOpen(true)}
+        />
+      )}
 
-      <ContactModal
-        open={contactModalOpen}
-        onClose={() => setContactModalOpen(false)}
-      />
+      {contactModalOpen && (
+        <ContactModal open onClose={() => setContactModalOpen(false)} />
+      )}
 
       <PwaInstaller />
 
@@ -643,15 +673,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* Inline AI Copilot Panel — appears alongside main content */}
-        <AICopilotDrawer
-          open={copilotOpen}
-          onClose={() => { setCopilotOpen(false); setCopilotMinimized(false); }}
-          minimized={copilotMinimized}
-          onMinimize={() => setCopilotMinimized(true)}
-          onRestore={() => setCopilotMinimized(false)}
-        />
+        {copilotOpen && (
+          <AICopilotDrawer
+            open
+            onClose={() => { setCopilotOpen(false); setCopilotMinimized(false); }}
+            minimized={copilotMinimized}
+            onMinimize={() => setCopilotMinimized(true)}
+            onRestore={() => setCopilotMinimized(false)}
+          />
+        )}
       </div>
     </div>
   );
 }
-

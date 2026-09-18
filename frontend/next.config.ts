@@ -32,7 +32,7 @@ const nextConfig: NextConfigWithTurbopack = {
   typedRoutes: false,
 
   experimental: {
-    optimizePackageImports: ["react", "react-dom"],
+    optimizePackageImports: ["react", "react-dom", "lucide-react", "framer-motion"],
   },
 
   async headers() {

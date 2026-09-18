@@ -11,7 +11,13 @@ import { formatDate, formatLabel } from "../RegistersTable";
 
 export type OrgMember = { id: string; user_id: string; role: string; status: string };
 export type OrgInvitation = { id: string; email: string; role: string; status: string; expires_at: string };
-export type OrgData = { id: string; name: string; slug: string; is_active: boolean };
+export type OrgData = {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+  business_category?: string;
+};
 
 export function OrganizationSection({
   org,
