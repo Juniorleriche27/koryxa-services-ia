@@ -45,6 +45,7 @@ import { serviceIaFetch } from "@/lib/service-ia/api";
 import { getBusinessCategoryConfig } from "@/lib/service-ia/business-categories";
 import BrandLogo from "@/components/layout/BrandLogo";
 import { OfflineSyncBanner } from "./OfflineSyncBanner";
+import { TelegramWebAppProvider } from "./TelegramWebAppProvider";
 import { LanguageSelector } from "./LanguageSelector";
 import { useI18n } from "@/lib/i18n";
 
@@ -327,6 +328,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <PwaInstaller />
+      <TelegramWebAppProvider />
 
       {onboardingRequired && (
         <OrganizationOnboarding
