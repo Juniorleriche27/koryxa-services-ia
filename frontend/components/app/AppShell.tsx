@@ -37,6 +37,7 @@ import {
   HelpCircle,
   Download,
   PhoneCall,
+  Send,
 } from "lucide-react";
 
 import clsx from "clsx";
@@ -140,6 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       title: t("group_system"),
       items: [
         { label: t("nav_whatsapp"), href: "/espace/whatsapp", icon: MessageSquare },
+        { label: "Telegram Mini App", href: "/espace/telegram", icon: Send },
         { label: "Formules & Facturation", href: "/espace/parametres/facturation", icon: CreditCard },
         { label: t("nav_imports"), href: "/espace/imports", icon: FileSpreadsheet },
         { label: t("nav_organization"), href: "/espace/organisation", icon: Building2 },
@@ -188,6 +190,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     "/espace/validations": { eyebrow: t("page_ctx_validations"), description: t("page_ctx_validations_desc") },
     "/espace/actions": { eyebrow: t("page_ctx_actions"), description: t("page_ctx_actions_desc") },
     "/espace/whatsapp": { eyebrow: t("page_ctx_whatsapp"), description: t("page_ctx_whatsapp_desc") },
+    "/espace/telegram": { eyebrow: "Canaux & Mobilité", description: "Accès Telegram Mini App et mobilité terrain" },
     "/espace/organisation": { eyebrow: t("page_ctx_org"), description: t("page_ctx_org_desc") },
     "/espace/parametres": { eyebrow: t("page_ctx_settings"), description: t("page_ctx_settings_desc") },
   };
