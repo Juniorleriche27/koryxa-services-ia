@@ -17,6 +17,7 @@ from app.api.routes import (
     organizations,
     radar,
     registers,
+    telegram,
     voice,
     whatsapp,
     workflow,
@@ -36,6 +37,7 @@ api_router.include_router(attendance.router, prefix="/attendance", tags=["attend
 api_router.include_router(automations.router, prefix="/automations", tags=["automations"])
 api_router.include_router(voice.router, prefix="/voice", tags=["voice"])
 api_router.include_router(whatsapp.router, prefix="/integrations/whatsapp", tags=["whatsapp"])
+api_router.include_router(telegram.router, prefix="/telegram", tags=["telegram"])
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
 
 api_router.include_router(imports.router, prefix="/imports", tags=["imports-files"])

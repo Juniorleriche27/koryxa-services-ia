@@ -47,6 +47,10 @@ class OrganizationIntegrationConfig(Base):
     whatsapp_unauthorized_reply: Mapped[str | None] = mapped_column(Text)
     whatsapp_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     whatsapp_auto_reply: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    telegram_bot_token_encrypted: Mapped[str | None] = mapped_column(Text)
+    telegram_bot_username: Mapped[str | None] = mapped_column(String(120))
+    telegram_link_code: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
+    telegram_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -70,6 +74,30 @@ class WhatsAppAuthorizedSender(Base):
     label: Mapped[str | None] = mapped_column(String(100))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_by_user_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class TelegramAuthorizedUser(Base):
+    __tablename__ = "telegram_authorized_users"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "telegram_user_id", name="uq_org_telegram_user"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    telegram_user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    telegram_username: Mapped[str | None] = mapped_column(String(120))
+    first_name: Mapped[str | None] = mapped_column(String(120))
+    last_name: Mapped[str | None] = mapped_column(String(120))
+    label: Mapped[str | None] = mapped_column(String(100))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
