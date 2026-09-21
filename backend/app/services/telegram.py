@@ -248,9 +248,11 @@ class TelegramService:
             if custom_token:
                 bot_token = custom_token
 
-        # 3. Check for Linking command: /start link_org_xxxx
-        if text.startswith("/start link_org_"):
-            link_code = text.replace("/start", "").strip()
+        # 3. Check for Linking code anywhere in message: /start link_org_xxxx or raw link_org_xxxx
+        import re
+        link_match = re.search(r"link_org_[a-zA-Z0-9_\-]+", text)
+        if link_match:
+            link_code = link_match.group(0)
             cfg = await s.scalar(
                 select(OrganizationIntegrationConfig).where(
                     OrganizationIntegrationConfig.telegram_link_code == link_code

@@ -23,8 +23,7 @@ import {
   Bot,
   AlertCircle,
   Clock,
-  ToggleLeft,
-  ToggleRight,
+  MessageSquare,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 
@@ -61,7 +60,8 @@ export default function TelegramPage() {
   });
   const [users, setUsers] = useState<TelegramUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCommand, setCopiedCommand] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
 
   // Custom Bot State
@@ -91,14 +91,21 @@ export default function TelegramPage() {
     loadData();
   }, []);
 
-  const copyToClipboard = () => {
+  const copyLinkToClipboard = () => {
     navigator.clipboard.writeText(config.deep_link_url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const copyCommandToClipboard = () => {
+    const cmd = `/start ${config.link_code}`;
+    navigator.clipboard.writeText(cmd);
+    setCopiedCommand(true);
+    setTimeout(() => setCopiedCommand(false), 2500);
   };
 
   const handleRegenerateCode = async () => {
-    if (!confirm("Voulez-vous générer un nouveau lien de connexion ? Les anciens liens non utilisés expireront.")) {
+    if (!confirm("Voulez-vous générer un nouveau code de liaison ? Les anciens liens non utilisés expireront.")) {
       return;
     }
     setRegenerating(true);
@@ -179,60 +186,57 @@ export default function TelegramPage() {
   )}&color=047857&bgcolor=ffffff`;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12">
+    <div className="space-y-6 max-w-6xl mx-auto pb-12">
       <PageHeader
         eyebrow="Canaux & Mobilité"
         title="Canal Telegram & Mini App (TMA)"
-        description="Connectez vos comptes Telegram à votre organisation. Pilotez vos ventes, dépenses et consulte vos bilans en toute sécurité avec isolation stricte des données."
+        description="Connectez vos comptes Telegram à votre organisation. Pilotez vos ventes, dépenses et consultez vos bilans en toute sécurité avec isolation stricte des données."
       />
 
-      {/* 1. Hero Action Card : Connexion 1-Clic KORYXA */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 p-6 sm:p-8 text-white border border-emerald-500/25 shadow-2xl">
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-80 h-80 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      {/* 1. Hero Card : Style KORYXA Sobre, Propre et Lumineux */}
+      <div className="rounded-3xl bg-card border border-emerald-500/25 shadow-xs p-6 sm:p-8 bg-gradient-to-br from-emerald-500/5 via-card to-teal-500/5 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7 space-y-5">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
               <span>Bot Officiel KORYXA : @{config.bot_username}</span>
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                 Liaison Sécurisée Multi-Comptes
               </h2>
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-                Cliquez sur le bouton pour lier votre Telegram à cette organisation en 1 clic. Chaque compte reste 100% étanche et confidentiel.
+              <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+                Connectez votre compte Telegram à cette organisation en 1 clic. Chaque compte reste 100% étanche et vos données financières restent strictement isolées.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            <div className="flex flex-wrap items-center gap-3 pt-1">
               <a
                 href={config.deep_link_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm shadow-[0_10px_25px_rgba(16,185,129,0.35)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-sm shadow-[0_8px_20px_rgba(16,185,129,0.25)] hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
               >
-                <Send size={18} className="text-slate-950 fill-current" />
+                <Send size={16} className="fill-current" />
                 <span>Lier mon compte Telegram</span>
-                <ExternalLink size={14} className="text-slate-950/70" />
+                <ExternalLink size={14} className="opacity-80" />
               </a>
 
               <button
                 type="button"
-                onClick={copyToClipboard}
-                className="inline-flex items-center gap-2 px-4 py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold text-xs transition cursor-pointer"
+                onClick={copyCommandToClipboard}
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 font-bold text-xs transition cursor-pointer"
               >
-                {copied ? (
+                {copiedCommand ? (
                   <>
-                    <Check size={15} className="text-emerald-400" />
-                    <span className="text-emerald-300">Lien copié !</span>
+                    <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
+                    <span>Commande copiée !</span>
                   </>
                 ) : (
                   <>
-                    <Copy size={15} className="text-slate-300" />
-                    <span>Copier le lien d&apos;invitation</span>
+                    <Copy size={14} />
+                    <span>Copier la commande /start</span>
                   </>
                 )}
               </button>
@@ -242,33 +246,40 @@ export default function TelegramPage() {
                 onClick={handleRegenerateCode}
                 disabled={regenerating}
                 title="Régénérer le code secret de liaison"
-                className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition cursor-pointer disabled:opacity-50"
+                className="p-3 rounded-2xl border border-border bg-card hover:bg-muted/80 text-muted-foreground hover:text-foreground transition cursor-pointer disabled:opacity-50"
               >
-                <RefreshCw size={15} className={regenerating ? "animate-spin text-emerald-400" : ""} />
+                <RefreshCw size={15} className={regenerating ? "animate-spin text-emerald-600" : ""} />
               </button>
             </div>
 
-            <div className="text-xs text-slate-400 flex items-center gap-2">
-              <span>Lien direct sécurisé :</span>
-              <code className="px-2 py-1 rounded bg-slate-800/90 text-emerald-300 font-mono text-[11px] truncate max-w-xs sm:max-w-md">
-                {config.deep_link_url}
-              </code>
+            {/* Instruction Box */}
+            <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/80 text-xs space-y-1.5 text-muted-foreground">
+              <div className="flex items-center gap-1.5 font-bold text-foreground">
+                <MessageSquare size={13} className="text-emerald-600" />
+                <span>Instruction directe dans Telegram :</span>
+              </div>
+              <p>
+                Si vous avez déjà la discussion ouverte, envoyez simplement :{" "}
+                <code className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 font-mono font-bold">
+                  /start {config.link_code}
+                </code>
+              </p>
             </div>
           </div>
 
           {/* QR Code Scanner Card */}
           <div className="lg:col-span-5 flex flex-col items-center justify-center">
-            <div className="p-4 bg-white rounded-2xl shadow-2xl border border-white/20 flex flex-col items-center">
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-md border border-border/80 flex flex-col items-center">
               <img
                 src={qrCodeUrl}
                 alt="QR Code Telegram Liaison CAURI"
-                width={200}
-                height={200}
-                className="rounded-xl object-contain"
+                width={190}
+                height={190}
+                className="rounded-xl object-contain bg-white p-1"
               />
-              <p className="mt-2.5 text-[11px] font-bold text-slate-700 text-center flex items-center gap-1">
-                <QrCode size={14} className="text-emerald-600" />
-                <span>Scannez pour connecter votre smartphone</span>
+              <p className="mt-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 text-center flex items-center gap-1">
+                <QrCode size={13} className="text-emerald-600" />
+                <span>Scannez avec votre téléphone</span>
               </p>
             </div>
           </div>
@@ -305,7 +316,7 @@ export default function TelegramPage() {
             <Smartphone size={32} className="mx-auto text-muted-foreground/60" />
             <p className="text-sm font-bold text-foreground">Aucun compte Telegram n&apos;est encore relié</p>
             <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              Cliquez sur le bouton vert ci-dessus ou scannez le QR code pour lier votre premier compte en 2 secondes.
+              Cliquez sur le bouton vert ci-dessus ou envoyez la commande <code>/start {config.link_code}</code> pour lier votre compte en 2 secondes.
             </p>
           </div>
         ) : (
