@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import secrets
 from datetime import date, datetime
 from decimal import Decimal
@@ -37,7 +38,6 @@ class TelegramService:
 
     def _get_official_bot_token(self) -> str:
         settings = get_settings()
-        # Fallback to configured env var or default
         return getattr(settings, "telegram_bot_token", None) or "8884618965:AAGPcrd5MQQWr-iibxs0DvByIvH0vVXjpRA"
 
     async def send_message(
@@ -59,6 +59,23 @@ class TelegramService:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(url, json=payload)
                 return resp.status_code == 200
+        except Exception:
+            return False
+
+    async def answer_callback_query(
+        self,
+        bot_token: str,
+        callback_query_id: str,
+        text: str | None = None,
+    ) -> bool:
+        url = f"{TELEGRAM_API_BASE}/bot{bot_token}/answerCallbackQuery"
+        payload: dict[str, Any] = {"callback_query_id": callback_query_id}
+        if text:
+            payload["text"] = text
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                await client.post(url, json=payload)
+                return True
         except Exception:
             return False
 
@@ -249,7 +266,6 @@ class TelegramService:
                 bot_token = custom_token
 
         # 3. Check for Linking code anywhere in message: /start link_org_xxxx or raw link_org_xxxx
-        import re
         link_match = re.search(r"link_org_[a-zA-Z0-9_\-]+", text)
         if link_match:
             link_code = link_match.group(0)
@@ -294,9 +310,8 @@ class TelegramService:
             await s.commit()
 
             # Send Welcome & Interactive Menu
-            await self._send_welcome_menu(
-                bot_token, chat_id, target_org.name, from_user.get("first_name") or "Gestionnaire"
-            )
+            first_name = from_user.get("first_name") or from_user.get("username") or "Gestionnaire"
+            await self._send_welcome_menu(bot_token, chat_id, target_org.name, first_name)
             return True
 
         # 4. If not a linking command, find linked organization for this user
@@ -326,36 +341,57 @@ class TelegramService:
 
         # 5. Process Commands for linked user
         lower_text = text.lower()
-        if lower_text in ("/start", "/menu", "menu", "start", "/cockpit"):
-            await self._send_welcome_menu(
-                bot_token, chat_id, target_org.name, from_user.get("first_name") or "Gestionnaire"
-            )
+        first_name = from_user.get("first_name") or from_user.get("username") or "Gestionnaire"
+
+        if lower_text in ("/start", "/menu", "menu", "start", "/cockpit", "🚀 ouvrir le cockpit cauri"):
+            await self._send_welcome_menu(bot_token, chat_id, target_org.name, first_name)
             return True
 
-        if lower_text in ("/solde", "/bilan", "bilan", "solde", "/chiffres"):
+        if lower_text in ("/solde", "/bilan", "bilan", "solde", "/chiffres", "📊 bilan du jour", "📊 bilan & ca"):
             await self._send_daily_summary(s, bot_token, chat_id, target_org.id, target_org.name)
             return True
 
-        if lower_text in ("/radar", "radar", "/alertes", "alertes"):
+        if lower_text in ("/radar", "radar", "/alertes", "alertes", "📡 radar & alertes"):
             await self._send_radar_alerts(s, bot_token, chat_id, target_org.id)
             return True
 
-        if lower_text in ("/aide", "/help", "aide", "help", "/guide"):
+        if lower_text in ("/aide", "/help", "aide", "help", "/guide", "💡 guide & exemples"):
             await self._send_help_guide(bot_token, chat_id)
             return True
 
-        if lower_text in ("/vente", "vente", "/depense", "depense"):
+        if lower_text in ("/vente", "vente", "🛍️ nouvelle vente"):
             await self.send_message(
                 bot_token,
                 chat_id,
-                "✍️ <b>Comment enregistrer une opération ?</b>\n\n"
-                "Écrivez simplement votre vente ou votre dépense en langage naturel dans ce chat :\n\n"
-                "🛍️ <i>Exemples de ventes :</i>\n"
-                "• <code>Vente 3x Cartons Savon 15000 payé espèces au client Koffi</code>\n"
-                "• <code>Vendu 2 sacs de riz 25 000 F en Wave</code>\n\n"
-                "💸 <i>Exemples de dépenses :</i>\n"
+                "🛍️ <b>Enregistrement de Vente Rapide</b>\n\n"
+                "Écrivez simplement votre vente dans ce chat, par exemple :\n\n"
+                "• <code>Vente 3 cartons savon 15000 payé espèces au client Koffi</code>\n"
+                "• <code>Vendu 2 sacs de riz 25 000 F en Wave</code>\n"
+                "• <code>Vente 1 prestation conseil 50000 à crédit</code>\n\n"
+                "<i>Ou ouvrez le module de caisse complet :</i>",
+                reply_markup={
+                    "inline_keyboard": [
+                        [{"text": "🛒 Ouvrir le Module Ventes / Caisse", "web_app": {"url": "https://cauri.koryxa.fr/espace/ventes"}}]
+                    ]
+                },
+            )
+            return True
+
+        if lower_text in ("/depense", "depense", "💸 nouvelle dépense"):
+            await self.send_message(
+                bot_token,
+                chat_id,
+                "💸 <b>Enregistrement de Dépense Rapide</b>\n\n"
+                "Écrivez simplement votre dépense dans ce chat, par exemple :\n\n"
                 "• <code>Dépense 5000 essence moto livraison</code>\n"
-                "• <code>Achat fournitures bureau 12500 F</code>",
+                "• <code>Achat fournitures bureau 12500 F payé Orange Money</code>\n"
+                "• <code>Paiement loyer local 75000</code>\n\n"
+                "<i>Ou ouvrez le registre des dépenses :</i>",
+                reply_markup={
+                    "inline_keyboard": [
+                        [{"text": "💸 Ouvrir le Registre Dépenses", "web_app": {"url": "https://cauri.koryxa.fr/espace/depenses"}}]
+                    ]
+                },
             )
             return True
 
@@ -375,7 +411,7 @@ class TelegramService:
         text = (
             f"👋 <b>Bonjour {first_name} !</b>\n\n"
             f"🏢 Organisation active : <b>{org_name}</b>\n\n"
-            "Que souhaitez-vous faire ?"
+            "Voici votre cockpit de pilotage opérationnel CAURI :"
         )
         reply_markup = {
             "inline_keyboard": [
@@ -386,11 +422,31 @@ class TelegramService:
                     }
                 ],
                 [
+                    {
+                        "text": "🛍️ Nouvelle Vente",
+                        "web_app": {"url": "https://cauri.koryxa.fr/espace/ventes"},
+                    },
+                    {
+                        "text": "💸 Nouvelle Dépense",
+                        "web_app": {"url": "https://cauri.koryxa.fr/espace/depenses"},
+                    },
+                ],
+                [
                     {"text": "📊 Bilan du Jour & CA", "callback_data": "action_solde"},
                     {"text": "📡 Radar & Alertes", "callback_data": "action_radar"},
                 ],
                 [
-                    {"text": "💡 Guide & Exemples", "callback_data": "action_aide"},
+                    {
+                        "text": "📦 Offres & Catalogue",
+                        "web_app": {"url": "https://cauri.koryxa.fr/espace/offres"},
+                    },
+                    {
+                        "text": "👥 Présence Équipe",
+                        "web_app": {"url": "https://cauri.koryxa.fr/espace/presence"},
+                    },
+                ],
+                [
+                    {"text": "💡 Guide & Dictée Vocale", "callback_data": "action_aide"},
                 ],
             ]
         }
@@ -439,7 +495,7 @@ class TelegramService:
         msg = (
             f"📊 <b>Bilan Opérationnel du Jour</b> ({today.strftime('%d/%m/%Y')})\n"
             f"🏢 <b>{org_name}</b>\n\n"
-            f"📈 <b>Chiffre d'Affaires :</b> <code>{total_ca:,.0f} XOF</code> ({count} ventes)\n"
+            f"📈 <b>Chiffre d'Affaires :</b> <code>{total_ca:,.0f} XOF</code> ({count} vente(s))\n"
             f"💵 <b>Total Encaissé :</b> <code>{total_paid:,.0f} XOF</code>\n"
             f"💸 <b>Dépenses :</b> <code>{total_expenses:,.0f} XOF</code>\n"
             f"━━━━━━━━━━━━━━━━━━\n"
@@ -453,7 +509,11 @@ class TelegramService:
                         "text": "🚀 Voir les détails sur le Cockpit",
                         "web_app": {"url": "https://cauri.koryxa.fr/espace"},
                     }
-                ]
+                ],
+                [
+                    {"text": "🔄 Actualiser le Solde", "callback_data": "action_solde"},
+                    {"text": "📡 Radar Alertes", "callback_data": "action_radar"},
+                ],
             ]
         }
         await self.send_message(bot_token, chat_id, msg, reply_markup)
@@ -472,10 +532,21 @@ class TelegramService:
         )
         alerts_list = alerts.all()
         if not alerts_list:
+            reply_markup = {
+                "inline_keyboard": [
+                    [
+                        {
+                            "text": "📡 Ouvrir le Radar complet",
+                            "web_app": {"url": "https://cauri.koryxa.fr/espace/radar"},
+                        }
+                    ]
+                ]
+            }
             await self.send_message(
                 bot_token,
                 chat_id,
                 "📡 <b>Radar Opérationnel KORYXA</b>\n\n✅ <b>Tout est sous contrôle !</b> Aucune anomalie critique ou impayé majeur détecté.",
+                reply_markup,
             )
             return
 
@@ -489,7 +560,7 @@ class TelegramService:
             "inline_keyboard": [
                 [
                     {
-                        "text": "📡 Ouvrir le Radar CAURI",
+                        "text": "📡 Traiter sur le Radar CAURI",
                         "web_app": {"url": "https://cauri.koryxa.fr/espace/radar"},
                     }
                 ]
@@ -500,27 +571,44 @@ class TelegramService:
     async def _send_help_guide(self, bot_token: str, chat_id: int | str) -> None:
         msg = (
             "💡 <b>Guide d'Utilisation CAURI Telegram</b>\n\n"
-            "<b>1. Commandes rapides :</b>\n"
-            "• <code>/cockpit</code> : Lance l'application complète dans Telegram\n"
-            "• <code>/solde</code> : Résumé de votre CA et encaissements du jour\n"
-            "• <code>/radar</code> : Vos alertes de stock et créances en attente\n\n"
-            "<b>2. Saisie en direct par message :</b>\n"
-            "Envoyez simplement un message texte comme :\n"
+            "<b>1. Actions directes :</b>\n"
+            "• <code>/cockpit</code> : Lance l'application complète\n"
+            "• <code>/vente</code> : Saisie guidée d'une vente\n"
+            "• <code>/depense</code> : Saisie guidée d'une dépense\n"
+            "• <code>/solde</code> : Bilan et trésorerie du jour\n"
+            "• <code>/radar</code> : Alertes de stock et créances\n\n"
+            "<b>2. Saisie en direct par message texte ou audio :</b>\n"
+            "Écrivez simplement votre opération :\n"
             "👉 <i>« Vente 5 cartons de savon 25000 payé espèces »</i>\n"
             "👉 <i>« Dépense 3000 carburant livraison »</i>\n\n"
-            "L'IA enregistre automatiquement l'opération dans votre compte !"
+            "L'IA enregistre automatiquement l'opération dans votre comptabilité !"
         )
-        await self.send_message(bot_token, chat_id, msg)
+        reply_markup = {
+            "inline_keyboard": [
+                [
+                    {
+                        "text": "🚀 Ouvrir le Cockpit",
+                        "web_app": {"url": "https://cauri.koryxa.fr/espace"},
+                    }
+                ]
+            ]
+        }
+        await self.send_message(bot_token, chat_id, msg, reply_markup)
 
     async def _handle_callback_query(
         self, s: AsyncSession, callback_query: dict[str, Any], explicit_org_id: str | None
     ) -> bool:
+        callback_id = callback_query.get("id")
         data = callback_query.get("data")
         message = callback_query.get("message", {})
         chat_id = message.get("chat", {}).get("id")
         from_user = callback_query.get("from", {})
         telegram_user_id = str(from_user.get("id", ""))
         bot_token = self._get_official_bot_token()
+
+        # Acknowledge callback immediately to dismiss loading spinner
+        if callback_id:
+            await self.answer_callback_query(bot_token, callback_id)
 
         if not chat_id or not data:
             return True
@@ -540,6 +628,11 @@ class TelegramService:
                 target_org = await s.scalar(select(Organization).where(Organization.id == user_record.organization_id))
 
         if not target_org:
+            await self.send_message(
+                bot_token,
+                chat_id,
+                "⚠️ Session expirée. Veuillez renvoyer votre lien de connexion depuis : https://cauri.koryxa.fr/espace/telegram",
+            )
             return True
 
         if data == "action_solde":
@@ -568,10 +661,10 @@ class TelegramService:
                 bot_token,
                 chat_id,
                 "🤖 <i>Je n'ai pas bien compris votre opération.</i>\n\n"
-                "Pour enregistrer une vente, précisez l'article et le montant, par exemple :\n"
+                "Pour enregistrer une opération, écrivez par exemple :\n"
                 "• <code>Vente 2 cartons savon 15000 payé espèces</code>\n"
                 "• <code>Dépense 5000 essence moto</code>\n\n"
-                "Tapez <code>/menu</code> pour afficher les raccourcis.",
+                "Ou tapez <code>/menu</code> pour afficher tous les modules.",
             )
             return
 
