@@ -10,6 +10,8 @@ import {
   PlusSquare,
   Zap,
   RefreshCw,
+  Monitor,
+  MoreVertical,
 } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -21,6 +23,7 @@ export function PwaInstaller() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isIos, setIsIos] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(true);
@@ -37,10 +40,12 @@ export function PwaInstaller() {
     const dismissed = window.localStorage.getItem("koryxa:pwa-banner-dismissed") === "true";
     setBannerDismissed(dismissed);
 
-    // 2. Detect iOS
+    // 2. Platform Detection
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroidDevice = /android/.test(userAgent);
     setIsIos(isIosDevice);
+    setIsAndroid(isAndroidDevice);
 
     // 3. Register Service Worker with active background updates
     if ("serviceWorker" in navigator) {
@@ -139,11 +144,11 @@ export function PwaInstaller() {
                 <img src="/icons/icon-192x192.png" alt="KORYXA" className="w-full h-full object-contain" />
               </div>
               <div className="min-w-0">
-                <div className="text-[11.5px] font-black text-foreground truncate">
-                  Installer l'application KORYXA
+                <div className="text-[11.5px] font-extrabold text-foreground truncate">
+                  Installer l&apos;application KORYXA
                 </div>
                 <div className="text-[10px] text-muted-foreground truncate">
-                  Acc�s 1-clic direct sur votre �cran
+                  Accès 1-clic direct sur votre écran
                 </div>
               </div>
             </div>
@@ -151,7 +156,7 @@ export function PwaInstaller() {
               <button
                 type="button"
                 onClick={() => setShowModal(true)}
-                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs cursor-pointer"
+                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs cursor-pointer transition"
               >
                 Installer
               </button>
@@ -178,10 +183,10 @@ export function PwaInstaller() {
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-black tracking-tight text-white">
-                  Mise � jour KORYXA disponible !
+                  Mise à jour KORYXA disponible !
                 </div>
                 <p className="text-[11px] text-slate-300 truncate">
-                  Nouvelles am�liorations pr�tes.
+                  Nouvelles améliorations prêtes.
                 </p>
               </div>
             </div>
@@ -207,16 +212,18 @@ export function PwaInstaller() {
 
       {/* Pro Install Modal Dialog */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-card border border-border/80 rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl relative overflow-hidden">
-            {/* Header branding */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-card text-card-foreground border border-border rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+            {/* Close Button */}
             <button
               onClick={() => setShowModal(false)}
               className="absolute top-5 right-5 p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
+              aria-label="Fermer"
             >
               <X size={20} />
             </button>
 
+            {/* Header branding */}
             <div className="flex items-center gap-3.5 mb-5">
               <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-lg p-2.5 shrink-0">
                 <img src="/icons/icon-192x192.png" alt="KORYXA" className="w-full h-full object-contain" />
@@ -225,72 +232,122 @@ export function PwaInstaller() {
                 <span className="text-[11px] uppercase font-black tracking-wider text-emerald-700 dark:text-emerald-400">
                   Application Officielle
                 </span>
-                <h3 className="text-xl font-black text-foreground tracking-tight">
+                <h3 className="text-xl font-extrabold text-foreground tracking-tight">
                   Installer KORYXA
                 </h3>
               </div>
             </div>
 
             <p className="text-xs sm:text-sm text-muted-foreground mb-6 leading-relaxed">
-              Installez KORYXA sur votre bureau d'ordinateur (Windows / Mac) ou sur votre smartphone pour une exp�rience logicielle native, ultra-rapide et s�curis�e.
+              Installez KORYXA sur votre smartphone ou sur votre ordinateur (Windows / Mac) pour une expérience logicielle fluide, ultra-rapide et sécurisée.
             </p>
 
-            {/* Feature points */}
-            <div className="space-y-3 mb-6 bg-muted/40 p-4 rounded-2xl border border-border/60">
+            {/* Feature points with clean high-contrast styling */}
+            <div className="space-y-3 mb-6 bg-muted/40 dark:bg-muted/20 p-4 rounded-2xl border border-border/80">
               <div className="flex items-center gap-3 text-xs font-bold text-foreground">
-                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                <span>Ic�ne directe sur votre �cran d'accueil ou bureau</span>
+                <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Icône directe sur votre écran d&apos;accueil ou bureau</span>
               </div>
               <div className="flex items-center gap-3 text-xs font-bold text-foreground">
-                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                <span>Mises � jour 100% automatiques sans r�installation</span>
+                <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Mises à jour 100% automatiques et instantanées</span>
               </div>
               <div className="flex items-center gap-3 text-xs font-bold text-foreground">
-                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                <span>Plein �cran sans barre de navigateur & r�activit� maximale</span>
+                <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Plein écran sans barre de navigateur & réactivité maximale</span>
               </div>
             </div>
 
-            {/* Actions based on platform */}
-            {isIos ? (
-              <div className="space-y-3 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs">
-                <div className="font-bold flex items-center gap-2">
-                  <Smartphone size={16} className="text-emerald-600" />
-                  <span>Installation sur iPhone / iPad (Safari) :</span>
-                </div>
-                <ol className="space-y-1.5 list-decimal list-inside text-muted-foreground dark:text-emerald-300/80 font-medium pl-1">
-                  <li>
-                    Appuyez sur le bouton <strong>Partager</strong> <Share size={13} className="inline text-emerald-600" /> dans la barre de Safari.
-                  </li>
-                  <li>
-                    Faites d�filer vers le bas et appuyez sur <strong>Sur l'�cran d'accueil</strong> <PlusSquare size={13} className="inline text-emerald-600" />.
-                  </li>
-                  <li>Appuyez sur <strong>Ajouter</strong> en haut � droite.</li>
-                </ol>
+            {/* Platform-specific Actions */}
+            {deferredPrompt ? (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handleInstallClick}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/25 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Download size={18} />
+                  <span>Installer maintenant sur cet appareil</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="w-full py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground transition cursor-pointer"
+                >
+                  Fermer
+                </button>
               </div>
-            ) : deferredPrompt ? (
-              <button
-                type="button"
-                onClick={handleInstallClick}
-                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-sm shadow-xl shadow-emerald-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Download size={18} />
-                <span>Installer maintenant sur cet appareil</span>
-              </button>
+            ) : isIos ? (
+              <div className="space-y-3">
+                <div className="space-y-3 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs">
+                  <div className="font-extrabold flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                    <Smartphone size={16} className="text-emerald-600" />
+                    <span>Installation sur iPhone / iPad (Safari) :</span>
+                  </div>
+                  <ol className="space-y-2 list-decimal list-inside text-muted-foreground dark:text-emerald-200/80 font-medium pl-1">
+                    <li>
+                      Appuyez sur le bouton <strong>Partager</strong> <Share size={13} className="inline text-emerald-600 mx-1" /> en bas de l&apos;écran Safari.
+                    </li>
+                    <li>
+                      Faites défiler et appuyez sur <strong>Sur l&apos;écran d&apos;accueil</strong> <PlusSquare size={13} className="inline text-emerald-600 mx-1" />.
+                    </li>
+                    <li>
+                      Appuyez sur <strong>Ajouter</strong> en haut à droite.
+                    </li>
+                  </ol>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-extrabold text-xs cursor-pointer hover:opacity-90 transition"
+                >
+                  J&apos;ai compris
+                </button>
+              </div>
+            ) : isAndroid ? (
+              <div className="space-y-3">
+                <div className="space-y-3 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs">
+                  <div className="font-extrabold flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                    <Smartphone size={16} className="text-emerald-600" />
+                    <span>Installation sur Android (Chrome / Samsung) :</span>
+                  </div>
+                  <ol className="space-y-2 list-decimal list-inside text-muted-foreground dark:text-emerald-200/80 font-medium pl-1">
+                    <li>
+                      Appuyez sur le menu <MoreVertical size={13} className="inline text-emerald-600 mx-0.5" /> (les 3 points en haut à droite du navigateur).
+                    </li>
+                    <li>
+                      Sélectionnez <strong>« Installer l&apos;application »</strong> ou <strong>« Ajouter à l&apos;écran d&apos;accueil »</strong>.
+                    </li>
+                    <li>
+                      Confirmez en appuyant sur <strong>Installer</strong>.
+                    </li>
+                  </ol>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-extrabold text-xs cursor-pointer hover:opacity-90 transition"
+                >
+                  J&apos;ai compris
+                </button>
+              </div>
             ) : (
               <div className="space-y-3">
-                <div className="p-4 rounded-2xl bg-muted/60 border border-border text-xs text-muted-foreground leading-relaxed">
-                  <strong>Sur ordinateur (Chrome / Edge / Brave / Safari) :</strong>
-                  <p className="mt-1">
-                    Cliquez sur l'ic�ne <strong>Installer l'application</strong> <Download size={14} className="inline text-emerald-600" /> situ�e � droite dans la barre d'adresse de votre navigateur, ou dans le menu des 3 points.
+                <div className="p-4 rounded-2xl bg-muted/60 border border-border text-xs text-muted-foreground leading-relaxed space-y-2">
+                  <div className="font-extrabold text-foreground flex items-center gap-2">
+                    <Monitor size={15} className="text-emerald-600" />
+                    <span>Sur ordinateur (Chrome / Edge / Brave / Safari) :</span>
+                  </div>
+                  <p>
+                    Cliquez sur l&apos;icône <strong>Installer l&apos;application</strong> <Download size={14} className="inline text-emerald-600 mx-1" /> située à droite dans la barre d&apos;adresse de votre navigateur, ou dans le menu des 3 points.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="w-full py-3 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold text-xs cursor-pointer"
+                  className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-extrabold text-xs cursor-pointer hover:opacity-90 transition"
                 >
-                  J'ai compris
+                  J&apos;ai compris
                 </button>
               </div>
             )}
