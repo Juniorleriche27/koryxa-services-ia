@@ -568,7 +568,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {/* Language Switcher */}
               <LanguageSelector />
 
-              <Link href="https://service-ia.koryxa.fr" className="app-public-link hidden lg:inline-flex" title="Retourner sur le site public">
+              <Link href="https://service-ia.koryxa.fr" className="app-public-link !hidden lg:!inline-flex" title="Retourner sur le site public">
                 <ExternalLink size={15} />
                 <span>{t("public_site")}</span>
               </Link>
@@ -610,7 +610,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Mobile Bottom Navigation Bar (Glassmorphism Dock) */}
-          <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/80 px-2 py-1.5 flex items-center justify-around lg:hidden shadow-[0_-10px_25px_rgba(0,0,0,0.06)]">
+          <nav className={clsx(
+            "fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/80 px-2 py-1.5 flex items-center justify-around lg:hidden shadow-[0_-10px_25px_rgba(0,0,0,0.06)]",
+            copilotOpen && !copilotMinimized && "hidden"
+          )}>
             <Link
               href="/espace"
               className={clsx(

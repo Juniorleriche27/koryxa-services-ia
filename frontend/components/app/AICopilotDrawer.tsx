@@ -387,12 +387,12 @@ export function AICopilotDrawer({
           <div className="kx-copilot-badge-icon" style={{ width: 28, height: 28 }}>
             <MessageSquareText size={16} />
           </div>
-          <span className="text-sm font-bold">Cora</span>
-          <div className="flex items-center gap-1 ml-auto">
+          <span className="text-sm font-bold text-white">Cora</span>
+          <div className="flex items-center gap-1.5 ml-auto">
             <button
               type="button"
               onClick={onRestore}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition cursor-pointer"
+              className="p-1.5 rounded-lg text-emerald-100 hover:text-white hover:bg-white/10 transition cursor-pointer"
               aria-label="Restaurer le panneau"
               title="Restaurer"
             >
@@ -401,7 +401,7 @@ export function AICopilotDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition cursor-pointer"
+              className="p-1.5 rounded-lg text-emerald-100 hover:text-white hover:bg-white/10 transition cursor-pointer"
               aria-label="Fermer"
               title="Fermer"
             >
@@ -418,28 +418,28 @@ export function AICopilotDrawer({
     <aside className="kx-copilot-panel">
       {/* Panel Header */}
       <div className="kx-copilot-header">
-        <div className="kx-copilot-title-group">
-          <div className="kx-copilot-badge-icon">
-            <MessageSquareText size={22} />
+        <div className="kx-copilot-title-group min-w-0">
+          <div className="kx-copilot-badge-icon shrink-0">
+            <MessageSquareText size={20} />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold">Cora</h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base font-black text-white tracking-tight">Cora</h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
                 {t("copilot_badge")}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-emerald-100/75 truncate font-medium">
               Mémoire &amp; Direction des Opérations
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0 ml-2">
           {/* Minimize button */}
           <button
             type="button"
             onClick={onMinimize}
-            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition cursor-pointer"
+            className="p-2 rounded-xl text-emerald-100/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
             aria-label="Réduire le panneau"
             title="Réduire"
           >
@@ -449,7 +449,7 @@ export function AICopilotDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition cursor-pointer"
+            className="p-2 rounded-xl text-emerald-100/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
             aria-label="Fermer le panneau"
             title="Fermer"
           >
