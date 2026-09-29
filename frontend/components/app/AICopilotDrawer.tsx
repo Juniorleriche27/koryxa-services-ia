@@ -191,6 +191,11 @@ export function AICopilotDrawer({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    setIsDesktop(typeof window !== "undefined" && window.innerWidth >= 1024);
+  }, []);
 
   // Live timer ref
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -209,13 +214,16 @@ export function AICopilotDrawer({
   };
 
   const scrollToBottom = useCallback((smooth = true) => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        top: scrollContainerRef.current.scrollHeight,
-        behavior: smooth ? "smooth" : "auto",
-      });
-    } else {
-      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
+    const el = scrollContainerRef.current;
+    if (el) {
+      if (smooth) {
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior: "smooth",
+        });
+      } else {
+        el.scrollTop = el.scrollHeight;
+      }
     }
   }, []);
 
@@ -417,7 +425,7 @@ export function AICopilotDrawer({
   return (
     <aside className="kx-copilot-panel">
       {/* Panel Header */}
-      <div className="kx-copilot-header">
+      <div className="kx-copilot-header sticky top-0 z-50 shrink-0">
         <div className="kx-copilot-title-group min-w-0">
           <div className="kx-copilot-badge-icon shrink-0">
             <MessageSquareText size={20} />
@@ -683,7 +691,7 @@ export function AICopilotDrawer({
               }}
               placeholder={t("copilot_placeholder")}
               disabled={loading || streamingText !== null}
-              autoFocus
+              autoFocus={isDesktop}
               className="kx-copilot-textarea"
             />
             <button

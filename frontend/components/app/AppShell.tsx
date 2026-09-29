@@ -252,6 +252,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Prevent background scrolling on mobile when Cora copilot is open
+  useEffect(() => {
+    if (copilotOpen && !copilotMinimized && typeof window !== "undefined" && window.innerWidth < 1024) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [copilotOpen, copilotMinimized]);
+
 
   const [isStandalone, setIsStandalone] = useState(false);
   const [installDismissed, setInstallDismissed] = useState(false);
