@@ -20,6 +20,15 @@ export type DashboardSummary = {
   total_expenses_paid?: number | string;
   total_expenses_unpaid?: number | string;
   net_cash_position?: number | string;
+  estimated_gross_margin?: number | string;
+  gross_margin_rate?: number;
+  average_order_value?: number | string;
+  break_even_point?: number | string;
+  break_even_progress?: number;
+  recovery_rate?: number;
+  daily_burn_rate?: number | string;
+  cash_runway_days?: number;
+  working_capital?: number | string;
   primary_currency: string;
   recent_sales: SaleItem[];
 };

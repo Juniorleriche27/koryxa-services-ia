@@ -26,6 +26,7 @@ import {
 import { StatusPill } from "./Ui";
 import { formatMoney, formatDate, formatLabel } from "./RegistersTable";
 import { OperationalAuditReport, OperationalAuditData } from "./OperationalAuditReport";
+import { BusinessPerformanceCockpit } from "./BusinessPerformanceCockpit";
 import { getBusinessCategoryConfig } from "@/lib/service-ia/business-categories";
 import { useI18n } from "@/lib/i18n";
 
@@ -44,6 +45,14 @@ interface SummaryData {
   net_cash_position?: number | string;
   projected_30d_cash?: number | string;
   estimated_gross_margin?: number | string;
+  gross_margin_rate?: number;
+  average_order_value?: number | string;
+  break_even_point?: number | string;
+  break_even_progress?: number;
+  recovery_rate?: number;
+  daily_burn_rate?: number | string;
+  cash_runway_days?: number;
+  working_capital?: number | string;
   primary_currency: string;
   recent_sales: Array<{
     id: string;
@@ -313,6 +322,47 @@ export function ExecutiveDashboard({
           </div>
         </article>
       </section>
+
+      {/* Business Performance & Profitability Cockpit */}
+      <BusinessPerformanceCockpit
+        totalSales={totalSales}
+        totalPaid={totalPaid}
+        totalUnpaid={totalUnpaid}
+        totalExpensesPaid={totalExpensesPaid}
+        totalExpensesUnpaid={totalExpensesUnpaid}
+        netCash={netCash}
+        totalSalesCount={summary?.total_sales_count || 0}
+        currency={currency}
+        estimatedGrossMargin={
+          summary?.estimated_gross_margin !== undefined
+            ? Number(summary.estimated_gross_margin)
+            : undefined
+        }
+        grossMarginRate={summary?.gross_margin_rate}
+        averageOrderValue={
+          summary?.average_order_value !== undefined
+            ? Number(summary.average_order_value)
+            : undefined
+        }
+        breakEvenPoint={
+          summary?.break_even_point !== undefined
+            ? Number(summary.break_even_point)
+            : undefined
+        }
+        breakEvenProgress={summary?.break_even_progress}
+        recoveryRate={summary?.recovery_rate}
+        dailyBurnRate={
+          summary?.daily_burn_rate !== undefined
+            ? Number(summary.daily_burn_rate)
+            : undefined
+        }
+        cashRunwayDays={summary?.cash_runway_days}
+        workingCapital={
+          summary?.working_capital !== undefined
+            ? Number(summary.working_capital)
+            : undefined
+        }
+      />
 
       {/* Morning Briefing Banner */}
       <section className="kx-briefing-card">

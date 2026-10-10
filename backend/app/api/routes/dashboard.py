@@ -148,6 +148,38 @@ async def _fetch_summary(s: AsyncSession, org_id: str) -> dict[str, Any]:
         )
     ) or 0)
 
+    net_cash = total_paid_amount - total_expenses_paid
+    estimated_gross_margin = total_sales_amount - total_expenses_paid
+    gross_margin_rate = (
+        round(float(estimated_gross_margin / total_sales_amount * Decimal("100")), 1)
+        if total_sales_amount > Decimal("0")
+        else 0.0
+    )
+    average_order_value = (
+        round(float(total_sales_amount / Decimal(str(total_sales_count))), 2)
+        if total_sales_count > 0
+        else 0.0
+    )
+    break_even_point = total_expenses_paid + total_expenses_unpaid
+    break_even_progress = (
+        round(float(min(Decimal("100"), (total_sales_amount / break_even_point) * Decimal("100"))), 1)
+        if break_even_point > Decimal("0")
+        else 100.0
+    )
+    recovery_rate = (
+        round(float((total_paid_amount / total_sales_amount) * Decimal("100")), 1)
+        if total_sales_amount > Decimal("0")
+        else 100.0
+    )
+    daily_burn_rate = (total_expenses_paid / Decimal("30")) if total_expenses_paid > Decimal("0") else Decimal("0")
+    if net_cash > Decimal("0") and daily_burn_rate > Decimal("0"):
+        cash_runway_days = int(net_cash / daily_burn_rate)
+    elif net_cash > Decimal("0"):
+        cash_runway_days = 999
+    else:
+        cash_runway_days = 0
+    working_capital = (net_cash + total_unpaid_amount) - total_expenses_unpaid
+
     return {
         "total_sales_count": total_sales_count,
         "total_sales_amount": total_sales_amount,
@@ -160,7 +192,16 @@ async def _fetch_summary(s: AsyncSession, org_id: str) -> dict[str, Any]:
         "suppliers_count": suppliers_count,
         "total_expenses_paid": total_expenses_paid,
         "total_expenses_unpaid": total_expenses_unpaid,
-        "net_cash_position": total_paid_amount - total_expenses_paid,
+        "net_cash_position": net_cash,
+        "estimated_gross_margin": estimated_gross_margin,
+        "gross_margin_rate": gross_margin_rate,
+        "average_order_value": average_order_value,
+        "break_even_point": break_even_point,
+        "break_even_progress": break_even_progress,
+        "recovery_rate": recovery_rate,
+        "daily_burn_rate": daily_burn_rate,
+        "cash_runway_days": cash_runway_days,
+        "working_capital": working_capital,
         "total_stock_value": total_stock_value,
         "low_stock_count": low_stock_count,
         "active_products_count": active_products_count,
