@@ -783,3 +783,24 @@ body.kx-fullpage-mode .app-panel {
 @media(max-width:1150px){.app-shell .app-topbar-context{max-width:160px}.app-shell .app-topbar-actions{gap:6px}.app-shell .app-topbar-actions .app-public-link{display:none!important}}
 @media(max-width:900px){.app-shell .app-topbar-actions .kx-topbar-search-trigger{max-width:44px;padding:0 12px}.app-shell .kx-topbar-search-text,.app-shell .kx-cmd-kbd{display:none}}
 @media(max-width:760px){.app-shell .app-content{padding:16px 14px 32px}.app-shell .app-topbar{padding:0 12px;height:60px}.app-shell .app-topbar-context{max-width:145px}.app-shell .kx-topbar-title{font-size:13px}.app-shell .kx-executive-header{align-items:flex-start}.app-shell .kx-executive-actions{flex-wrap:wrap}.app-shell .kx-kpi-card{padding:16px}}
+
+/* Cockpit compact command surface: everything aligned inside one coherent card. */
+.app-shell .kx-dashboard-command{background:var(--card, #fff);border:1px solid #d8ebdf;border-radius:20px;padding:20px 22px;margin-bottom:20px;box-shadow:0 6px 24px rgba(30,85,55,.045)}
+.app-shell .kx-dashboard-command-head{display:flex;align-items:center;justify-content:space-between;gap:24px;min-width:0}
+.app-shell .kx-dashboard-command-title{flex:1 1 auto;min-width:0}
+.app-shell .kx-dashboard-command-title h1{font-size:clamp(23px,2.15vw,33px);font-weight:750;line-height:1.15;letter-spacing:-.035em;margin:5px 0 6px}
+.app-shell .kx-dashboard-command-title p{font-size:13px;color:#667b72;line-height:1.45;margin:0;max-width:650px}
+.app-shell .kx-dashboard-command .kx-executive-actions{display:flex;align-items:center;flex-wrap:nowrap;gap:9px;flex-shrink:0}
+.app-shell .kx-dashboard-command .kx-executive-actions .app-button{white-space:nowrap}
+.app-shell .kx-dashboard-command-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:17px;padding-top:14px;border-top:1px solid #e5f0e9}
+.app-shell .kx-dashboard-scope{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.app-shell .kx-dashboard-scope span{background:#f1f8f3;color:#4a7560;border:1px solid #e0eee5;border-radius:7px;padding:6px 9px;font-size:11px;line-height:1.2;font-weight:650;white-space:nowrap}
+.app-shell .kx-dashboard-notice{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fffbeb;border:1px solid #f5e4b5;border-radius:10px;padding:9px 12px;min-width:270px;max-width:430px}
+.app-shell .kx-dashboard-notice-content{display:flex;flex-direction:column;gap:2px;min-width:0}
+.app-shell .kx-dashboard-notice-content strong{color:#8b4b0b;font-size:12px;line-height:1.25}
+.app-shell .kx-dashboard-notice-content span{font-size:11px;color:#996b38;line-height:1.35}
+.app-shell .kx-dashboard-notice-link{white-space:nowrap;color:#8b4b0b;font-weight:700;font-size:11px;text-decoration:none}
+.app-shell .kx-dashboard-notice-link:hover{text-decoration:underline}
+@media(max-width:1250px){.app-shell .kx-dashboard-command-foot{align-items:stretch;flex-direction:column}.app-shell .kx-dashboard-notice{max-width:100%}}
+@media(max-width:830px){.app-shell .kx-dashboard-command-head{align-items:flex-start;flex-direction:column;gap:14px}.app-shell .kx-dashboard-command .kx-executive-actions{flex-wrap:wrap}}
+@media(max-width:600px){.app-shell .kx-dashboard-command{padding:16px;border-radius:16px}.app-shell .kx-dashboard-command-title h1{font-size:24px}.app-shell .kx-dashboard-notice{min-width:0;flex-wrap:wrap;width:100%}.app-shell .kx-dashboard-scope span{white-space:normal}}

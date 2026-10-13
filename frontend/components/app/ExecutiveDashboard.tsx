@@ -214,53 +214,44 @@ export function ExecutiveDashboard({
         />
       )}
 
-      {/* Top Banner with Executive Greeting and Fast CTA */}
-      <div className="kx-executive-header">
-        <div className="kx-executive-headline">
-          <span className="app-eyebrow">{t("dash_eyebrow")}</span>
-          <h1>{t("dash_title")}</h1>
-          <p>
-            {t("dash_desc")} <strong>{organizationName}</strong>.
-          </p>
+      {/* Compact dashboard command area: actions, scope and exceptions stay grouped. */}
+      <section className="kx-dashboard-command" aria-label="Résumé du cockpit">
+        <div className="kx-dashboard-command-head">
+          <div className="kx-dashboard-command-title">
+            <span className="app-eyebrow">{t("dash_eyebrow")}</span>
+            <h1>{t("dash_title")}</h1>
+            <p>Ventes validées, encaissements et qualité des registres{organizationName ? ` · ${organizationName}` : ""}</p>
+          </div>
+          <div className="kx-executive-actions">
+            <button className="app-button app-button-secondary kx-report-trigger-btn" onClick={() => setShowReport(true)}
+              disabled={isFinancialUncertain} title="Consulter le bilan opérationnel" aria-label="Bilan opérationnel PDF">
+              <Printer size={16} /> <span>{t("btn_pdf_report")}</span>
+            </button>
+            <button className="app-button app-button-primary" onClick={() => onOpenCreate("sales")}>
+              <Plus size={16} /> <span>{t("btn_new_sale")}</span>
+            </button>
+          </div>
         </div>
+        <div className="kx-dashboard-command-foot">
+          <div className="kx-dashboard-scope" aria-label="Périmètre des indicateurs">
+            <span>Historique complet</span>
+            <span>Ventes validées</span>
+            <span>Flux déclarés, hors solde bancaire</span>
+          </div>
+          {(isFinancialUncertain || (summary?.excluded_sales_count ?? 0) > 0) && (
+            <div className="kx-dashboard-notice" role="status">
+              <div className="kx-dashboard-notice-content">
+                <strong>{isFinancialUncertain ? "Données à vérifier" : `${summary?.excluded_sales_count} ventes hors CA`}</strong>
+                <span>{isFinancialUncertain
+                  ? "Paiements ou devises non comparables."
+                  : `${summary?.pending_validation_sales_count ?? 0} en attente de validation.`}</span>
+              </div>
+              <Link href="/espace/ventes" className="kx-dashboard-notice-link">Vérifier les ventes <span aria-hidden="true">→</span></Link>
+            </div>
+          )}
+        </div>
+      </section>
 
-        <div className="kx-executive-actions">
-          <button
-            className="app-button app-button-secondary kx-report-trigger-btn"
-            onClick={() => setShowReport(true)}
-            disabled={isFinancialUncertain}
-            aria-label={isFinancialUncertain ? "Rapport financier indisponible : registres incohérents" : "Consulter le bilan opérationnel"}
-            title="Consulter et imprimer le Bilan Opérationnel en PDF"
-          >
-            <Printer size={16} />
-            <span>{t("btn_pdf_report")}</span>
-          </button>
-          <button
-            className="app-button app-button-primary"
-            onClick={() => onOpenCreate("sales")}
-          >
-            <Plus size={16} />
-            <span>{t("btn_new_sale")}</span>
-          </button>
-        </div>
-      </div>
-
-      {isFinancialUncertain && (
-        <div role="status" className="mb-4 rounded-xl border border-amber-400/40 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
-          <strong>Données financières insuffisantes ou non comparables.</strong>
-          <p>{summary?.financial_warnings?.join(" ") || "Vérifiez les montants payés et les devises des registres."}</p>
-        </div>
-      )}
-      {(summary?.excluded_sales_count ?? 0) > 0 && (
-        <div role="status" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-          <strong>{summary?.excluded_sales_count} document(s) de vente hors chiffre d'affaires.</strong>
-          <p>{summary?.pending_validation_sales_count ?? 0} à vérifier. Seules les ventes validées entrent dans le chiffre d’affaires.</p>
-          <Link href="/espace/ventes" className="mt-1 inline-block font-semibold underline underline-offset-2">Examiner les ventes et leurs statuts</Link>
-        </div>
-      )}
-      {!isFinancialUncertain && (
-        <div className="kx-period-label mb-4"><span>Historique complet</span><span>Documents validés</span><span>Flux déclarés ≠ solde bancaire</span></div>
-      )}
       {/* Financial & Operational KPI Cards */}
       <section data-tour="cockpit-score" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5 mb-6">
         {/* 1. Chiffre d'Affaires Global */}
