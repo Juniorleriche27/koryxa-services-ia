@@ -153,6 +153,7 @@ def test_registers_summary_and_sale_payment_status_quick_update() -> None:
             json={
                 "reference": "V-SUM-1",
                 "sale_date": "2026-08-08",
+                "status": "validated",
                 "item_label": "Pack Audit Express",
                 "quantity": "1",
                 "unit_price": "150000",

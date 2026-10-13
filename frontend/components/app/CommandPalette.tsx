@@ -15,7 +15,7 @@ import {
   Building2,
   Plus,
   Printer,
-  Sparkles,
+  CircleHelp,
   FileSpreadsheet,
   FolderSync,
   X,
@@ -62,7 +62,7 @@ export function CommandPalette({
         id: "open-copilot",
         title: "Ouvrir Cora, votre assistante IA",
         category: "Actions Rapides",
-        icon: Sparkles,
+        icon: CircleHelp,
         shortcut: "⌘J",
         perform: () => {
           onClose();
@@ -133,7 +133,7 @@ export function CommandPalette({
         id: "trigger-radar",
         title: "Lancer l'analyse de qualité Radar",
         category: "Actions Rapides",
-        icon: Sparkles,
+        icon: CircleHelp,
         shortcut: "R",
         perform: () => {
           onClose();

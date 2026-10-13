@@ -15,7 +15,7 @@ import {
   Banknote,
   Smartphone,
   RotateCcw,
-  Sparkles,
+  CircleHelp,
   Receipt,
   User,
   Package,

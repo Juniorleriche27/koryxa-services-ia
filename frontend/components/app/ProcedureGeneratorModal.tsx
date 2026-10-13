@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Sparkles,
+  CircleHelp,
   FileCheck2,
   CheckCircle2,
   Layers,
@@ -175,7 +175,7 @@ export function ProcedureGeneratorModal({
               Annuler
             </button>
             <button className="app-button app-button-primary" disabled={loading}>
-              <Sparkles size={16} />
+              <CircleHelp size={16} />
               <span>{loading ? "Génération de la procédure…" : "Générer avec Cora"}</span>
             </button>
           </div>
@@ -184,7 +184,7 @@ export function ProcedureGeneratorModal({
         <div className="kx-generated-procedure-review">
           <div className="kx-gen-proc-head">
             <span className="kx-gen-source-badge">
-              <Sparkles size={13} /> {generated.provider_used}
+              <CircleHelp size={13} /> {generated.provider_used}
             </span>
             <h3>{generated.title}</h3>
             <p className="kx-gen-proc-objective">{generated.objective}</p>

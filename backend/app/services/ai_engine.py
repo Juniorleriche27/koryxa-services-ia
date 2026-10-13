@@ -34,6 +34,7 @@ from app.schemas.ai import (
 )
 from app.services.agents.cora_orchestrator import CoraOrchestrator
 from app.services.integration_config import IntegrationConfigService
+from app.services.financial_metrics import collect_financial_registers, _paid_amount
 
 
 # In-memory tenant AI configuration store with fallback to settings
@@ -417,26 +418,10 @@ class AIEngineService:
     async def _build_context(
         self, s: AsyncSession, org: str, request: AIChatRequest
     ) -> dict[str, Any]:
-        sales = list(
-            (
-                await s.scalars(
-                    select(Sale)
-                    .where(Sale.organization_id == org, Sale.is_archived.is_(False))
-                    .order_by(Sale.sale_date.desc())
-                    .limit(20)
-                )
-            ).all()
-        )
-        expenses = list(
-            (
-                await s.scalars(
-                    select(Expense)
-                    .where(Expense.organization_id == org, Expense.is_archived.is_(False))
-                    .order_by(Expense.expense_date.desc())
-                    .limit(20)
-                )
-            ).all()
-        )
+        snapshot = await collect_financial_registers(s, org)
+        financial = snapshot.summary
+        sales = list(snapshot.sales)
+        expenses = list(snapshot.expenses)
         alerts = list(
             (
                 await s.scalars(
@@ -460,59 +445,46 @@ class AIEngineService:
             ).all()
         )
 
-        total_sales_paid = sum(
-            (sa.total_amount for sa in sales if sa.payment_status in {PaymentStatus.PAID, "paid"}),
-            Decimal("0.00"),
-        )
-        total_sales_unpaid = sum(
-            (
-                sa.total_amount
-                for sa in sales
-                if sa.payment_status not in {PaymentStatus.PAID, "paid"}
-            ),
-            Decimal("0.00"),
-        )
-        total_exp_paid = sum(
-            (ex.amount for ex in expenses if ex.payment_status in {PaymentStatus.PAID, "paid"}),
-            Decimal("0.00"),
-        )
-        total_exp_unpaid = sum(
-            (ex.amount for ex in expenses if ex.payment_status not in {PaymentStatus.PAID, "paid"}),
-            Decimal("0.00"),
-        )
+        # The external-LLM adapter receives the same metrics and caveats as the cockpit.
+        def display(key: str) -> str:
+            val = financial.get(key)
+            return str(val) if val is not None else "Non calculable"
 
-        net_cash = total_sales_paid - total_exp_paid
-        projected_cash = net_cash + total_sales_unpaid - total_exp_unpaid
+        unpaid_sales = []
+        for sale in sales:
+            paid, _ = _paid_amount(sale)
+            balance = max(Decimal("0"), (sale.total_amount or Decimal("0")) - paid)
+            if balance > 0:
+                unpaid_sales.append({
+                    "ref": sale.reference,
+                    "client": sale.client_name or "Client anonyme",
+                    "amount": str(balance),
+                    "date": str(sale.sale_date),
+                    "due_date": str(sale.due_date) if sale.due_date else None,
+                    "is_overdue": sale.due_date is not None and sale.due_date < __import__("datetime").date.today(),
+                })
 
         return {
-            "total_sales_count": len(sales),
-            "total_sales_paid": str(total_sales_paid),
-            "total_sales_unpaid": str(total_sales_unpaid),
-            "total_expenses_paid": str(total_exp_paid),
-            "total_expenses_unpaid": str(total_exp_unpaid),
-            "net_cash_position": str(net_cash),
-            "projected_30d_cash": str(projected_cash),
+            "total_sales_count": financial["total_sales_count"],
+            "total_sales_paid": display("total_paid_amount"),
+            "total_sales_unpaid": display("total_unpaid_amount"),
+            "total_expenses_paid": display("total_expenses_paid"),
+            "total_expenses_unpaid": display("total_expenses_unpaid"),
+            "net_cash_position": None,
+            "cash_movement_net": display("cash_movement_net"),
+            "projected_30d_cash": None,
+            "primary_currency": financial["primary_currency"],
+            "financial_data_status": financial["financial_data_status"],
+            "financial_warnings": financial["financial_warnings"],
+            "receivables_overdue": display("receivables_overdue"),
+            "receivables_not_due": display("receivables_not_due"),
             "open_alerts_count": len(alerts),
-            "critical_alerts": [
-                {
-                    "title": a.title,
-                    "explanation": a.explanation,
-                    "priority": str(
-                        a.priority.value if hasattr(a.priority, "value") else a.priority
-                    ),
-                }
-                for a in alerts[:5]
-            ],
-            "unpaid_sales": [
-                {
-                    "ref": sa.reference,
-                    "client": sa.client_name or "Client anonyme",
-                    "amount": str(sa.total_amount),
-                    "date": str(sa.sale_date),
-                }
-                for sa in sales
-                if sa.payment_status != PaymentStatus.PAID
-            ][:5],
+            "critical_alerts": [{
+                "title": a.title,
+                "explanation": a.explanation,
+                "priority": str(a.priority.value if hasattr(a.priority, "value") else a.priority),
+            } for a in alerts[:5]],
+            "unpaid_sales": unpaid_sales[:5],
             "procedures_count": len(procedures),
         }
 
@@ -555,12 +527,12 @@ class AIEngineService:
             for w in ["trésorerie", "tresorerie", "solde", "cash", "argent", "banque", "disponible"]
         ):
             return (
-                f"📊 **Analyse de votre Trésorerie en Temps Réel** :\n\n"
-                f"• **Solde net actuel disponible** : **{ctx['net_cash_position']} XOF** (Encaissements effectifs : {ctx['total_sales_paid']} XOF − Décaissements réglés : {ctx['total_expenses_paid']} XOF)\n"
+                f"📊 **Lecture des registres financiers** :\n\n"
+                f"• **Écart des montants enregistrés** : **{ctx['cash_movement_net']} {ctx['primary_currency']}** (Encaissements déclarés moins dépenses réglées; ne représente pas un solde de caisse)\n"
                 f"• **Créances clients à recouvrer** : **{ctx['total_sales_unpaid']} XOF**\n"
                 f"• **Dettes fournisseurs à régler** : **{ctx['total_expenses_unpaid']} XOF**\n"
-                f"• **Trésorerie prévisionnelle à 30 jours** : **{ctx['projected_30d_cash']} XOF**\n\n"
-                f"💡 **Conseil stratégique** : Relancez sans tarder les clients débiteurs ({len(ctx['unpaid_sales'])} créances en cours) pour consolider vos liquidités avant le règlement des prochaines échéances fournisseurs."
+                f"• **Trésorerie réelle et prévisionnelle** : **Non calculable**, faute de soldes initiaux et d'échéancier des autres mouvements.\n\n"
+                f"💡 **Conseil de gestion** : Vérifiez d'abord les échéances des créances ({len(ctx['unpaid_sales'])} créances en cours) pour consolider vos liquidités avant le règlement des prochaines échéances fournisseurs."
             )
 
         # 3. Unpaid & Reminders
@@ -580,7 +552,7 @@ class AIEngineService:
             ]
         ):
             if not ctx["unpaid_sales"]:
-                return "✅ **Excellente nouvelle** : Vous n'avez aucune créance client impayée actuellement enregistrée dans vos registres !"
+                return "Aucune créance n'apparaît sur les factures validées considérées. Ceci ne prouve pas l'absence d'autres échéances."
 
             unpaid_list = "\n".join(
                 [
@@ -591,7 +563,7 @@ class AIEngineService:
             return (
                 f"⚠️ **Priorités de Recouvrement ({ctx['total_sales_unpaid']} XOF au total)** :\n\n"
                 f"Voici les principales ventes en attente de paiement :\n{unpaid_list}\n\n"
-                f"👉 Vous pouvez utiliser le **Générateur de Relances IA** pour envoyer un rappel WhatsApp ou Email en 1 clic directement depuis l'onglet Ventes."
+                f"👉 Vérifiez les échéances avant de générer un rappel depuis l'onglet Ventes."
             )
 
         # 4. Sales and Revenue
@@ -675,7 +647,7 @@ class AIEngineService:
             f"• 📉 **Dépenses décaissées** : **{ctx['total_expenses_paid']} XOF** (Dettes fournisseurs : {ctx['total_expenses_unpaid']} XOF)\n"
             f"• 🛡️ **Alertes Radar actives** : **{ctx['open_alerts_count']}** point(s) d'attention\n"
             f"• 📋 **Procédures opérationnelles** : **{ctx['procedures_count']}** méthode(s) active(s)\n\n"
-            f"Comment puis-je vous aider aujourd'hui ? Je peux analyser vos marges, rédiger une relance client ou vous aider à formaliser une procédure !"
+            f"Je peux analyser les encaissements enregistrés, préparer une relance sur une créance échue ou aider à formaliser une procédure. La marge n'est pas calculable sans coûts directs."
         )
 
     def _extract_actions(self, ctx: dict[str, Any]) -> list[SuggestedAction]:
@@ -706,7 +678,7 @@ class AIEngineService:
         self, api_key: str, model: str, messages: list[Any], ctx: dict[str, Any]
     ) -> str:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        prompt = f"Tu es le copilote IA d'entreprise KORYXA. Voici le contexte financier réel : {json.dumps(ctx, ensure_ascii=False)}.\n\nDemande utilisateur: {messages[-1].content}"
+        prompt = f"Tu es le copilote IA d'entreprise KORYXA. Les données sont des registres, pas un bilan. Ne fabrique pas de rentabilité, solde de caisse, échéances ou prévisions. Voici le contexte : {json.dumps(ctx, ensure_ascii=False)}.\n\nDemande utilisateur: {messages[-1].content}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(url, json=payload)
@@ -720,7 +692,7 @@ class AIEngineService:
         url = f"{base_url.rstrip('/')}/chat/completions"
         system_msg = {
             "role": "system",
-            "content": f"Tu es le copilote IA d'entreprise KORYXA. Contexte financier : {json.dumps(ctx, ensure_ascii=False)}.",
+            "content": f"Tu es le copilote IA d'entreprise KORYXA. Registres non certifiés: ne déduis ni bénéfice ni trésorerie réelle. Contexte : {json.dumps(ctx, ensure_ascii=False)}.",
         }
         api_messages = [system_msg] + [{"role": m.role, "content": m.content} for m in messages]
         payload = {"model": model, "messages": api_messages, "temperature": 0.3}
@@ -740,7 +712,7 @@ class AIEngineService:
             "messages": [
                 {
                     "role": "system",
-                    "content": f"Tu es KORYXA Copilot. Données réelles: {json.dumps(ctx, ensure_ascii=False)}",
+                    "content": f"Tu es KORYXA Copilot. Registres opérationnels uniquement, sans certitude sur la rentabilité ni le solde bancaire:  {json.dumps(ctx, ensure_ascii=False)}",
                 },
                 {"role": "user", "content": messages[-1].content},
             ],

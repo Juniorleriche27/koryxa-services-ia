@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Dialog } from "./Dialog";
 import { StatusPill } from "./Ui";
 import { formatMoney, formatDate, formatLabel, SaleItem, OfferItem, ProcedureItem } from "./RegistersTable";
-import { Pencil, Archive, Sparkles, Clock, User, ShieldCheck } from "lucide-react";
+import { Pencil, Archive, CircleHelp, Clock, User, ShieldCheck } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 
 interface HistoryItem {
@@ -241,7 +241,7 @@ export function RegisterDetailDialog({
               onAiReminder(sale);
             }}
           >
-            <Sparkles size={15} />
+            <CircleHelp size={15} />
             <span>Relance IA</span>
           </button>
         )}

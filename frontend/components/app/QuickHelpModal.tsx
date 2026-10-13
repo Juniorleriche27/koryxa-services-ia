@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   HelpCircle,
-  Sparkles,
+  CircleHelp,
   Mic,
   Bot,
   Command,
@@ -165,7 +165,7 @@ export function QuickHelpModal({
         {/* Category Examples */}
         <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/30 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
           <h5 className="text-xs font-bold text-slate-900 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles size={14} className="text-emerald-600" />
+            <CircleHelp size={14} className="text-emerald-600" />
             <span>Exemples de phrases que vous pouvez dicter :</span>
           </h5>
           <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300">

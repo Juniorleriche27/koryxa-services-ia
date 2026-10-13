@@ -15,7 +15,7 @@ import {
   CheckCircle2,
   Coins,
   History,
-  Sparkles,
+  CircleHelp,
   QrCode,
   RefreshCw,
   MessageSquare,
@@ -300,7 +300,7 @@ export function OrganizationOnboarding({
             <BrandLogo className="onboarding-brand-logo" />
             <div>
               <strong>KORYXA</strong>
-              <small>Configuration & Assistant IA</small>
+              <small>Configuration du service</small>
             </div>
           </div>
           <div className="onboarding-progress">
@@ -549,7 +549,7 @@ export function OrganizationOnboarding({
               <QrCode size={26} />
             </span>
             <p className="app-eyebrow">Étape 4 · Connexion WhatsApp en Direct</p>
-            <h1 id="onboarding-title">Activez votre Assistant IA</h1>
+            <h1 id="onboarding-title">Configurez votre espace</h1>
             <p>
               Scannez ce QR Code avec votre téléphone WhatsApp pour connecter instantanément votre assistant.
             </p>

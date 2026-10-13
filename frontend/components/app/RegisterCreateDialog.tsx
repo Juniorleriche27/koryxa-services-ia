@@ -4,7 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { useState, useEffect } from "react";
 import { Dialog, FormError } from "./Dialog";
 import { serviceIaFetch } from "@/lib/service-ia/api";
-import { Sparkles, RefreshCw, Calculator, Tag } from "lucide-react";
+import { CircleHelp, RefreshCw, Calculator, Tag } from "lucide-react";
 
 type Kind = "offers" | "sales" | "procedures";
 const today = () => new Date().toISOString().slice(0, 10);

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import {
-  Sparkles,
+  CircleHelp,
   Clock,
   Send,
   AlertTriangle,
@@ -168,7 +168,7 @@ export function AutomationsHubView() {
               disabled={digestLoading}
               className="flex-1 flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 py-3 text-xs font-black text-slate-700 hover:bg-slate-100 transition cursor-pointer"
             >
-              {digestLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {digestLoading ? <RefreshCw size={14} className="animate-spin" /> : <CircleHelp size={14} />}
               <span>Aperçu en Direct</span>
             </button>
 
@@ -250,7 +250,7 @@ export function AutomationsHubView() {
               disabled={remindersLoading}
               className="flex-1 flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 py-3 text-xs font-black text-slate-700 hover:bg-slate-100 transition cursor-pointer"
             >
-              {remindersLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {remindersLoading ? <RefreshCw size={14} className="animate-spin" /> : <CircleHelp size={14} />}
               <span>Scanner les Impayés</span>
             </button>
 

@@ -6,7 +6,7 @@ import {
   Copy,
   Check,
   Send,
-  Sparkles,
+  CircleHelp,
   Smartphone,
   ShieldCheck,
   Plus,
@@ -835,7 +835,7 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
             {simResult && (
               <div className="p-4 rounded-2xl bg-muted/60 border border-border/80 space-y-2 mt-4">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                  <Sparkles size={14} />
+                  <CircleHelp size={14} />
                   <span>KORYXA Bot (Réponse automatique)</span>
                 </div>
                 <pre className="text-xs font-sans whitespace-pre-wrap text-foreground/90 leading-relaxed">

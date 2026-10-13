@@ -7,7 +7,7 @@ import {
   CheckCircle2,
   DollarSign,
   Calendar,
-  Sparkles,
+  CircleHelp,
   Zap,
 } from "lucide-react";
 import { Dialog, FormError } from "./Dialog";

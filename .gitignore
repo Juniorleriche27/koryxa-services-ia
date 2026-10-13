@@ -41,3 +41,5 @@ backups/
 /opt/backups/
 /var/backups/
 
+.vercel
+.env*

@@ -12,7 +12,7 @@ import {
   AlertCircle,
   Save,
   Compass,
-  Sparkles,
+  CircleHelp,
   Building2,
   Shield,
   LocateFixed,

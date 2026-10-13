@@ -304,22 +304,31 @@ class SalePaymentUpdate(BaseModel):
 
 class RegistersSummary(BaseModel):
     total_sales_count: int
-    total_sales_amount: Decimal
-    total_paid_amount: Decimal
-    total_unpaid_amount: Decimal
-    total_partial_amount: Decimal
+    total_sales_amount: Decimal | None = None
+    total_paid_amount: Decimal | None = None
+    total_unpaid_amount: Decimal | None = None
+    total_partial_amount: Decimal | None = None
     offers_count: int
     procedures_count: int
     expenses_count: int = 0
     suppliers_count: int = 0
-    total_expenses_paid: Decimal = Decimal("0.00")
-    total_expenses_unpaid: Decimal = Decimal("0.00")
-    net_cash_position: Decimal = Decimal("0.00")
+    total_expenses_paid: Decimal | None = None
+    total_expenses_unpaid: Decimal | None = None
+    net_cash_position: Decimal | None = None
+    cash_movement_net: Decimal | None = None
+    financial_data_status: str = "registers_only"
+    financial_warnings: list[str] = Field(default_factory=list)
     total_stock_value: Decimal = Decimal("0.00")
     low_stock_count: int = 0
     active_products_count: int = 0
     present_employees_today_count: int = 0
     primary_currency: str = "XOF"
+    aggregation_period: str = "all_time"
+    currency_codes: list[str] = Field(default_factory=list)
+    recovery_rate: float | None = None
+    average_order_value: float | None = None
+    receivables_overdue: Decimal | None = None
+    receivables_not_due: Decimal | None = None
     recent_sales: list[SaleRead] = Field(default_factory=list)
 
 
@@ -414,12 +423,17 @@ class SupplierRead(SupplierBase):
 
 
 class CashflowSummary(BaseModel):
-    total_income_paid: Decimal
-    total_income_unpaid: Decimal
-    total_expenses_paid: Decimal
-    total_expenses_unpaid: Decimal
-    net_cash_position: Decimal
-    projected_30d_cash: Decimal
-    estimated_gross_margin: Decimal
+    total_income_paid: Decimal | None = None
+    total_income_unpaid: Decimal | None = None
+    total_expenses_paid: Decimal | None = None
+    total_expenses_unpaid: Decimal | None = None
+    net_cash_position: Decimal | None = None
+    cash_movement_net: Decimal | None = None
+    projected_30d_cash: Decimal | None = None
+    estimated_gross_margin: Decimal | None = None
     primary_currency: str = "XOF"
+    financial_data_status: str = "registers_only"
+    financial_warnings: list[str] = Field(default_factory=list)
+    receivables_overdue: Decimal | None = None
+    receivables_not_due: Decimal | None = None
     recent_expenses: list[ExpenseRead] = Field(default_factory=list)

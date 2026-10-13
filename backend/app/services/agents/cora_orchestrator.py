@@ -21,6 +21,7 @@ from app.services.agents.politeness_agent import Language, PolitenessAgent, Poli
 from app.services.agents.radar_sentinel_agent import RadarSentinelAgent
 from app.services.agents.sales_recovery_agent import SalesRecoveryAgent
 from app.services.registers import RegisterService
+from app.services.financial_metrics import collect_financial_registers, _paid_amount
 
 
 class CoraOrchestrator(BaseSpecializedAgent):
@@ -345,96 +346,44 @@ class CoraOrchestrator(BaseSpecializedAgent):
         # 3. Deep Live Database Querying & Aggregation
         today = date.today()
 
-        # Sales records
-        sales_stmt = (
-            select(Sale)
-            .where(Sale.organization_id == org_id, Sale.is_archived.is_(False))
-            .order_by(Sale.sale_date.desc(), Sale.created_at.desc())
-        )
-        all_sales = list((await s.scalars(sales_stmt)).all())
-
-        total_sales_count = len(all_sales)
-        total_sales_amount = Decimal("0.00")
-        total_sales_paid = Decimal("0.00")
-        total_sales_unpaid = Decimal("0.00")
-        currency = "XOF"
+        # All agents must use the same validated register scope as the cockpit.
+        snapshot = await collect_financial_registers(s, org_id)
+        financial = snapshot.summary
+        financial_available = financial["financial_data_status"] == "registers_only"
+        all_sales = list(snapshot.sales)
+        all_expenses = list(snapshot.expenses)
+        currency = financial["primary_currency"]
+        total_sales_count = financial["total_sales_count"]
+        total_sales_amount = financial["total_sales_amount"] or Decimal("0")
+        total_sales_paid = financial["total_paid_amount"] or Decimal("0")
+        total_sales_unpaid = financial["total_unpaid_amount"] or Decimal("0")
+        total_expenses_paid = financial["total_expenses_paid"] or Decimal("0")
+        total_expenses_unpaid = financial["total_expenses_unpaid"] or Decimal("0")
+        net_cash = financial["cash_movement_net"] or Decimal("0")
+        recouvrement_rate = financial["recovery_rate"] if financial["recovery_rate"] is not None else "Non calculable"
 
         today_sales: list[Sale] = []
-        today_sales_amount = Decimal("0.00")
-        today_sales_paid = Decimal("0.00")
-        today_sales_unpaid = Decimal("0.00")
-
+        today_sales_amount = Decimal("0")
+        today_sales_paid = Decimal("0")
+        today_sales_unpaid = Decimal("0")
+        today_expenses_amount = Decimal("0")
         unpaid_sales: list[Sale] = []
         client_sales_map: dict[str, Decimal] = defaultdict(Decimal)
-
         for sale in all_sales:
-            currency = sale.currency or currency
-            amt = sale.total_amount if sale.total_amount is not None else Decimal("0.00")
-            p_amt = sale.paid_amount if sale.paid_amount is not None else Decimal("0.00")
-            total_sales_amount += amt
-
-            status_str = (
-                sale.payment_status.value
-                if hasattr(sale.payment_status, "value")
-                else str(sale.payment_status).lower()
-            )
-            if status_str == "paid":
-                actual_paid = amt if p_amt == Decimal("0.00") else p_amt
-                total_sales_paid += actual_paid
-            elif status_str == "partial":
-                total_sales_paid += p_amt
-                unpaid_part = max(Decimal("0.00"), amt - p_amt)
-                total_sales_unpaid += unpaid_part
+            amt = sale.total_amount or Decimal("0")
+            actual_paid, _ = _paid_amount(sale)
+            pending = max(Decimal("0"), amt - actual_paid)
+            if pending > 0:
                 unpaid_sales.append(sale)
-            else:  # unpaid
-                total_sales_unpaid += amt
-                unpaid_sales.append(sale)
-
-            client_name = sale.client_name or "Client anonyme"
-            client_sales_map[client_name] += amt
-
+            client_sales_map[sale.client_name or "Client anonyme"] += amt
             if sale.sale_date == today:
                 today_sales.append(sale)
                 today_sales_amount += amt
-                if status_str == "paid":
-                    today_sales_paid += amt if p_amt == Decimal("0.00") else p_amt
-                elif status_str == "partial":
-                    today_sales_paid += p_amt
-                    today_sales_unpaid += max(Decimal("0.00"), amt - p_amt)
-                else:
-                    today_sales_unpaid += amt
-
-        # Strict consistency: Total Unpaid = Total Sales - Total Paid
-        total_sales_paid = min(total_sales_amount, total_sales_paid)
-        total_sales_unpaid = max(Decimal("0.00"), total_sales_amount - total_sales_paid)
-        recouvrement_rate = (
-            min(100, max(0, round(float(total_sales_paid / total_sales_amount) * 100)))
-            if total_sales_amount > 0
-            else 100
-        )
-
-        # Expenses records
-        expenses_stmt = (
-            select(Expense)
-            .where(Expense.organization_id == org_id, Expense.is_archived.is_(False))
-            .order_by(Expense.expense_date.desc(), Expense.created_at.desc())
-        )
-        all_expenses = list((await s.scalars(expenses_stmt)).all())
-
-        total_expenses_paid = Decimal("0.00")
-        total_expenses_unpaid = Decimal("0.00")
-        today_expenses_amount = Decimal("0.00")
-
-        for exp in all_expenses:
-            e_amt = exp.amount if exp.amount is not None else Decimal("0.00")
-            if exp.payment_status == "paid":
-                total_expenses_paid += e_amt
-            else:
-                total_expenses_unpaid += e_amt
-            if exp.expense_date == today:
-                today_expenses_amount += e_amt
-
-        net_cash = total_sales_paid - total_expenses_paid
+                today_sales_paid += actual_paid
+                today_sales_unpaid += pending
+        for expense in all_expenses:
+            if expense.expense_date == today:
+                today_expenses_amount += expense.amount or Decimal("0")
 
         # Stock / Offers records
         offers_stmt = select(Offer).where(
@@ -659,6 +608,22 @@ class CoraOrchestrator(BaseSpecializedAgent):
             ]
         )
 
+        if not financial_available and (
+            is_today_sales_query or is_global_sales_query or is_cash_query
+            or is_debt_query or is_expense_query or is_top_clients_query
+            or (is_general_analysis_query and not (is_stock_query or is_radar_query))
+        ):
+            return AIChatResponse(
+                reply="Données financières non calculables de manière fiable : " + " ".join(financial["financial_warnings"]),
+                provider_used="CAURI Financial Controls",
+                model_used="cora-finance-validation",
+                agent_name="Cora · Directrice des Opérations",
+                agent_badge="🧑‍💼 Coach Exécutif",
+                thinking_summary="Contrôle de cohérence des registres financiers",
+                action_executed=None,
+                suggested_actions=current_suggested,
+            )
+
         # 5. Specialized Native Analyzers
 
         # A) VENTES DU JOUR
@@ -692,7 +657,7 @@ class CoraOrchestrator(BaseSpecializedAgent):
                     f"{details_block}\n\n"
                     f"💡 Recommandation : "
                     + (
-                        "Pensez à relancer les créances du jour dès demain matin."
+                        "Vérifiez les dates d'échéance avant toute relance."
                         if today_sales_unpaid > 0
                         else "Excellente gestion : 100% des ventes du jour ont été encaissées !"
                     )
@@ -761,16 +726,16 @@ class CoraOrchestrator(BaseSpecializedAgent):
             reply = (
                 f"📈 Synthèse Commerciale Globale pour {org_name} :\n\n"
                 f"• 💰 Chiffre d'Affaires Total Facturé : {float(total_sales_amount):,.0f} {currency} ({total_sales_count} opérations)\n"
-                f"• 📥 CA Réellement Encaissé : {float(total_sales_paid):,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)\n"
-                f"• ⏳ Créances Clients à Recouvrer : {float(total_sales_unpaid):,.0f} {currency}\n"
+                f"• 📥 Paiements déclarés sur ventes suivies : {float(total_sales_paid):,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)\n"
+                f"• ⏳ Créances en attente (échéances à vérifier) : {float(total_sales_unpaid):,.0f} {currency}\n"
                 f"• 🎯 Panier Moyen par Vente : {avg_ticket:,.0f} {currency}\n\n"
                 f"Dernières transactions enregistrées :\n"
                 f"{recent_sales_block}\n\n"
                 f"💡 Recommandation Commerciale : "
                 + (
-                    f"Concentrez vos efforts sur le recouvrement des {float(total_sales_unpaid):,.0f} {currency} en attente pour convertir 100% de votre chiffre d'affaires en trésorerie nette."
+                    f"Vérifiez d'abord les échéances concernant les {float(total_sales_unpaid):,.0f} {currency} en attente pour convertir 100% de votre chiffre d'affaires en écart des registres."
                     if total_sales_unpaid > 0
-                    else "Votre performance est excellente avec un taux de recouvrement de 100% !"
+                    else "Les ventes incluses sont déclarées intégralement payées, sous réserve de rapprochement."
                 )
             ).replace(",", " ")
 
@@ -819,14 +784,14 @@ class CoraOrchestrator(BaseSpecializedAgent):
                     f"• 📋 Nombre de Factures Débitrices : {len(unpaid_sales)} créance(s)\n\n"
                     f"Clients et factures prioritaires à relancer :\n"
                     f"{unpaid_block}\n\n"
-                    f"💡 Plan d'action : En relançant ces {len(unpaid_sales)} clients via WhatsApp ou Email, vous renflouerez immédiatement votre solde de caisse de {float(total_sales_unpaid):,.0f} {currency}."
+                    f"💡 Plan d'action : En relançant ces {len(unpaid_sales)} clients via WhatsApp ou Email, vous pourriez améliorer les encaissements après règlement effectif de {float(total_sales_unpaid):,.0f} {currency}."
                 ).replace(",", " ")
             else:
                 reply = (
                     f"✅ Situation des Créances ({org_name}) :\n\n"
                     f"• 💰 Total Impayés : 0 {currency}\n"
                     f"• 🎯 Taux de Recouvrement : 100%\n\n"
-                    f"Félicitations ! Tous vos clients sont parfaitement à jour de leurs paiements."
+                    f"Aucune créance restante n'est calculée sur les ventes validées. Vérifiez les autres échéances et mouvements."
                 )
 
             return AIChatResponse(
@@ -853,46 +818,25 @@ class CoraOrchestrator(BaseSpecializedAgent):
 
         # C) TRÉSORERIE & CAISSE
         if is_cash_query:
-            if net_cash > 0:
-                health_eval = "🟢 Trésorerie Saine & Excédentaire"
-                advice = "Vos liquidités couvrent vos décaissements. Pour consolider vos réserves, accélérez le recouvrement des créances en attente."
-            elif net_cash == 0:
-                health_eval = "🟡 Trésorerie à l'Équilibre"
-                advice = "Vos entrées couvrent tout juste vos sorties. Évitez les dépenses non prioritaires et relancez vos clients débiteurs."
-            else:
-                health_eval = "🔴 Trésorerie sous Tension (Déficit opérationnel)"
-                advice = "Vos décaissements dépassent vos encaissements effectifs. Priorité absolue : recouvrer les créances pour renflouer la caisse."
-
             reply = (
-                f"💵 Diagnostic de Trésorerie & Solde de Caisse ({org_name}) :\n\n"
-                f"• 🏦 Solde Net Disponible en Caisse : {float(net_cash):,.0f} {currency} ({health_eval})\n"
-                f"• 📥 Total Encaissé (Ventes) : {float(total_sales_paid):,.0f} {currency}\n"
-                f"• 📤 Total Décaissements (Dépenses réglées) : {float(total_expenses_paid):,.0f} {currency}\n"
-                f"• ⏳ Créances clients à recouvrer : {float(total_sales_unpaid):,.0f} {currency}\n"
-                f"• 📌 Dettes fournisseurs à régler : {float(total_expenses_unpaid):,.0f} {currency}\n\n"
-                f"💡 Conseil de Gestion : {advice}"
+                f"💵 Registres de flux financiers ({org_name}) :\n\n"
+                f"• Encaissements déclarés : {total_sales_paid:,.0f} {currency}\n"
+                f"• Dépenses réglées déclarées : {total_expenses_paid:,.0f} {currency}\n"
+                f"• Écart des registres (encaissements - dépenses) : {net_cash:,.0f} {currency}\n"
+                f"• Créances en attente, pas nécessairement échues : {total_sales_unpaid:,.0f} {currency}\n"
+                f"• Charges restant à régler : {total_expenses_unpaid:,.0f} {currency}\n\n"
+                "Ce montant n'est pas un solde réel de caisse : les soldes initiaux, prêts, apports, retraits et autres mouvements ne sont pas réconciliés. "
+                "Aucun seuil de rentabilité, autonomie ou résultat d'exploitation ne peut en être déduit."
             ).replace(",", " ")
-
             return AIChatResponse(
                 reply=reply,
-                provider_used="Financial Register Core",
-                model_used="koryxa-finance-agent",
+                provider_used="CAURI Financial Registers",
+                model_used="cora-finance-validation",
                 agent_name="Cora · Directrice des Opérations",
                 agent_badge="🧑‍💼 Coach Exécutif",
-                thinking_summary=f"Calcul en temps réel de la trésorerie pour {org_name}",
+                thinking_summary="Analyse des registres, sans présumer le solde bancaire",
                 action_executed=None,
-                suggested_actions=[
-                    SuggestedAction(
-                        title="Créances à relancer",
-                        action_type="send_chat",
-                        payload={"prompt": "Quels sont les impayés prioritaires ?"},
-                    ),
-                    SuggestedAction(
-                        title="Ventes du jour",
-                        action_type="send_chat",
-                        payload={"prompt": "Donne-moi les ventes d'aujourd'hui"},
-                    ),
-                ],
+                suggested_actions=current_suggested,
             )
 
         # D) TOP CLIENTS / ANALYSE CLIENTS
@@ -1015,8 +959,8 @@ class CoraOrchestrator(BaseSpecializedAgent):
                 reply = (
                     f"🛡️ Audit Radar & Sentinelle Qualité ({org_name}) :\n\n"
                     f"• 🟢 Score Radar : 100 / 100\n"
-                    f"• ✅ Aucune anomalie ni conflit détecté dans vos registres.\n\n"
-                    f"Votre mémoire opérationnelle est saine et rigoureusement synchronisée."
+                    f"• ✅ Aucune alerte Radar ouverte; des vérifications peuvent rester nécessaires.\n\n"
+                    f"Aucune alerte ouverte n'est recensée. Cela ne certifie pas l'exhaustivité ni la santé financière."
                 )
 
             return AIChatResponse(
@@ -1043,18 +987,18 @@ class CoraOrchestrator(BaseSpecializedAgent):
             f"Interlocuteur : {responsible}\n"
             f"Devise principale : {currency}\n"
             f"LANGUE OBLIGATOIRE : Tu DOIS répondre en {target_lang} ({lang}).\n\n"
-            f"Données comptables réelles certifiées de la base de données :\n"
+            f"Totaux indicatifs des registres validés, hors solde bancaire et comptabilité complète :\n"
             f"• Ventes du jour ({today}) : {float(today_sales_amount):,.0f} {currency} ({len(today_sales)} ventes)\n"
             f"• Total Chiffre d'Affaires Facturé : {float(total_sales_amount):,.0f} {currency} ({total_sales_count} opérations)\n"
-            f"• Chiffre d'Affaires Réellement Encaissé : {float(total_sales_paid):,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)\n"
-            f"• Créances / Impayés Clients à Recouvrer : {float(total_sales_unpaid):,.0f} {currency} ({len(unpaid_sales)} clients débiteurs)\n"
+            f"• Paiements déclarés sur ventes suivies : {float(total_sales_paid):,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)\n"
+            f"• Créances clientes en attente (échéances à vérifier) : {float(total_sales_unpaid):,.0f} {currency} ({len(unpaid_sales)} clients débiteurs)\n"
             f"• Dépenses Réglées : {float(total_expenses_paid):,.0f} {currency} | Dépenses en attente : {float(total_expenses_unpaid):,.0f} {currency}\n"
-            f"• Solde Réel en Caisse Disponible : {float(net_cash):,.0f} {currency}\n"
+            f"• Écart des registres (pas un solde de caisse) : {float(net_cash):,.0f} {currency}\n"
             f"• Alertes Stock : {len(low_stock_items)} articles | Alertes Radar : {len(open_alerts)}\n\n"
             f"Historique de conversation récente :\n"
             f"{history_str}\n\n"
             f"Demande de l'utilisateur : {last_user_msg}\n\n"
-            f"Consigne : Réponds en tant que directrice des opérations experte et bienveillante avec des chiffres exacts et des conseils stratégiques actionnables. Pas de markdown brut **."
+            f"Consigne : Les montants sont des registres opérationnels, PAS un bilan certifié. N'affirme jamais de solde de caisse, marge, bénéfice, point mort, autonomie ou fonds de roulement sans éléments justificatifs. Distingue les créances non échues des impayés. Explique les limites. Pas de markdown brut **."
         )
 
         llm_reply = await self.call_knowlia_llm(s, org_id, user_id, semantic_prompt)
@@ -1072,13 +1016,8 @@ class CoraOrchestrator(BaseSpecializedAgent):
                 suggested_actions=current_suggested,
             )
 
-        # Full Native Executive Diagnostic when LLM is offline/fallback
-        if net_cash > 0:
-            cash_str = f"🟢 Excédentaire (+{float(net_cash):,.0f} {currency})"
-        elif net_cash == 0:
-            cash_str = f"🟡 À l'Équilibre (0 {currency})"
-        else:
-            cash_str = f"🔴 Sous Tension ({float(net_cash):,.0f} {currency})"
+        # A positive register delta does not prove a positive treasury balance.
+        cash_str = "Mouvements des registres seulement; solde bancaire non calculable"
 
         diag_title = (
             "📊 Analyse Approfondie & Diagnostic de Gestion"
@@ -1089,10 +1028,10 @@ class CoraOrchestrator(BaseSpecializedAgent):
             f"{diag_title} ({org_name}) :\n\n"
             f"1. 📈 Performance Commerciale :\n"
             f"• Chiffre d'Affaires Total Facturé : {float(total_sales_amount):,.0f} {currency} ({total_sales_count} opérations)\n"
-            f"• CA Réellement Encaissé : {float(total_sales_paid):,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)\n"
+            f"• Paiements déclarés sur ventes suivies : {float(total_sales_paid):,.0f} {currency} (Taux de recouvrement : {recouvrement_rate}%)\n"
             f"• Créances Clients en Attente : {float(total_sales_unpaid):,.0f} {currency} ({len(unpaid_sales)} factures)\n\n"
             f"2. 🏦 Trésorerie & Décaissements :\n"
-            f"• Solde Réel en Caisse : {float(net_cash):,.0f} {currency} ({cash_str})\n"
+            f"• Écart des registres (pas un solde de caisse) : {float(net_cash):,.0f} {currency} ({cash_str})\n"
             f"• Total Dépenses Réglées : {float(total_expenses_paid):,.0f} {currency}\n\n"
             f"3. 🛡️ Sentinelle & Alertes Métier :\n"
             f"• Ventes du jour ({today.strftime('%d/%m/%Y')}) : {float(today_sales_amount):,.0f} {currency} ({len(today_sales)} vente(s))\n"

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Sparkles, ShoppingBag, Package, Maximize2, Minimize2 } from "lucide-react";
+import { Plus, CircleHelp, ShoppingBag, Package, Maximize2, Minimize2 } from "lucide-react";
 import { PageHeader } from "../PageHeader";
 import { EmptyState, TableSkeleton } from "../Ui";
 import { RegisterCreateDialog } from "../RegisterCreateDialog";
@@ -158,7 +158,7 @@ export function RegistersSection({
                 onClick={() => setAiProcedureOpen(true)}
                 title={t("procedures_btn_ai")}
               >
-                <Sparkles size={16} />
+                <CircleHelp size={16} />
                 <span>{t("procedures_btn_ai")}</span>
               </button>
             )}

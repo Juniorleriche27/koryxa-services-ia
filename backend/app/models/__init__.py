@@ -1,4 +1,5 @@
 from app.models.attendance import AttendanceRecord
+from app.models.finance import CashAccount, CashMovement, FinancialCostClassification
 from app.models.billing import BillingTransaction
 from app.models.imports import Attachment, ImportJob, ImportStatus
 from app.models.integrations import (

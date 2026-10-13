@@ -233,6 +233,10 @@ class RegisterService:
         before_paid = obj.paid_amount if obj.paid_amount is not None else Decimal("0.00")
         total = obj.total_amount if obj.total_amount is not None else Decimal("0.00")
         new_paid = before_paid + data.amount
+        if obj.payment_status in {PaymentStatus.CANCELLED, PaymentStatus.REFUNDED}:
+            raise ApplicationError("payment_invalid_state", "Impossible de payer une vente annulée ou remboursée", 422)
+        if new_paid > total:
+            raise ApplicationError("payment_exceeds_balance", "Le paiement dépasse le montant restant dû", 422)
         obj.paid_amount = new_paid
 
         if new_paid >= total and total > 0:
@@ -279,9 +283,8 @@ class RegisterService:
             if obj.reference.startswith("DEV-") or obj.reference.startswith("PRO-"):
                 obj.reference = await generate_next_sale_reference(s, org, DocumentType.INVOICE)
         elif before_type != DocumentType.RECEIPT and data.target_type == DocumentType.RECEIPT:
-            if obj.payment_status != PaymentStatus.PAID:
-                obj.payment_status = PaymentStatus.PAID
-                obj.paid_amount = obj.total_amount
+            if obj.paid_amount < obj.total_amount or obj.payment_status != PaymentStatus.PAID:
+                raise ApplicationError("receipt_requires_payment", "Une facture ne peut être acquittée sans règlement enregistré", 422)
 
         obj.updated_by_user_id = user
         await self._history(
@@ -477,7 +480,15 @@ class RegisterService:
     ):
         obj = await self.get_sale(s, org, rid)
         before = {"payment_status": obj.payment_status, "payment_method": obj.payment_method}
-        obj.payment_status = payment_status
+        next_status = PaymentStatus(payment_status)
+        current_paid = obj.paid_amount or Decimal("0")
+        if next_status == PaymentStatus.PAID:
+            obj.paid_amount = obj.total_amount
+        elif next_status == PaymentStatus.PARTIAL and not (Decimal("0") < current_paid < obj.total_amount):
+            raise ApplicationError("partial_requires_amount", "Enregistrer un acompte avant de marquer la vente partielle", 422)
+        elif next_status == PaymentStatus.UNPAID and current_paid > 0:
+            raise ApplicationError("unpaid_with_payment", "Impossible de déclarer impayée une vente déjà encaissée", 422)
+        obj.payment_status = next_status
         if payment_method is not None:
             obj.payment_method = payment_method
         obj.updated_by_user_id = user
@@ -498,146 +509,10 @@ class RegisterService:
         return obj
 
     async def get_summary(self, s, org):
-        sales_rows = list(
-            (
-                await s.scalars(
-                    select(Sale)
-                    .where(Sale.organization_id == org, Sale.is_archived.is_(False))
-                    .order_by(Sale.sale_date.desc())
-                )
-            ).all()
-        )
-        total_sales_count = len(sales_rows)
-        total_sales_amount = Decimal("0.00")
-        total_paid_amount = Decimal("0.00")
-        total_unpaid_amount = Decimal("0.00")
-        total_partial_amount = Decimal("0.00")
-        primary_currency = "XOF"
+        # Single source of truth, shared with the private executive cockpit.
+        from app.services.financial_summary import fetch_summary
 
-        for row in sales_rows:
-            amt = row.total_amount if row.total_amount is not None else Decimal("0.00")
-            total_sales_amount += amt
-            primary_currency = row.currency or primary_currency
-            p_amt = row.paid_amount if row.paid_amount is not None else Decimal("0.00")
-            status_str = (
-                row.payment_status.value
-                if hasattr(row.payment_status, "value")
-                else str(row.payment_status).lower()
-            )
-            if status_str == "paid":
-                actual_paid = amt if (p_amt == Decimal("0.00") or p_amt > amt) else p_amt
-                actual_paid = min(amt, max(Decimal("0.00"), actual_paid))
-                total_paid_amount += actual_paid
-            elif status_str == "partial":
-                actual_paid = min(amt, max(Decimal("0.00"), p_amt))
-                total_paid_amount += actual_paid
-                total_partial_amount += max(Decimal("0.00"), amt - actual_paid)
-            elif status_str == "unpaid":
-                pass
-
-        # Strict Mathematical Consistency: Total CA = Total Encaissé + Créances en attente
-        total_paid_amount = min(total_sales_amount, total_paid_amount)
-        total_unpaid_amount = max(Decimal("0.00"), total_sales_amount - total_paid_amount)
-
-        offers_rows = list(
-            (
-                await s.scalars(
-                    select(Offer).where(Offer.organization_id == org, Offer.is_archived.is_(False))
-                )
-            ).all()
-        )
-        offers_count = len(offers_rows)
-        total_stock_value = Decimal("0.00")
-        low_stock_count = 0
-        active_products_count = 0
-
-        for off in offers_rows:
-            if off.track_stock:
-                active_products_count += 1
-                qty = off.stock_quantity if off.stock_quantity is not None else Decimal("0.00")
-                unit_val = (
-                    off.cost_price
-                    if off.cost_price is not None
-                    else (off.price if off.price is not None else Decimal("0.00"))
-                )
-                total_stock_value += qty * unit_val
-                min_threshold = (
-                    off.min_stock_alert if off.min_stock_alert is not None else Decimal("5.00")
-                )
-                if qty <= min_threshold:
-                    low_stock_count += 1
-
-        procedures_count = int(
-            await s.scalar(
-                select(func.count())
-                .select_from(Procedure)
-                .where(Procedure.organization_id == org, Procedure.is_archived.is_(False))
-            )
-            or 0
-        )
-
-        expenses_rows = list(
-            (
-                await s.scalars(
-                    select(Expense).where(
-                        Expense.organization_id == org, Expense.is_archived.is_(False)
-                    )
-                )
-            ).all()
-        )
-        expenses_count = len(expenses_rows)
-        total_expenses_paid = Decimal("0.00")
-        total_expenses_unpaid = Decimal("0.00")
-        for exp in expenses_rows:
-            e_amt = exp.amount if exp.amount is not None else Decimal("0.00")
-            if exp.payment_status == "paid":
-                total_expenses_paid += e_amt
-            else:
-                total_expenses_unpaid += e_amt
-
-        suppliers_count = int(
-            await s.scalar(
-                select(func.count()).select_from(Supplier).where(Supplier.organization_id == org)
-            )
-            or 0
-        )
-
-        today = date.today()
-        present_employees_today_count = int(
-            await s.scalar(
-                select(func.count())
-                .select_from(AttendanceRecord)
-                .where(
-                    and_(
-                        AttendanceRecord.organization_id == org,
-                        AttendanceRecord.date == today,
-                        AttendanceRecord.status.in_(["present", "late"]),
-                    )
-                )
-            )
-            or 0
-        )
-
-        return {
-            "total_sales_count": total_sales_count,
-            "total_sales_amount": total_sales_amount,
-            "total_paid_amount": total_paid_amount,
-            "total_unpaid_amount": total_unpaid_amount,
-            "total_partial_amount": total_partial_amount,
-            "offers_count": offers_count,
-            "procedures_count": procedures_count,
-            "expenses_count": expenses_count,
-            "suppliers_count": suppliers_count,
-            "total_expenses_paid": total_expenses_paid,
-            "total_expenses_unpaid": total_expenses_unpaid,
-            "net_cash_position": total_paid_amount - total_expenses_paid,
-            "total_stock_value": total_stock_value,
-            "low_stock_count": low_stock_count,
-            "active_products_count": active_products_count,
-            "present_employees_today_count": present_employees_today_count,
-            "primary_currency": primary_currency,
-            "recent_sales": sales_rows[:10],
-        }
+        return await fetch_summary(s, org)
 
     async def history(self, s, org, typ, rid):
         return list(
@@ -759,7 +634,17 @@ class RegisterService:
     ):
         obj = await self.get_expense(s, org, rid)
         before = {"payment_status": str(obj.payment_status), "payment_method": obj.payment_method}
-        obj.payment_status = PaymentStatus(status)
+        next_status = PaymentStatus(status)
+        if next_status == PaymentStatus.PAID:
+            # An explicit user action declaring full payment must update its amount.
+            obj.paid_amount = obj.amount
+        elif next_status == PaymentStatus.PARTIAL:
+            current_paid = obj.paid_amount or Decimal("0.00")
+            if not (Decimal("0.00") < current_paid < obj.amount):
+                raise ApplicationError("partial_requires_amount", "Saisir le montant partiellement réglé avant de déclarer une dépense partielle", 422)
+        elif next_status == PaymentStatus.UNPAID and (obj.paid_amount or Decimal("0.00")) > 0:
+            raise ApplicationError("unpaid_with_payment", "Modifier le montant payé avant de déclarer la dépense impayée", 422)
+        obj.payment_status = next_status
         if method is not None:
             obj.payment_method = method
         obj.updated_by_user_id = user
@@ -858,68 +743,24 @@ class RegisterService:
 
     # ------------------ CASHFLOW SUMMARY ------------------
     async def get_cashflow_summary(self, s: AsyncSession, org: str):
-        sales = list(
-            (
-                await s.scalars(
-                    select(Sale).where(Sale.organization_id == org, Sale.is_archived.is_(False))
-                )
-            ).all()
-        )
-        expenses = list(
-            (
-                await s.scalars(
-                    select(Expense)
-                    .where(Expense.organization_id == org, Expense.is_archived.is_(False))
-                    .order_by(Expense.expense_date.desc())
-                )
-            ).all()
-        )
+        """Operational payment-register view, not a reconciled cash forecast."""
+        from app.services.financial_metrics import collect_financial_registers
 
-        total_income_paid = Decimal("0.00")
-        total_income_unpaid = Decimal("0.00")
-        total_expenses_paid = Decimal("0.00")
-        total_expenses_unpaid = Decimal("0.00")
-        primary_currency = "XOF"
-
-        for sa in sales:
-            amt = sa.total_amount if sa.total_amount is not None else Decimal("0.00")
-            primary_currency = sa.currency or primary_currency
-            if sa.payment_status in {PaymentStatus.PAID, "paid"}:
-                total_income_paid += amt
-            else:
-                total_income_unpaid += amt
-
-        for ex in expenses:
-            amt = ex.amount if ex.amount is not None else Decimal("0.00")
-            primary_currency = ex.currency or primary_currency
-            if ex.payment_status in {PaymentStatus.PAID, "paid"}:
-                total_expenses_paid += amt
-            else:
-                total_expenses_unpaid += amt
-
-        # Net Cash Position = Encaissements effectifs - Décaissements effectifs
-        net_cash_position = total_income_paid - total_expenses_paid
-        # Projected 30d Cash = Solde net actuel + Créances clients à recouvrer - Dettes fournisseurs à régler
-        projected_30d_cash = net_cash_position + total_income_unpaid - total_expenses_unpaid
-
-        # Estimated Gross Margin = (Total Revenu - Coût des Achats/Dépenses) / Total Revenu
-        total_revenue = total_income_paid + total_income_unpaid
-        total_costs = total_expenses_paid + total_expenses_unpaid
-        if total_revenue > Decimal("0.00"):
-            estimated_gross_margin = ((total_revenue - total_costs) / total_revenue) * Decimal(
-                "100"
-            )
-        else:
-            estimated_gross_margin = Decimal("0.00")
-
+        snap = await collect_financial_registers(s, org)
+        sm = snap.summary
         return {
-            "total_income_paid": total_income_paid,
-            "total_income_unpaid": total_income_unpaid,
-            "total_expenses_paid": total_expenses_paid,
-            "total_expenses_unpaid": total_expenses_unpaid,
-            "net_cash_position": net_cash_position,
-            "projected_30d_cash": projected_30d_cash,
-            "estimated_gross_margin": estimated_gross_margin.quantize(Decimal("0.1")),
-            "primary_currency": primary_currency,
-            "recent_expenses": expenses[:10],
+            "total_income_paid": sm["total_paid_amount"],
+            "total_income_unpaid": sm["total_unpaid_amount"],
+            "total_expenses_paid": sm["total_expenses_paid"],
+            "total_expenses_unpaid": sm["total_expenses_unpaid"],
+            "net_cash_position": None,
+            "cash_movement_net": sm["cash_movement_net"],
+            "projected_30d_cash": None,
+            "estimated_gross_margin": None,
+            "primary_currency": sm["primary_currency"],
+            "financial_data_status": sm["financial_data_status"],
+            "financial_warnings": sm["financial_warnings"],
+            "receivables_overdue": sm["receivables_overdue"],
+            "receivables_not_due": sm["receivables_not_due"],
+            "recent_expenses": list(snap.expenses[:10]),
         }

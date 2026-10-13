@@ -115,6 +115,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         { label: proConfig.registers.sales.title, href: "/espace/ventes", icon: ReceiptText },
         { label: proConfig.registers.offers.title, href: "/espace/offres", icon: Tag },
         { label: proConfig.registers.expenses.title, href: "/espace/depenses", icon: Wallet },
+        { label: "Comptes & mouvements", href: "/espace/finance", icon: Wallet },
         { label: proConfig.registers.suppliers.title, href: "/espace/fournisseurs", icon: Building },
       ],
     },
@@ -602,19 +603,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 type="button"
                 data-tour="cora-ia"
                 onClick={() => { setCopilotOpen(true); setCopilotMinimized(false); }}
-                aria-label="Ouvrir Cora, votre conseillère opérationnelle"
-                title="Consulter Cora (Cmd + J / Ctrl + J)"
-                className="relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-[0_10px_25px_rgba(16,185,129,0.45)] hover:shadow-[0_15px_35px_rgba(16,185,129,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-white/30 dark:border-white/15 cursor-pointer"
+                aria-label="Ouvrir le panneau d’assistance"
+                title="Ouvrir l’assistance (Cmd + J / Ctrl + J)"
+                className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-700 text-white shadow-sm hover:bg-emerald-800 transition-colors cursor-pointer"
               >
-                <span className="absolute -inset-1 rounded-full bg-emerald-500/25 animate-ping opacity-60 pointer-events-none" />
+
                 <MessageSquareText size={24} strokeWidth={2.2} className="relative z-10" />
-                <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-300 border-2 border-emerald-800 shadow-xs z-20 flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-950" />
-                </span>
+
               </button>
               <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 rounded-xl bg-slate-900/95 text-white text-xs font-bold whitespace-nowrap shadow-xl backdrop-blur-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5 border border-white/10">
                 <Compass size={13} className="text-emerald-400" />
-                <span>Conseiller Cora</span>
+                <span>Assistance</span>
                 <kbd className="text-[10px] bg-slate-800 px-1 py-0.5 rounded text-slate-300">⌘J</kbd>
               </div>
             </div>

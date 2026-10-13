@@ -114,6 +114,7 @@ def test_cashflow_summary_and_financial_radar_alerts() -> None:
                 "total_amount": 100000,
                 "currency": "XOF",
                 "payment_status": "paid",
+                "status": "validated",
             },
         )
         client.post(
@@ -129,6 +130,7 @@ def test_cashflow_summary_and_financial_radar_alerts() -> None:
                 "total_amount": 50000,
                 "currency": "XOF",
                 "payment_status": "unpaid",
+                "status": "validated",
             },
         )
 
@@ -169,10 +171,12 @@ def test_cashflow_summary_and_financial_radar_alerts() -> None:
         assert Decimal(str(data["total_income_unpaid"])) == Decimal("50000")
         assert Decimal(str(data["total_expenses_paid"])) == Decimal("30000")
         assert Decimal(str(data["total_expenses_unpaid"])) == Decimal("20000")
-        # Net Cash = 100 000 - 30 000 = 70 000
-        assert Decimal(str(data["net_cash_position"])) == Decimal("70000")
-        # Projected 30d = 70 000 + 50 000 - 20 000 = 100 000
-        assert Decimal(str(data["projected_30d_cash"])) == Decimal("100000")
+        # Register delta is observable, but neither bank balance nor 30-day forecast is.
+        assert Decimal(str(data["cash_movement_net"])) == Decimal("70000")
+        assert data["net_cash_position"] is None
+        assert data["projected_30d_cash"] is None
+        assert data["estimated_gross_margin"] is None
+        assert data["financial_data_status"] == "registers_only"
 
         # 4. Run Radar and check financial alerts
         radar_run = client.post("/api/v1/radar/runs", headers=owner)

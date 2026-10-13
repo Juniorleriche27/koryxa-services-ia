@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Mic,
   Square,
-  Sparkles,
+  CircleHelp,
   CheckCircle2,
   AlertCircle,
   X,
@@ -428,11 +428,11 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
           <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-primary" />
+                <CircleHelp size={16} className="text-primary" />
                 <strong className="text-xs uppercase font-bold tracking-wider text-foreground">
                   {parseResult.intent === "sale" && salesList.length > 1
-                    ? `✨ ${salesList.length} Ventes Détectées`
-                    : `✨ Vente Détectée`}
+                    ? `${salesList.length} Ventes détectées`
+                    : `Vente détectée`}
                 </strong>
               </div>
               <span className="text-[11px] text-muted-foreground font-mono">

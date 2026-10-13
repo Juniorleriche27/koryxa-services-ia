@@ -12,7 +12,7 @@ import {
   Clock,
   Eye,
   RefreshCw,
-  Sparkles,
+  CircleHelp,
   Pencil,
   Archive,
   DollarSign,
@@ -805,7 +805,7 @@ export function SalesTableInteractive({
                             onClick={() => setReminderSale(sale)}
                             title="Relance IA WhatsApp / Email"
                           >
-                            <Sparkles size={13} />
+                            <CircleHelp size={13} />
                           </button>
                         )}
 

@@ -7,6 +7,7 @@ from app.api.routes import (
     billing,
     contact,
     dashboard,
+    finance,
     direct_uploads,
     health,
     identity,
@@ -33,6 +34,7 @@ api_router.include_router(members.router, prefix="/members", tags=["members"])
 api_router.include_router(invitations.router, prefix="/invitations", tags=["invitations"])
 
 api_router.include_router(registers.router, prefix="/registers", tags=["registers"])
+api_router.include_router(finance.router, prefix="/finance", tags=["finance"])
 api_router.include_router(attendance.router, prefix="/attendance", tags=["attendance"])
 api_router.include_router(automations.router, prefix="/automations", tags=["automations"])
 api_router.include_router(voice.router, prefix="/voice", tags=["voice"])

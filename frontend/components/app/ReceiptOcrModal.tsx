@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import {
   Camera,
   UploadCloud,
-  Sparkles,
+  CircleHelp,
   Check,
   AlertCircle,
   FileText,
@@ -171,7 +171,7 @@ export function ReceiptOcrModal({
               disabled={!file || analyzing}
               onClick={handleAnalyzeReceipt}
             >
-              <Sparkles size={16} />
+              <CircleHelp size={16} />
               <span>{analyzing ? "Lecture par IA…" : "Analyser le reçu"}</span>
             </button>
           </div>
@@ -190,7 +190,7 @@ export function ReceiptOcrModal({
               fontSize: "0.88rem",
             }}
           >
-            <Sparkles size={16} style={{ color: "#0284c7" }} />
+            <CircleHelp size={16} style={{ color: "#0284c7" }} />
             <span>
               Informations extraites avec <strong>{Math.round(extracted.confidence * 100)}% de confiance</strong>. Vérifiez avant confirmation.
             </span>

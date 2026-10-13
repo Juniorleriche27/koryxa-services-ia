@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sparkles, ArrowRight, ArrowLeft, X, Check, Lightbulb } from "lucide-react";
+import { CircleHelp, ArrowRight, ArrowLeft, X, Check, Lightbulb } from "lucide-react";
 import clsx from "clsx";
 import { BusinessCategoryConfig } from "@/lib/service-ia/business-categories";
 
@@ -29,7 +29,7 @@ export function InteractiveSpotlightTour({
     },
     {
       targetSelector: '[data-tour="cora-ia"]',
-      title: "🤖 Cora IA • Directrice des Opérations",
+      title: "Assistance opérationnelle",
       description: "Accessible via le bouton ou le raccourci (Ctrl+J / ⌘J). Posez-lui n'importe quelle question sur votre chiffre d'affaires, vos stocks ou vos impayés !",
       badge: "IA Opérationnelle",
     },
@@ -161,7 +161,7 @@ export function InteractiveSpotlightTour({
         <div className="flex items-center justify-between gap-4 mb-3">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
-              <Sparkles size={13} />
+              <CircleHelp size={13} />
               {currentStep.badge}
             </span>
             <span className="text-xs text-slate-600 dark:text-slate-400 font-bold">

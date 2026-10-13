@@ -32,27 +32,33 @@ import { useI18n } from "@/lib/i18n";
 
 interface SummaryData {
   total_sales_count: number;
-  total_sales_amount: number | string;
-  total_paid_amount: number | string;
-  total_unpaid_amount: number | string;
-  total_partial_amount: number | string;
+  total_sales_amount: number | string | null;
+  total_paid_amount: number | string | null;
+  total_unpaid_amount: number | string | null;
+  total_partial_amount: number | string | null;
   offers_count: number;
   procedures_count: number;
   expenses_count?: number;
   suppliers_count?: number;
-  total_expenses_paid?: number | string;
-  total_expenses_unpaid?: number | string;
-  net_cash_position?: number | string;
-  projected_30d_cash?: number | string;
-  estimated_gross_margin?: number | string;
-  gross_margin_rate?: number;
-  average_order_value?: number | string;
-  break_even_point?: number | string;
-  break_even_progress?: number;
-  recovery_rate?: number;
-  daily_burn_rate?: number | string;
-  cash_runway_days?: number;
-  working_capital?: number | string;
+  total_expenses_paid?: number | string | null;
+  total_expenses_unpaid?: number | string | null;
+  net_cash_position?: number | string | null;
+  cash_movement_net?: number | string | null;
+  financial_data_status?: string;
+  financial_warnings?: string[];
+  sales_records_count?: number;
+  excluded_sales_count?: number;
+  pending_validation_sales_count?: number;
+  projected_30d_cash?: number | string | null;
+  estimated_gross_margin?: number | string | null;
+  gross_margin_rate?: number | null;
+  average_order_value?: number | string | null;
+  break_even_point?: number | string | null;
+  break_even_progress?: number | null;
+  recovery_rate?: number | null;
+  daily_burn_rate?: number | string | null;
+  cash_runway_days?: number | null;
+  working_capital?: number | string | null;
   primary_currency: string;
   recent_sales: Array<{
     id: string;
@@ -124,19 +130,15 @@ export function ExecutiveDashboard({
   );
 
   const currency = summary?.primary_currency || "XOF";
-  const totalSales = Number(summary?.total_sales_amount) || 0;
-  const rawTotalPaid = Number(summary?.total_paid_amount) || 0;
-  const totalPaid = totalSales > 0 ? Math.min(totalSales, rawTotalPaid) : rawTotalPaid;
-  const totalUnpaid =
-    summary?.total_unpaid_amount !== undefined && Number(summary.total_unpaid_amount) > 0
-      ? Number(summary.total_unpaid_amount)
-      : Math.max(0, totalSales - totalPaid);
-  const totalExpensesPaid = Number(summary?.total_expenses_paid) || 0;
-  const totalExpensesUnpaid = Number(summary?.total_expenses_unpaid) || 0;
-  const netCash =
-    summary?.net_cash_position !== undefined
-      ? Number(summary.net_cash_position)
-      : totalPaid - totalExpensesPaid;
+  const totalSales = Number(summary?.total_sales_amount ?? 0);
+  const totalPaid = Number(summary?.total_paid_amount ?? 0);
+  const totalUnpaid = Number(summary?.total_unpaid_amount ?? 0);
+  const totalExpensesPaid = Number(summary?.total_expenses_paid ?? 0);
+  const totalExpensesUnpaid = Number(summary?.total_expenses_unpaid ?? 0);
+  const netCash = summary?.cash_movement_net != null ? Number(summary.cash_movement_net) : null;
+  const showFinancial = (key: number | string | null | undefined, amount: number) =>
+    key == null ? "Non calculable" : formatMoney(amount, currency);
+  const isFinancialUncertain = summary?.financial_data_status !== "registers_only";
 
   // Radar score calculation based on alerts and data volume
   const completenessDeduction = Math.min(
@@ -226,6 +228,8 @@ export function ExecutiveDashboard({
           <button
             className="app-button app-button-secondary kx-report-trigger-btn"
             onClick={() => setShowReport(true)}
+            disabled={isFinancialUncertain}
+            aria-label={isFinancialUncertain ? "Rapport financier indisponible : registres incohérents" : "Consulter le bilan opérationnel"}
             title="Consulter et imprimer le Bilan Opérationnel en PDF"
           >
             <Printer size={16} />
@@ -241,6 +245,22 @@ export function ExecutiveDashboard({
         </div>
       </div>
 
+      {isFinancialUncertain && (
+        <div role="status" className="mb-4 rounded-xl border border-amber-400/40 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+          <strong>Données financières insuffisantes ou non comparables.</strong>
+          <p>{summary?.financial_warnings?.join(" ") || "Vérifiez les montants payés et les devises des registres."}</p>
+        </div>
+      )}
+      {(summary?.excluded_sales_count ?? 0) > 0 && (
+        <div role="status" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+          <strong>{summary?.excluded_sales_count} document(s) de vente hors chiffre d'affaires.</strong>
+          <p>{summary?.pending_validation_sales_count ?? 0} vente(s) en brouillon ou à vérifier. Les documents non validés, devis et opérations annulées ne contribuent pas au chiffre d'affaires affiché.</p>
+          <Link href="/espace/ventes" className="mt-1 inline-block font-semibold underline underline-offset-2">Examiner les ventes et leurs statuts</Link>
+        </div>
+      )}
+      {!isFinancialUncertain && (
+        <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">Période : historique complet des documents validés. Les flux ne constituent pas un solde bancaire.</p>
+      )}
       {/* Financial & Operational KPI Cards */}
       <section data-tour="cockpit-score" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5 mb-6">
         {/* 1. Chiffre d'Affaires Global */}
@@ -249,7 +269,7 @@ export function ExecutiveDashboard({
             <span>{t("kpi_turnover")}</span>
             <TrendingUp size={18} className="kx-icon-emerald" />
           </div>
-          <strong>{formatMoney(totalSales, currency)}</strong>
+          <strong>{showFinancial(summary?.total_sales_amount, totalSales)}</strong>
           <small>{summary?.total_sales_count || 0} {t("kpi_sales_followed")}</small>
         </article>
 
@@ -259,11 +279,9 @@ export function ExecutiveDashboard({
             <span>{t("kpi_total_collected")}</span>
             <CheckCircle2 size={18} className="kx-icon-green" />
           </div>
-          <strong>{formatMoney(totalPaid, currency)}</strong>
+          <strong>{showFinancial(summary?.total_paid_amount, totalPaid)}</strong>
           <small>
-            {totalSales > 0
-              ? `${Math.min(100, Math.max(0, Math.round((totalPaid / totalSales) * 100)))}% ${t("kpi_recovery_rate")}`
-              : `0% ${t("kpi_recovery_rate")}`}
+            {summary?.recovery_rate != null ? `${summary.recovery_rate}% ${t("kpi_recovery_rate")}` : "Taux de recouvrement non calculable"}
           </small>
         </article>
 
@@ -273,7 +291,7 @@ export function ExecutiveDashboard({
             <span>{t("kpi_expenses_paid")}</span>
             <TrendingDown size={18} className="text-rose-500" />
           </div>
-          <strong className="text-rose-600 dark:text-rose-400">-{formatMoney(totalExpensesPaid, currency)}</strong>
+          <strong className="text-rose-600 dark:text-rose-400">{summary?.total_expenses_paid == null ? "Non calculable" : `-${formatMoney(totalExpensesPaid, currency)}`}</strong>
           <small>
             <Link href="/espace/depenses" className="kx-inline-link">
               {summary?.expenses_count || 0} {t("kpi_expenses_link")}
@@ -284,12 +302,12 @@ export function ExecutiveDashboard({
         {/* 4. Solde Réel en Caisse (Trésorerie Restante) */}
         <article className="kx-kpi-card bg-emerald-500/10 border border-emerald-500/30">
           <div className="kx-kpi-head">
-            <span className="font-bold text-emerald-800 dark:text-emerald-300">{t("kpi_cash_balance")}</span>
+            <span className="font-bold text-emerald-800 dark:text-emerald-300">Flux net des registres</span>
             <Wallet size={18} className="text-emerald-600 dark:text-emerald-400" />
           </div>
-          <strong className="text-emerald-900 dark:text-emerald-100 font-black">{formatMoney(netCash, currency)}</strong>
+          <strong className="text-emerald-900 dark:text-emerald-100 font-black">{netCash === null ? "Non calculable" : formatMoney(netCash, currency)}</strong>
           <small className="text-emerald-700 dark:text-emerald-300 font-semibold">
-            {netCash >= 0 ? t("kpi_cash_available") : "Déficit"}
+            Ne constitue pas un solde de caisse
           </small>
         </article>
 
@@ -299,7 +317,7 @@ export function ExecutiveDashboard({
             <span>{t("kpi_unpaid_debts")}</span>
             <Clock size={18} className="kx-icon-orange" />
           </div>
-          <strong className={totalUnpaid > 0 ? "text-amber-600 dark:text-amber-400" : ""}>{formatMoney(totalUnpaid, currency)}</strong>
+          <strong className={totalUnpaid > 0 ? "text-amber-600 dark:text-amber-400" : ""}>{showFinancial(summary?.total_unpaid_amount, totalUnpaid)}</strong>
           <small>
             <Link href="/espace/ventes" className="kx-inline-link">
               {t("kpi_unpaid_link")}
@@ -330,35 +348,37 @@ export function ExecutiveDashboard({
         totalUnpaid={totalUnpaid}
         totalExpensesPaid={totalExpensesPaid}
         totalExpensesUnpaid={totalExpensesUnpaid}
-        netCash={netCash}
+        netCash={netCash ?? 0}
         totalSalesCount={summary?.total_sales_count || 0}
         currency={currency}
         estimatedGrossMargin={
-          summary?.estimated_gross_margin !== undefined
+          summary?.estimated_gross_margin != null
             ? Number(summary.estimated_gross_margin)
             : undefined
         }
-        grossMarginRate={summary?.gross_margin_rate}
+        grossMarginRate={summary?.gross_margin_rate ?? null}
+        financialDataStatus={summary?.financial_data_status}
+        financialWarnings={summary?.financial_warnings ?? []}
         averageOrderValue={
-          summary?.average_order_value !== undefined
+          summary?.average_order_value != null
             ? Number(summary.average_order_value)
             : undefined
         }
         breakEvenPoint={
-          summary?.break_even_point !== undefined
+          summary?.break_even_point != null
             ? Number(summary.break_even_point)
             : undefined
         }
-        breakEvenProgress={summary?.break_even_progress}
-        recoveryRate={summary?.recovery_rate}
+        breakEvenProgress={summary?.break_even_progress ?? null}
+        recoveryRate={summary?.recovery_rate ?? null}
         dailyBurnRate={
-          summary?.daily_burn_rate !== undefined
+          summary?.daily_burn_rate != null
             ? Number(summary.daily_burn_rate)
             : undefined
         }
-        cashRunwayDays={summary?.cash_runway_days}
+        cashRunwayDays={summary?.cash_runway_days ?? null}
         workingCapital={
-          summary?.working_capital !== undefined
+          summary?.working_capital != null
             ? Number(summary.working_capital)
             : undefined
         }

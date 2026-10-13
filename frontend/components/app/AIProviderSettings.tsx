@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Cpu,
-  Sparkles,
+  CircleHelp,
   Key,
   Globe,
   Sliders,
@@ -161,7 +161,7 @@ export function AIProviderSettings() {
                     ) : prov.id === "gateway" ? (
                       <Server size={20} />
                     ) : (
-                      <Sparkles size={20} />
+                      <CircleHelp size={20} />
                     )}
                   </div>
                   <div className="kx-provider-card-info">

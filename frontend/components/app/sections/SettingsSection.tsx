@@ -8,7 +8,7 @@ import { serviceIaFetch } from "@/lib/service-ia/api";
 import { BusinessCategorySettings } from "../BusinessCategorySettings";
 import { AutomationsHubView } from "../AutomationsHubView";
 import Link from "next/link";
-import { ShieldCheck, AlertTriangle, CreditCard, ArrowRight, Sparkles } from "lucide-react";
+import { ShieldCheck, AlertTriangle, CreditCard, ArrowRight, CircleHelp } from "lucide-react";
 
 export type RadarRule = {
   id: string;
@@ -69,7 +69,7 @@ export function SettingsSection({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-bold text-emerald-300">
-              <Sparkles size={14} />
+              <CircleHelp size={14} />
               Formules & Facturation KORYXA
             </div>
             <h3 className="text-lg font-extrabold text-white">Offre Spéciale Lancement · Pack 3 Mois</h3>

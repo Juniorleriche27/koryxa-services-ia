@@ -19,7 +19,7 @@ import {
   Compass,
   HelpCircle,
   Lock,
-  Sparkles,
+  CircleHelp,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { useI18n } from "@/lib/i18n";
@@ -464,7 +464,7 @@ export function EmployeeCheckInModal({
                         </div>
                       </div>
                       <div className="absolute bottom-2 px-3 py-1 rounded-full bg-black/70 text-[10px] text-white font-medium backdrop-blur-xs flex items-center gap-1.5">
-                        <Sparkles size={12} className="text-emerald-400" />
+                        <CircleHelp size={12} className="text-emerald-400" />
                         <span>Visez le QR code de la borne</span>
                       </div>
                     </>

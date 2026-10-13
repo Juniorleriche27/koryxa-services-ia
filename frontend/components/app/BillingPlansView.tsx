@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
   CreditCard,
   CheckCircle2,
-  Sparkles,
+  CircleHelp,
   Zap,
   ShieldCheck,
   Smartphone,
@@ -234,7 +234,7 @@ export function BillingPlansView() {
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <Sparkles size={14} className="fill-current" />
+            <CircleHelp size={14} className="fill-current" />
             <span>Pack Lancement 3 Mois</span>
             <span className="rounded-full bg-amber-400 text-slate-950 px-2 py-0.5 text-[10px] font-black uppercase">
               -33 %

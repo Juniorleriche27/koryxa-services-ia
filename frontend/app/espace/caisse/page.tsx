@@ -30,6 +30,7 @@ export default function CaissePage() {
           <span>Retour aux Ventes</span>
         </Link>
 
+        <Link href="/espace/finance" className="rounded-xl border border-emerald-600 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300">Comptes &amp; mouvements</Link>
         <button
           onClick={() => setPosOpen(true)}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition"

@@ -53,7 +53,7 @@ class RadarSentinelAgent(BaseSpecializedAgent):
         if not reply:
             reply = (
                 f"🛡️ Audit Sentinelle & Conformité ({sector_label}) :\n\n"
-                f"• 🔍 Santé des registres : 100% cohérent\n"
+                f"• 🔍 Conformité complète : non certifiée par le seul suivi des alertes\n"
                 f"• ⚠️ Alertes actives : {open_alerts_count} point(s) d'attention\n"
                 f"• 📦 Éléments sous le seuil d'alerte : {low_stock_count}\n\n"
                 f"💡 Recommandation de l'auditeur :\n"
