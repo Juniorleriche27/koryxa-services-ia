@@ -254,12 +254,12 @@ export function ExecutiveDashboard({
       {(summary?.excluded_sales_count ?? 0) > 0 && (
         <div role="status" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
           <strong>{summary?.excluded_sales_count} document(s) de vente hors chiffre d'affaires.</strong>
-          <p>{summary?.pending_validation_sales_count ?? 0} vente(s) en brouillon ou à vérifier. Les documents non validés, devis et opérations annulées ne contribuent pas au chiffre d'affaires affiché.</p>
+          <p>{summary?.pending_validation_sales_count ?? 0} à vérifier. Seules les ventes validées entrent dans le chiffre d’affaires.</p>
           <Link href="/espace/ventes" className="mt-1 inline-block font-semibold underline underline-offset-2">Examiner les ventes et leurs statuts</Link>
         </div>
       )}
       {!isFinancialUncertain && (
-        <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">Période : historique complet des documents validés. Les flux ne constituent pas un solde bancaire.</p>
+        <div className="kx-period-label mb-4"><span>Historique complet</span><span>Documents validés</span><span>Flux déclarés ≠ solde bancaire</span></div>
       )}
       {/* Financial & Operational KPI Cards */}
       <section data-tour="cockpit-score" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5 mb-6">
@@ -269,7 +269,7 @@ export function ExecutiveDashboard({
             <span>{t("kpi_turnover")}</span>
             <TrendingUp size={18} className="kx-icon-emerald" />
           </div>
-          <strong>{showFinancial(summary?.total_sales_amount, totalSales)}</strong>
+          <strong className="kx-kpi-value">{showFinancial(summary?.total_sales_amount, totalSales)}</strong>
           <small>{summary?.total_sales_count || 0} {t("kpi_sales_followed")}</small>
         </article>
 
@@ -279,7 +279,7 @@ export function ExecutiveDashboard({
             <span>{t("kpi_total_collected")}</span>
             <CheckCircle2 size={18} className="kx-icon-green" />
           </div>
-          <strong>{showFinancial(summary?.total_paid_amount, totalPaid)}</strong>
+          <strong className="kx-kpi-value">{showFinancial(summary?.total_paid_amount, totalPaid)}</strong>
           <small>
             {summary?.recovery_rate != null ? `${summary.recovery_rate}% ${t("kpi_recovery_rate")}` : "Taux de recouvrement non calculable"}
           </small>
@@ -291,7 +291,7 @@ export function ExecutiveDashboard({
             <span>{t("kpi_expenses_paid")}</span>
             <TrendingDown size={18} className="text-rose-500" />
           </div>
-          <strong className="text-rose-600 dark:text-rose-400">{summary?.total_expenses_paid == null ? "Non calculable" : `-${formatMoney(totalExpensesPaid, currency)}`}</strong>
+          <strong className="kx-kpi-value text-rose-600 dark:text-rose-400">{summary?.total_expenses_paid == null ? "Non calculable" : `-${formatMoney(totalExpensesPaid, currency)}`}</strong>
           <small>
             <Link href="/espace/depenses" className="kx-inline-link">
               {summary?.expenses_count || 0} {t("kpi_expenses_link")}
@@ -305,7 +305,7 @@ export function ExecutiveDashboard({
             <span className="font-bold text-emerald-800 dark:text-emerald-300">Flux net des registres</span>
             <Wallet size={18} className="text-emerald-600 dark:text-emerald-400" />
           </div>
-          <strong className="text-emerald-900 dark:text-emerald-100 font-black">{netCash === null ? "Non calculable" : formatMoney(netCash, currency)}</strong>
+          <strong className="kx-kpi-value text-emerald-900 dark:text-emerald-100 font-semibold">{netCash === null ? "Non calculable" : formatMoney(netCash, currency)}</strong>
           <small className="text-emerald-700 dark:text-emerald-300 font-semibold">
             Ne constitue pas un solde de caisse
           </small>
@@ -317,7 +317,7 @@ export function ExecutiveDashboard({
             <span>{t("kpi_unpaid_debts")}</span>
             <Clock size={18} className="kx-icon-orange" />
           </div>
-          <strong className={totalUnpaid > 0 ? "text-amber-600 dark:text-amber-400" : ""}>{showFinancial(summary?.total_unpaid_amount, totalUnpaid)}</strong>
+          <strong className={`kx-kpi-value ${totalUnpaid > 0 ? "text-amber-600 dark:text-amber-400" : ""}`}>{showFinancial(summary?.total_unpaid_amount, totalUnpaid)}</strong>
           <small>
             <Link href="/espace/ventes" className="kx-inline-link">
               {t("kpi_unpaid_link")}

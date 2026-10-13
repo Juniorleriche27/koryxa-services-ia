@@ -527,7 +527,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
 
             <div className="app-topbar-context">
-              <h1 className="text-sm sm:text-base font-bold text-foreground tracking-tight m-0 p-0">
+              <h1 className="kx-topbar-title m-0 p-0">
                 {pathname === "/espace" ? t("topbar_eyebrow") : context.eyebrow}
               </h1>
             </div>
