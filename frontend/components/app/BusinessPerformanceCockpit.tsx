@@ -8,16 +8,11 @@ import {
   Scale,
   Hourglass,
   Activity,
-  ArrowUpRight,
   ShieldAlert,
   ShieldCheck,
-  CheckCircle2,
-  Sparkles,
   Percent,
-  Wallet,
   ReceiptText,
   AlertTriangle,
-  Clock,
   Layers,
   ArrowRight,
 } from "lucide-react";
@@ -32,7 +27,6 @@ export interface BusinessPerformanceProps {
   netCash: number;
   totalSalesCount: number;
   currency: string;
-  // Pre-calculated or fallback props
   estimatedGrossMargin?: number;
   grossMarginRate?: number;
   averageOrderValue?: number;
@@ -65,7 +59,7 @@ export function BusinessPerformanceCockpit({
 }: BusinessPerformanceProps) {
   const [activeTab, setActiveTab] = useState<"all" | "profitability" | "cashflow">("all");
 
-  // Calculations with safe fallbacks
+  // --- Computed metrics with safe fallbacks ---
   const grossMargin =
     propGrossMargin !== undefined ? Number(propGrossMargin) : totalSales - totalExpensesPaid;
   const marginRate =
@@ -112,8 +106,6 @@ export function BusinessPerformanceCockpit({
     runwayDays = Math.round(netCash / dailyBurn);
   } else if (netCash > 0) {
     runwayDays = 999;
-  } else {
-    runwayDays = 0;
   }
 
   const workingCapital =
@@ -121,500 +113,273 @@ export function BusinessPerformanceCockpit({
       ? Number(propWorkingCapital)
       : netCash + totalUnpaid - totalExpensesUnpaid;
 
-  // Strategic AI Diagnostic Synthesis
-  let diagnosticTitle = "Équilibre d'exploitation sous contrôle";
-  let diagnosticText =
-    "Vos flux financiers sont stables. Continuez à surveiller les dépenses et à maintenir un bon rythme d'encaissement.";
+  // --- Diagnostic status ---
   let diagnosticStatus: "success" | "warning" | "alert" = "success";
+  let diagnosticTitle = "Exploitation équilibrée";
+  let diagnosticDetail = "Flux stables · Aucune action urgente";
 
   if (runwayDays > 0 && runwayDays < 20) {
     diagnosticStatus = "alert";
-    diagnosticTitle = "Alerte Trésorerie : Runway Court";
-    diagnosticText = `Votre trésorerie disponible (${formatMoney(
-      netCash,
-      currency
-    )}) couvre actuellement environ ${runwayDays} jour(s) de dépenses courantes. Priorité absolue : relancez immédiatement les créances clients (${formatMoney(
-      totalUnpaid,
-      currency
-    )}) pour reconstituer vos liquidités.`;
+    diagnosticTitle = "Trésorerie critique";
+    diagnosticDetail = `${runwayDays} j de runway · Relancer les créances (${formatMoney(totalUnpaid, currency)})`;
   } else if (grossMargin < 0) {
     diagnosticStatus = "alert";
-    diagnosticTitle = "Déficit d'Exploitation : Dépenses supérieures aux Ventes";
-    diagnosticText = `Vos dépenses réglées dépassent votre chiffre d'affaires de ${formatMoney(
-      Math.abs(grossMargin),
-      currency
-    )}. Analysez immédiatement les postes de dépenses pour restaurer une marge positive.`;
+    diagnosticTitle = "Déficit d'exploitation";
+    diagnosticDetail = `Charges > Ventes de ${formatMoney(Math.abs(grossMargin), currency)}`;
   } else if (breakEvenProgress < 100 && breakEvenRemaining > 0) {
     diagnosticStatus = "warning";
-    diagnosticTitle = `Point Mort : ${breakEvenProgress}% atteint`;
-    diagnosticText = `Il vous manque encore ${formatMoney(
-      breakEvenRemaining,
-      currency
-    )} de chiffre d'affaires pour couvrir 100% de vos charges opérationnelles du cycle.`;
+    diagnosticTitle = `Point mort à ${breakEvenProgress}%`;
+    diagnosticDetail = `Reste ${formatMoney(breakEvenRemaining, currency)} à réaliser`;
   } else if (recoveryRate < 60 && totalUnpaid > 0) {
     diagnosticStatus = "warning";
-    diagnosticTitle = `Taux de Recouvrement Faible (${recoveryRate}%)`;
-    diagnosticText = `Plus de ${Math.round(
-      100 - recoveryRate
-    )}% de vos ventes restent dehors sous forme de dettes clients (${formatMoney(
-      totalUnpaid,
-      currency
-    )}). Utilisez les rappels automatiques pour accélérer les encaissements.`;
+    diagnosticTitle = `Recouvrement faible (${recoveryRate}%)`;
+    diagnosticDetail = `${formatMoney(totalUnpaid, currency)} non encaissés`;
   } else if (grossMargin > 0 && breakEvenProgress >= 100) {
     diagnosticStatus = "success";
-    diagnosticTitle = "Rentabilité Optimale & Point Mort Dépassé";
-    diagnosticText = `Félicitations ! Vos ventes couvrent l'intégralité de vos charges opérationnelles avec un taux de marge solide de ${marginRate}%. Votre entreprise génère un bénéfice d'exploitation sain.`;
+    diagnosticTitle = "Rentabilité atteinte";
+    diagnosticDetail = `Marge ${marginRate}% · Point mort dépassé`;
   }
+
+  const statusColor = {
+    alert: {
+      banner: "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800/50",
+      icon: "bg-rose-500 text-white",
+      label: "text-rose-600 dark:text-rose-400",
+    },
+    warning: {
+      banner: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50",
+      icon: "bg-amber-500 text-white",
+      label: "text-amber-600 dark:text-amber-400",
+    },
+    success: {
+      banner: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50",
+      icon: "bg-emerald-600 text-white",
+      label: "text-emerald-600 dark:text-emerald-400",
+    },
+  }[diagnosticStatus];
 
   return (
     <section className="mb-8">
-      {/* Section Header with Tabs */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-              Pilotage Exécutif
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
-              <Sparkles size={11} className="text-emerald-600 dark:text-emerald-400" />
-              Moteur Analytique Cora
-            </span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
-            Indicateurs de Performance &amp; Rentabilité
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+            Pilotage Exécutif
+          </span>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
+            Performance &amp; Rentabilité
           </h2>
         </div>
 
-        {/* Tab switchers */}
-        <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 self-start sm:self-auto shadow-2xs">
-          <button
-            type="button"
-            onClick={() => setActiveTab("all")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-              activeTab === "all"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            Vue Globale
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("profitability")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-              activeTab === "profitability"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            Rentabilité &amp; Marges
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("cashflow")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-              activeTab === "cashflow"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            Trésorerie &amp; Risques
-          </button>
+        {/* Tabs */}
+        <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 self-start sm:self-auto">
+          {(["all", "profitability", "cashflow"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === tab
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              }`}
+            >
+              {tab === "all" ? "Vue Globale" : tab === "profitability" ? "Rentabilité" : "Trésorerie"}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Strategic AI Executive Diagnostic Card */}
-      <div
-        className={`mb-5 p-4 sm:p-5 rounded-2xl border transition-all ${
-          diagnosticStatus === "alert"
-            ? "bg-rose-50/90 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60"
-            : diagnosticStatus === "warning"
-            ? "bg-amber-50/90 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/60"
-            : "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/60"
-        }`}
-      >
-        <div className="flex items-start gap-3 sm:gap-4">
-          <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
-              diagnosticStatus === "alert"
-                ? "bg-rose-500 text-white"
-                : diagnosticStatus === "warning"
-                ? "bg-amber-500 text-white"
-                : "bg-emerald-600 text-white"
-            }`}
-          >
-            {diagnosticStatus === "alert" ? (
-              <ShieldAlert size={20} />
-            ) : diagnosticStatus === "warning" ? (
-              <AlertTriangle size={20} />
-            ) : (
-              <ShieldCheck size={20} />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span
-                className={`text-[11px] font-black uppercase tracking-wider ${
-                  diagnosticStatus === "alert"
-                    ? "text-rose-700 dark:text-rose-400"
-                    : diagnosticStatus === "warning"
-                    ? "text-amber-700 dark:text-amber-400"
-                    : "text-emerald-700 dark:text-emerald-400"
-                }`}
-              >
-                Diagnostic Opérationnel en Direct
-              </span>
-              <span className="text-xs font-extrabold text-slate-900 dark:text-white">
-                · {diagnosticTitle}
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              {diagnosticText}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              window.dispatchEvent(
-                new CustomEvent("koryxa:open-cora", {
-                  detail: { prompt: "Analyse en détail mes indicateurs de rentabilité et de trésorerie du jour." },
-                })
-              );
-            }}
-            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold shrink-0 shadow-2xs hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
-          >
-            <Sparkles size={13} className="text-emerald-600 dark:text-emerald-400" />
-            <span>Consulter Cora</span>
-          </button>
+      {/* Diagnostic Banner — compact, no AI branding */}
+      <div className={`mb-4 px-4 py-3 rounded-xl border flex items-center gap-3 ${statusColor.banner}`}>
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${statusColor.icon}`}>
+          {diagnosticStatus === "alert" ? (
+            <ShieldAlert size={15} />
+          ) : diagnosticStatus === "warning" ? (
+            <AlertTriangle size={15} />
+          ) : (
+            <ShieldCheck size={15} />
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className={`text-xs font-bold shrink-0 ${statusColor.label}`}>
+            {diagnosticTitle}
+          </span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+            {diagnosticDetail}
+          </span>
         </div>
       </div>
 
-      {/* Main KPI Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {/* ── CARD 1: Marge Brute / Résultat Opérationnel ── */}
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3">
+
+        {/* ── Marge Brute ── */}
         {(activeTab === "all" || activeTab === "profitability") && (
-          <article className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-emerald-500/50 transition-all flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                  Marge Brute Opérationnelle
-                </span>
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                    grossMargin >= 0
-                      ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
-                      : "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400"
-                  }`}
-                >
-                  {grossMargin >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                </div>
-              </div>
-
-              <div className="flex items-baseline gap-2 mb-1">
-                <strong
-                  className={`text-xl sm:text-2xl font-black tracking-tight ${
-                    grossMargin >= 0
-                      ? "text-emerald-700 dark:text-emerald-400"
-                      : "text-rose-600 dark:text-rose-400"
-                  }`}
-                >
-                  {formatMoney(grossMargin, currency)}
-                </strong>
-              </div>
-
-              <div className="flex items-center gap-2 mt-2">
-                <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black ${
-                    marginRate >= 30
-                      ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300"
-                      : marginRate >= 10
-                      ? "bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300"
-                      : "bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300"
-                  }`}
-                >
-                  <Percent size={11} />
-                  {marginRate}% de marge
-                </span>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                  sur ventes
-                </span>
+          <article className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3 hover:border-emerald-400/60 dark:hover:border-emerald-600/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Marge Brute</span>
+              <div className={`w-6 h-6 rounded-md flex items-center justify-center ${grossMargin >= 0 ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400" : "bg-rose-50 dark:bg-rose-950/50 text-rose-500"}`}>
+                {grossMargin >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
               </div>
             </div>
-
-            <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-              <span>Chiffre d&apos;Affaires :</span>
-              <strong className="text-slate-800 dark:text-slate-200">
-                {formatMoney(totalSales, currency)}
-              </strong>
+            <div>
+              <p className={`text-xl font-bold tracking-tight ${grossMargin >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-rose-600 dark:text-rose-400"}`}>
+                {formatMoney(grossMargin, currency)}
+              </p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded ${
+                  marginRate >= 30
+                    ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
+                    : marginRate >= 10
+                    ? "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300"
+                    : "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300"
+                }`}>
+                  <Percent size={10} />
+                  {marginRate}%
+                </span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">de marge</span>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+              <span>CA</span>
+              <span className="font-semibold text-slate-600 dark:text-slate-300">{formatMoney(totalSales, currency)}</span>
             </div>
           </article>
         )}
 
-        {/* ── CARD 2: Seuil de Rentabilité (Point Mort) ── */}
+        {/* ── Point Mort ── */}
         {(activeTab === "all" || activeTab === "profitability") && (
-          <article className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-emerald-500/50 transition-all flex flex-col justify-between">
+          <article className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3 hover:border-emerald-400/60 dark:hover:border-emerald-600/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Point Mort</span>
+              <div className="w-6 h-6 rounded-md flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                <Scale size={13} />
+              </div>
+            </div>
             <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                  Seuil de Rentabilité (Point Mort)
-                </span>
-                <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                  <Scale size={16} />
+              <p className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {formatMoney(breakEvenPoint, currency)}
+              </p>
+              <div className="mt-2 space-y-1">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-400 dark:text-slate-500">Couverture</span>
+                  <span className={`font-semibold ${breakEvenProgress >= 100 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>{breakEvenProgress}%</span>
                 </div>
-              </div>
-
-              <div className="flex items-baseline gap-2 mb-2">
-                <strong className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {formatMoney(breakEvenPoint, currency)}
-                </strong>
-              </div>
-
-              {/* Progress meter */}
-              <div className="space-y-1.5 mb-2">
-                <div className="flex justify-between text-[11px] font-bold">
-                  <span className="text-slate-600 dark:text-slate-400">Charges couvertes</span>
-                  <span
-                    className={
-                      breakEvenProgress >= 100
-                        ? "text-emerald-600 dark:text-emerald-400 font-black"
-                        : "text-amber-600 dark:text-amber-400 font-black"
-                    }
-                  >
-                    {breakEvenProgress}%
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      breakEvenProgress >= 100
-                        ? "bg-gradient-to-r from-emerald-600 to-teal-400"
-                        : "bg-gradient-to-r from-amber-500 to-emerald-500"
-                    }`}
+                    className={`h-full rounded-full transition-all duration-500 ${breakEvenProgress >= 100 ? "bg-emerald-500" : "bg-amber-400"}`}
                     style={{ width: `${Math.min(100, breakEvenProgress)}%` }}
                   />
                 </div>
               </div>
             </div>
-
-            <div className="pt-3 mt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-              <span>
-                {breakEvenRemaining === 0 ? "Statut :" : "Reste à vendre :"}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+              <span className="text-slate-400 dark:text-slate-500">{breakEvenRemaining === 0 ? "Statut" : "Reste"}</span>
+              <span className={`font-semibold ${breakEvenRemaining === 0 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+                {breakEvenRemaining === 0 ? "Dépassé" : formatMoney(breakEvenRemaining, currency)}
               </span>
-              <strong
-                className={
-                  breakEvenRemaining === 0
-                    ? "text-emerald-600 dark:text-emerald-400 font-bold"
-                    : "text-amber-600 dark:text-amber-400 font-bold"
-                }
-              >
-                {breakEvenRemaining === 0
-                  ? "Point mort dépassé ✓"
-                  : formatMoney(breakEvenRemaining, currency)}
-              </strong>
             </div>
           </article>
         )}
 
-        {/* ── CARD 3: Runway de Trésorerie (Autonomie) ── */}
-        {(activeTab === "all" || activeTab === "cashflow") && (
-          <article className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-emerald-500/50 transition-all flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                  Autonomie Trésorerie (Runway)
-                </span>
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                    runwayDays >= 60
-                      ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
-                      : runwayDays >= 20
-                      ? "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400"
-                      : "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400"
-                  }`}
-                >
-                  <Hourglass size={16} />
-                </div>
-              </div>
-
-              <div className="flex items-baseline gap-1.5 mb-1">
-                <strong
-                  className={`text-xl sm:text-2xl font-black tracking-tight ${
-                    runwayDays >= 60
-                      ? "text-emerald-700 dark:text-emerald-400"
-                      : runwayDays >= 20
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-rose-600 dark:text-rose-400"
-                  }`}
-                >
-                  {runwayDays >= 999 ? "Illimité" : `${runwayDays} jours`}
-                </strong>
-                {runwayDays < 999 && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                    d&apos;autonomie
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 mt-2">
-                <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black ${
-                    runwayDays >= 60
-                      ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300"
-                      : runwayDays >= 20
-                      ? "bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300"
-                      : "bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300"
-                  }`}
-                >
-                  {runwayDays >= 60
-                    ? "Confortable"
-                    : runwayDays >= 20
-                    ? "Sous surveillance"
-                    : "Critique"}
-                </span>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                  sans nouvelle entrée
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-              <span>Dépense quotidienne :</span>
-              <strong className="text-slate-800 dark:text-slate-200">
-                ~{formatMoney(dailyBurn, currency)} / j
-              </strong>
-            </div>
-          </article>
-        )}
-
-        {/* ── CARD 4: Panier Moyen (AOV) & Efficacité Commerciale ── */}
+        {/* ── Panier Moyen ── */}
         {(activeTab === "all" || activeTab === "profitability") && (
-          <article className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-emerald-500/50 transition-all flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                  Panier Moyen (AOV)
-                </span>
-                <div className="w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
-                  <ReceiptText size={16} />
-                </div>
-              </div>
-
-              <div className="flex items-baseline gap-2 mb-1">
-                <strong className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {formatMoney(aov, currency)}
-                </strong>
-              </div>
-
-              <div className="flex items-center gap-2 mt-2">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-300">
-                  {totalSalesCount} vente(s) enregistrée(s)
-                </span>
+          <article className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3 hover:border-emerald-400/60 dark:hover:border-emerald-600/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Panier Moyen</span>
+              <div className="w-6 h-6 rounded-md flex items-center justify-center bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400">
+                <ReceiptText size={13} />
               </div>
             </div>
-
-            <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-              <span>Encaissement moyen :</span>
-              <strong className="text-slate-800 dark:text-slate-200">
-                {totalSalesCount > 0 ? formatMoney(Math.round(totalPaid / totalSalesCount), currency) : "0"}
-              </strong>
+            <div>
+              <p className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {formatMoney(aov, currency)}
+              </p>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 block">{totalSalesCount} vente{totalSalesCount > 1 ? "s" : ""}</span>
+            </div>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+              <span>Encaissé / vente</span>
+              <span className="font-semibold text-slate-600 dark:text-slate-300">
+                {totalSalesCount > 0 ? formatMoney(Math.round(totalPaid / totalSalesCount), currency) : "—"}
+              </span>
             </div>
           </article>
         )}
 
-        {/* ── CARD 5: Qualité du Recouvrement & Impayés ── */}
+        {/* ── Runway Trésorerie ── */}
         {(activeTab === "all" || activeTab === "cashflow") && (
-          <article className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-emerald-500/50 transition-all flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                  Taux de Recouvrement
-                </span>
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                    recoveryRate >= 80
-                      ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
-                      : "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400"
-                  }`}
-                >
-                  <Activity size={16} />
-                </div>
-              </div>
-
-              <div className="flex items-baseline gap-2 mb-1">
-                <strong
-                  className={`text-xl sm:text-2xl font-black tracking-tight ${
-                    recoveryRate >= 80
-                      ? "text-emerald-700 dark:text-emerald-400"
-                      : "text-amber-600 dark:text-amber-400"
-                  }`}
-                >
-                  {recoveryRate}%
-                </strong>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                  encaissé
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 mt-2">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Argent dehors (Clients) :
-                </span>
-                <strong className="text-[11px] text-amber-700 dark:text-amber-400 font-black">
-                  {formatMoney(totalUnpaid, currency)}
-                </strong>
+          <article className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3 hover:border-emerald-400/60 dark:hover:border-emerald-600/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Autonomie Trésorerie</span>
+              <div className={`w-6 h-6 rounded-md flex items-center justify-center ${runwayDays >= 60 ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400" : runwayDays >= 20 ? "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400" : "bg-rose-50 dark:bg-rose-950/50 text-rose-500"}`}>
+                <Hourglass size={13} />
               </div>
             </div>
+            <div>
+              <p className={`text-xl font-bold tracking-tight ${runwayDays >= 60 ? "text-emerald-700 dark:text-emerald-300" : runwayDays >= 20 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"}`}>
+                {runwayDays >= 999 ? "Illimité" : `${runwayDays} j`}
+              </p>
+              <span className={`text-[11px] font-semibold mt-1 block ${runwayDays >= 60 ? "text-emerald-600 dark:text-emerald-400" : runwayDays >= 20 ? "text-amber-500 dark:text-amber-400" : "text-rose-500"}`}>
+                {runwayDays >= 60 ? "Confortable" : runwayDays >= 20 ? "Sous surveillance" : "Critique"}
+              </span>
+            </div>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+              <span>Burn / jour</span>
+              <span className="font-semibold text-slate-600 dark:text-slate-300">~{formatMoney(dailyBurn, currency)}</span>
+            </div>
+          </article>
+        )}
 
-            <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 text-[11px] flex items-center justify-between">
-              <Link
-                href="/espace/ventes"
-                className="text-emerald-700 dark:text-emerald-400 font-bold hover:underline inline-flex items-center gap-1"
-              >
-                <span>Relancer les impayés</span>
-                <ArrowRight size={12} />
+        {/* ── Taux de Recouvrement ── */}
+        {(activeTab === "all" || activeTab === "cashflow") && (
+          <article className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3 hover:border-emerald-400/60 dark:hover:border-emerald-600/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Recouvrement</span>
+              <div className={`w-6 h-6 rounded-md flex items-center justify-center ${recoveryRate >= 80 ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400" : "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400"}`}>
+                <Activity size={13} />
+              </div>
+            </div>
+            <div>
+              <p className={`text-xl font-bold tracking-tight ${recoveryRate >= 80 ? "text-emerald-700 dark:text-emerald-300" : "text-amber-600 dark:text-amber-400"}`}>
+                {recoveryRate}%
+              </p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">Non encaissé :</span>
+                <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">{formatMoney(totalUnpaid, currency)}</span>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
+              <Link href="/espace/ventes" className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline font-medium">
+                Relancer les impayés
+                <ArrowRight size={11} />
               </Link>
             </div>
           </article>
         )}
 
-        {/* ── CARD 6: Fonds de Roulement Net (FRNG) ── */}
+        {/* ── Fonds de Roulement ── */}
         {(activeTab === "all" || activeTab === "cashflow") && (
-          <article className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-emerald-500/50 transition-all flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                  Fonds de Roulement Net
-                </span>
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                  <Layers size={16} />
-                </div>
+          <article className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3 hover:border-emerald-400/60 dark:hover:border-emerald-600/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Fonds de Roulement</span>
+              <div className="w-6 h-6 rounded-md flex items-center justify-center bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+                <Layers size={13} />
               </div>
-
-              <div className="flex items-baseline gap-2 mb-1">
-                <strong
-                  className={`text-xl sm:text-2xl font-black tracking-tight ${
-                    workingCapital >= 0
-                      ? "text-indigo-700 dark:text-indigo-400"
-                      : "text-rose-600 dark:text-rose-400"
-                  }`}
-                >
-                  {formatMoney(workingCapital, currency)}
-                </strong>
-              </div>
-
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 font-medium">
-                (Liquidités + Créances) moins dettes fournisseurs.
-              </p>
             </div>
-
-            <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-              <span>Dettes fournisseurs :</span>
-              <strong className="text-slate-800 dark:text-slate-200">
-                {formatMoney(totalExpensesUnpaid, currency)}
-              </strong>
+            <div>
+              <p className={`text-xl font-bold tracking-tight ${workingCapital >= 0 ? "text-indigo-700 dark:text-indigo-300" : "text-rose-600 dark:text-rose-400"}`}>
+                {formatMoney(workingCapital, currency)}
+              </p>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 block">Liquidités – Dettes fournisseurs</span>
+            </div>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+              <span>Dettes fourn.</span>
+              <span className="font-semibold text-slate-600 dark:text-slate-300">{formatMoney(totalExpensesUnpaid, currency)}</span>
             </div>
           </article>
         )}
+
       </div>
     </section>
   );
