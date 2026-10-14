@@ -804,3 +804,31 @@ body.kx-fullpage-mode .app-panel {
 @media(max-width:1250px){.app-shell .kx-dashboard-command-foot{align-items:stretch;flex-direction:column}.app-shell .kx-dashboard-notice{max-width:100%}}
 @media(max-width:830px){.app-shell .kx-dashboard-command-head{align-items:flex-start;flex-direction:column;gap:14px}.app-shell .kx-dashboard-command .kx-executive-actions{flex-wrap:wrap}}
 @media(max-width:600px){.app-shell .kx-dashboard-command{padding:16px;border-radius:16px}.app-shell .kx-dashboard-command-title h1{font-size:24px}.app-shell .kx-dashboard-notice{min-width:0;flex-wrap:wrap;width:100%}.app-shell .kx-dashboard-scope span{white-space:normal}}
+
+/* Unified private workspaces: compact executive header and consistent content surfaces. */
+.app-shell .kx-workspace-header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 24px;margin:0 0 20px;background:#fff;border:1px solid #d8ebdf;border-radius:20px;box-shadow:0 6px 24px rgba(30,85,55,.045);min-width:0}
+.app-shell .kx-workspace-header-copy{flex:1 1 auto;min-width:0}
+.app-shell .kx-workspace-header h1{font-size:clamp(23px,2.1vw,32px);font-weight:750;line-height:1.2;letter-spacing:-.032em;margin:5px 0 5px}
+.app-shell .kx-workspace-header p{font-size:13px;line-height:1.45;color:#667b72;max-width:610px;margin:0}
+.app-shell .kx-workspace-header-action{display:flex;align-items:center;justify-content:flex-end;flex:0 0 auto;max-width:48%}
+.app-shell .kx-workspace-header-action :is(button,a){white-space:nowrap}
+.app-shell .app-panel-head{align-items:center;min-width:0;gap:16px}
+.app-shell .app-panel-head h2{font-size:18px;line-height:1.25;font-weight:750;letter-spacing:-.02em;margin:3px 0 0}
+.app-shell .app-panel-head :is(button,a){font-size:12px}
+.app-shell .app-toolbar{align-items:center;gap:12px;flex-wrap:wrap}
+.app-shell .app-toolbar .app-search{min-width:min(280px,100%);max-width:480px}
+.app-shell .app-list-row{gap:12px;min-width:0}
+.app-shell .app-alert p{line-height:1.45}
+.app-shell .app-pagination{gap:12px;flex-wrap:wrap}
+.app-shell .app-metrics,.app-shell .app-quick-grid{gap:14px}
+.app-shell .app-metric{min-width:0;padding:18px;border-radius:16px}
+.app-shell .app-metric>div:first-child{align-items:center;gap:10px}
+.app-shell .app-metric strong{font-size:clamp(21px,1.8vw,27px);line-height:1.2;font-weight:750;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.app-shell .app-metric small{font-size:12px;line-height:1.4;margin:8px 0}
+.app-shell .app-quick{border-radius:16px;padding:17px;gap:12px}
+.app-shell .app-quick:hover{transform:none;box-shadow:0 8px 24px rgba(0,168,107,.07)}
+.app-shell .app-settings-grid{gap:14px}
+.app-shell .app-form-stack label,.app-shell .app-settings-grid label{font-size:12px;line-height:1.4}
+.app-shell .app-form-stack :is(input,select,textarea),.app-shell .app-settings-grid :is(input,select,textarea){font-size:13px;min-height:42px}
+@media(max-width:900px){.app-shell .kx-workspace-header{align-items:flex-start;flex-direction:column;padding:18px;gap:14px}.app-shell .kx-workspace-header-action{max-width:100%;flex-wrap:wrap}}
+@media(max-width:600px){.app-shell .kx-workspace-header{padding:16px;border-radius:16px}.app-shell .kx-workspace-header h1{font-size:24px}.app-shell .kx-workspace-header-action,.app-shell .kx-workspace-header-action .app-button{width:100%}.app-shell .app-panel-head{align-items:flex-start;flex-wrap:wrap}.app-shell .app-quick-grid{grid-template-columns:1fr}}

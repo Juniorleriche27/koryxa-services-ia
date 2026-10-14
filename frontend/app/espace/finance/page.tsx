@@ -133,11 +133,13 @@ export default function FinancePage() {
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
-      <div>
+      <header className="kx-workspace-header">
+        <div className="kx-workspace-header-copy">
         <Link href="/espace/caisse" className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">← Retour à la caisse</Link>
         <h1 className="mt-3 text-2xl font-bold sm:text-3xl">Comptes et mouvements de trésorerie</h1>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Saisissez uniquement des montants vérifiés. Les soldes affichés proviennent des déclarations et ne constituent pas un rapprochement bancaire.</p>
-      </div>
+        </div>
+      </header>
       {error && <p role="alert" className="rounded-xl border border-red-300 p-3 text-red-700 dark:text-red-300">{error}</p>}
       {notice && <p role="status" className="rounded-xl border border-emerald-300 p-3 text-emerald-700 dark:text-emerald-300">{notice}</p>}
       <section className="grid gap-4 sm:grid-cols-2">
