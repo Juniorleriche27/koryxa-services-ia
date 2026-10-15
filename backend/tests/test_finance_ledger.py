@@ -41,6 +41,14 @@ def test_financial_evidence_is_tenant_scoped_and_no_balance_is_fabricated():
         })
         assert declared.status_code == 200, declared.text
         assert Decimal(str(client.get("/api/v1/finance/accounts", headers=headers_a).json()[0]["balance"])) == 110
+        dashboard = client.get("/api/v1/dashboard", headers=headers_a)
+        assert dashboard.status_code == 200, dashboard.text
+        summary = dashboard.json()["summary"]
+        assert Decimal(str(summary["declared_cash_balance"])) == 110
+        assert summary["declared_cash_status"] == "declared_unreconciled"
+        assert summary["net_cash_position"] is None
+        assert "financial_indicator_reasons" in summary
+        assert summary["break_even_point"] is None
         # Historical opening data must not be silently rewritten after confirmation.
         assert client.patch(f"/api/v1/finance/accounts/{cash_id}/opening", headers=headers_a, json={
             "opening_balance": "999.00", "opening_date": "2026-10-01",

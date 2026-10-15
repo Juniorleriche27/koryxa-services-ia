@@ -43,6 +43,7 @@ export interface BusinessPerformanceProps {
   workingCapital?: number | null;
   financialDataStatus?: string;
   financialWarnings?: string[];
+  financialIndicatorReasons?: Record<string, string>;
 }
 
 export function BusinessPerformanceCockpit({
@@ -65,11 +66,13 @@ export function BusinessPerformanceCockpit({
   workingCapital: propWorkingCapital,
   financialDataStatus,
   financialWarnings = [],
+  financialIndicatorReasons = {},
 }: BusinessPerformanceProps) {
   const [activeTab, setActiveTab] = useState<"all" | "profitability" | "cashflow">("all");
 
   // Explicitly unknown indicators must never be rebuilt from incompatible registers.
   const grossMargin = propGrossMargin ?? null;
+  const missing = (key: string, fallback: string) => financialIndicatorReasons[key] || fallback;
   const marginRate = propMarginRate ?? null;
   const aov = propAov ?? (totalSalesCount ? totalSales / totalSalesCount : null);
   const breakEvenPoint = propBreakEven ?? null;
@@ -227,27 +230,28 @@ export function BusinessPerformanceCockpit({
                 </span>
                 <div
                   className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                    (grossMargin ?? 0) >= 0
+                    grossMargin === null || grossMargin >= 0
                       ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
                       : "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400"
                   }`}
                 >
-                  {(grossMargin ?? 0) >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                  {grossMargin === null || grossMargin >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
                 </div>
               </div>
 
               <div className="flex items-baseline gap-2 mb-1">
                 <strong
                   className={`text-xl sm:text-2xl font-semibold tracking-tight ${
-                    (grossMargin ?? 0) >= 0
+                    grossMargin === null || grossMargin >= 0
                       ? "text-emerald-700 dark:text-emerald-400"
                       : "text-rose-600 dark:text-rose-400"
                   }`}
                 >
-                  {grossMargin === null ? "Non calculable" : formatMoney(grossMargin, currency)}
+                  {grossMargin === null ? "À compléter" : formatMoney(grossMargin, currency)}
                 </strong>
               </div>
 
+              {grossMargin === null && <p className="text-[11px] leading-relaxed text-slate-500 mt-2">{missing("estimated_gross_margin", "Coûts des ventes à préciser.")}</p>}
               <div className="flex items-center gap-2 mt-2">
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black ${
@@ -291,10 +295,11 @@ export function BusinessPerformanceCockpit({
 
               <div className="flex items-baseline gap-2 mb-2">
                 <strong className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
-                  {breakEvenPoint === null ? "Non calculable" : formatMoney(breakEvenPoint, currency)}
+                  {breakEvenPoint === null ? "À compléter" : formatMoney(breakEvenPoint, currency)}
                 </strong>
               </div>
 
+              {breakEvenPoint === null && <p className="text-[11px] leading-relaxed text-slate-500 mb-2">{missing("break_even_point", "Charges fixes et coûts variables nécessaires.")}</p>}
               {/* Progress meter */}
               <div className="space-y-1.5 mb-2">
                 <div className="flex justify-between text-[11px] font-bold">
@@ -372,8 +377,9 @@ export function BusinessPerformanceCockpit({
                       : "text-rose-600 dark:text-rose-400"
                   }`}
                 >
-                  {(runwayDays ?? -1) >= 999 ? "Illimité" : runwayDays === null ? "Non calculable" : `${runwayDays} jours`}
+                  {(runwayDays ?? -1) >= 999 ? "Illimité" : runwayDays === null ? "À compléter" : `${runwayDays} jours`}
                 </strong>
+                {runwayDays === null && <span className="text-[11px] text-slate-500">{missing("cash_runway_days", "Solde et historique insuffisants.")}</span>}
                 {runwayDays !== null && runwayDays < 999 && (
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
                     d&apos;autonomie
@@ -519,17 +525,17 @@ export function BusinessPerformanceCockpit({
               <div className="flex items-baseline gap-2 mb-1">
                 <strong
                   className={`text-xl sm:text-2xl font-semibold tracking-tight ${
-                    (workingCapital ?? 0) >= 0
+                    workingCapital === null || workingCapital >= 0
                       ? "text-indigo-700 dark:text-indigo-400"
                       : "text-rose-600 dark:text-rose-400"
                   }`}
                 >
-                  {workingCapital === null ? "Non calculable" : formatMoney(workingCapital, currency)}
+                  {workingCapital === null ? "À compléter" : formatMoney(workingCapital, currency)}
                 </strong>
               </div>
 
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 font-medium">
-                Calcul nécessitant un bilan comptable complet.
+                {missing("working_capital", "Bilan comptable à compléter.")}
               </p>
             </div>
 

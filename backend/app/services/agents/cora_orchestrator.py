@@ -771,7 +771,8 @@ class CoraOrchestrator(BaseSpecializedAgent):
             if unpaid_sales:
                 unpaid_lines = []
                 for u in unpaid_sales[:7]:
-                    balance_due = float(u.total_amount) - float(u.paid_amount)
+                    recorded_paid, _ = _paid_amount(u)
+                    balance_due = max(Decimal("0"), (u.total_amount or Decimal("0")) - recorded_paid)
                     unpaid_lines.append(
                         f"• {u.client_name or 'Client anonyme'} : {balance_due:,.0f} {currency} (Réf: {u.reference}, Facturé le {u.sale_date})"
                     )

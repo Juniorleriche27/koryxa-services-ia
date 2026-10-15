@@ -15,8 +15,11 @@ async def account_balances(session: AsyncSession, org_id: str, as_of: date | Non
         q = select(CashMovement).where(
             CashMovement.organization_id == org_id, CashMovement.account_id == account.id,
         )
-        if as_of is not None:
-            q = q.where(CashMovement.occurred_on <= as_of)
+        q = q.where(CashMovement.occurred_on <= as_of)
+        # An opening balance already includes all transactions before its date.
+        # Recounting earlier transactions would silently double-count cash.
+        if account.opening_date is not None:
+            q = q.where(CashMovement.occurred_on >= account.opening_date)
         movements = (await session.scalars(q)).all()
         opening_known = account.opening_balance is not None and account.opening_date is not None
         if opening_known and as_of is not None and account.opening_date > as_of:

@@ -46,6 +46,10 @@ interface SummaryData {
   cash_movement_net?: number | string | null;
   financial_data_status?: string;
   financial_warnings?: string[];
+  financial_indicator_reasons?: Record<string, string>;
+  declared_cash_balance?: number | string | null;
+  declared_cash_currency?: string | null;
+  declared_cash_status?: string;
   sales_records_count?: number;
   excluded_sales_count?: number;
   pending_validation_sales_count?: number;
@@ -59,6 +63,7 @@ interface SummaryData {
   daily_burn_rate?: number | string | null;
   cash_runway_days?: number | null;
   working_capital?: number | string | null;
+  radar_quality?: { global_score: number; dimensions: { completeness: number; freshness: number; consistency: number; traceability: number }; scoring_version: string };
   primary_currency: string;
   recent_sales: Array<{
     id: string;
@@ -140,35 +145,13 @@ export function ExecutiveDashboard({
     key == null ? "Non calculable" : formatMoney(amount, currency);
   const isFinancialUncertain = summary?.financial_data_status !== "registers_only";
 
-  // Radar score calculation based on alerts and data volume
-  const completenessDeduction = Math.min(
-    30,
-    openAlerts.filter((a) => a.dimension === "completeness").length * 8
-  );
-  const freshnessDeduction = Math.min(
-    25,
-    openAlerts.filter((a) => a.dimension === "freshness").length * 8
-  );
-  const consistencyDeduction = Math.min(
-    25,
-    openAlerts.filter((a) => a.dimension === "consistency").length * 10
-  );
-  const traceabilityDeduction = Math.min(
-    20,
-    openAlerts.filter((a) => a.dimension === "traceability").length * 6
-  );
-
-  const completenessScore = Math.max(0, 100 - completenessDeduction);
-  const freshnessScore = Math.max(0, 100 - freshnessDeduction);
-  const consistencyScore = Math.max(0, 100 - consistencyDeduction);
-  const traceabilityScore = Math.max(0, 100 - traceabilityDeduction);
-
-  const globalHealthScore = Math.round(
-    completenessScore * 0.35 +
-      freshnessScore * 0.25 +
-      consistencyScore * 0.25 +
-      traceabilityScore * 0.15
-  );
+  // Server-authoritative score uses ALL open alerts, not the paginated list.
+  const radarQuality = summary?.radar_quality;
+  const completenessScore = radarQuality?.dimensions.completeness ?? 0;
+  const freshnessScore = radarQuality?.dimensions.freshness ?? 0;
+  const consistencyScore = radarQuality?.dimensions.consistency ?? 0;
+  const traceabilityScore = radarQuality?.dimensions.traceability ?? 0;
+  const globalHealthScore = radarQuality?.global_score ?? null;
 
   // Prepare Printable Audit Data
   const auditData: OperationalAuditData = {
@@ -189,7 +172,7 @@ export function ExecutiveDashboard({
       currency,
     },
     radarScores: {
-      globalScore: globalHealthScore,
+      globalScore: globalHealthScore ?? 0,
       completeness: completenessScore,
       freshness: freshnessScore,
       consistency: consistencyScore,
@@ -323,16 +306,26 @@ export function ExecutiveDashboard({
             <ShieldCheck size={18} className="kx-icon-blue" />
           </div>
           <div className="kx-kpi-score-val">
-            <strong>{globalHealthScore}</strong>
+            <strong>{globalHealthScore ?? "—"}</strong>
             <span>/100</span>
           </div>
           <div className="app-meter">
-            <i style={{ width: `${globalHealthScore}%` }} />
+            <i style={{ width: `${globalHealthScore ?? 0}%` }} />
           </div>
         </article>
       </section>
 
       {/* Business Performance & Profitability Cockpit */}
+      {summary?.declared_cash_balance != null && (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm dark:border-emerald-900 dark:bg-slate-900">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-slate-800 dark:text-slate-100">Solde des comptes déclarés</span>
+            <strong className="tabular-nums text-emerald-800 dark:text-emerald-300">{formatMoney(Number(summary.declared_cash_balance), summary.declared_cash_currency || currency)}</strong>
+            <span className="text-xs text-slate-500">Non rapproché avec la banque</span>
+          </div>
+          <Link href="/espace/finance" className="text-xs font-semibold text-emerald-700 hover:underline dark:text-emerald-300">Gérer les comptes →</Link>
+        </div>
+      )}
       <BusinessPerformanceCockpit
         totalSales={totalSales}
         totalPaid={totalPaid}
@@ -350,6 +343,7 @@ export function ExecutiveDashboard({
         grossMarginRate={summary?.gross_margin_rate ?? null}
         financialDataStatus={summary?.financial_data_status}
         financialWarnings={summary?.financial_warnings ?? []}
+        financialIndicatorReasons={summary?.financial_indicator_reasons ?? {}}
         averageOrderValue={
           summary?.average_order_value != null
             ? Number(summary.average_order_value)
