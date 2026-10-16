@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import hashlib
+from collections import defaultdict
+from itertools import combinations
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
@@ -81,6 +83,47 @@ DEFAULTS = {
     ),
     "procedure.responsible_inactive": (RadarDimension.CONSISTENCY, AlertPriority.HIGH, {}),
 }
+
+
+def duplicate_candidates(sales, min_confidence: float, date_window_days: int):
+    """Generate only possible Radar duplicate matches, rather than all n² pairs.
+
+    Any scoring rule above 0.55 *requires* a shared reference because all other
+    five components sum to at most 0.55. For lower thresholds, collect shared
+    client/item/amount and nearby-date pairs. All-pair output is only required
+    if the configured threshold is <= 0, which is rejected by the rule editor.
+    """
+    if min_confidence <= 0 or min_confidence > 1:
+        raise ValueError("Seuil de doublon hors intervalle (0, 1]")
+    if date_window_days < 0 or date_window_days > 365:
+        raise ValueError("Fenêtre de doublon invalide")
+    candidates: set[tuple[int, int]] = set()
+
+    def include_buckets(attribute, *, omit_blank=False):
+        groups = defaultdict(list)
+        for i, sale in enumerate(sales):
+            key = getattr(sale, attribute)
+            if omit_blank and not key:
+                continue
+            groups[key].append(i)
+        for indices in groups.values():
+            candidates.update(combinations(indices, 2))
+
+    include_buckets("reference")
+    if min_confidence <= 0.55:
+        include_buckets("client_name", omit_blank=True)
+        include_buckets("item_label")
+        include_buckets("total_amount")
+        chronological = sorted(range(len(sales)), key=lambda i: sales[i].sale_date)
+        for start, i in enumerate(chronological):
+            end = start + 1
+            while end < len(chronological):
+                j = chronological[end]
+                if (sales[j].sale_date - sales[i].sale_date).days > date_window_days:
+                    break
+                candidates.add((min(i, j), max(i, j)))
+                end += 1
+    return ((sales[i], sales[j]) for i, j in sorted(candidates))
 
 
 class RadarService:
@@ -330,38 +373,36 @@ class RadarService:
                         },
                     )
                 )
-        for idx, a in enumerate(sales):
-            for b in sales[idx + 1 :]:
-                score = 0.0
-                if a.reference == b.reference:
-                    score += 0.45
-                if a.client_name and a.client_name == b.client_name:
-                    score += 0.15
-                if a.item_label == b.item_label:
-                    score += 0.15
-                if a.total_amount == b.total_amount:
-                    score += 0.15
-                if abs((a.sale_date - b.sale_date).days) <= int(
-                    self.params(configs, "sale.probable_duplicate").get("date_window_days", 1)
-                ):
-                    score += 0.10
-                threshold = float(
-                    self.params(configs, "sale.probable_duplicate").get("min_confidence", 0.75)
-                )
-                if score >= threshold:
-                    for x, y in [(a, b), (b, a)]:
-                        findings.append(
-                            self.f(
-                                "sale.probable_duplicate",
-                                "sale",
-                                x.id,
-                                "Doublon probable",
-                                f"Cette vente ressemble à la vente {y.reference}.",
-                                "Comparer les deux ventes avant toute fusion.",
-                                {"other_sale_id": y.id, "score": score},
-                                score,
-                            )
+        duplicate_params = self.params(configs, "sale.probable_duplicate")
+        duplicate_window_days = int(duplicate_params.get("date_window_days", 1))
+        duplicate_threshold = float(duplicate_params.get("min_confidence", 0.75))
+        for a, b in duplicate_candidates(sales, duplicate_threshold, duplicate_window_days):
+            score = 0.0
+            if a.reference == b.reference:
+                score += 0.45
+            if a.client_name and a.client_name == b.client_name:
+                score += 0.15
+            if a.item_label == b.item_label:
+                score += 0.15
+            if a.total_amount == b.total_amount:
+                score += 0.15
+            if abs((a.sale_date - b.sale_date).days) <= duplicate_window_days:
+                score += 0.10
+            threshold = duplicate_threshold
+            if score >= threshold:
+                for x, y in [(a, b), (b, a)]:
+                    findings.append(
+                        self.f(
+                            "sale.probable_duplicate",
+                            "sale",
+                            x.id,
+                            "Doublon probable",
+                            f"Cette vente ressemble à la vente {y.reference}.",
+                            "Comparer les deux ventes avant toute fusion.",
+                            {"other_sale_id": y.id, "score": score},
+                            score,
                         )
+                    )
 
         # ------------------ EXPENSES & CASHFLOW CHECKS ------------------
         for exp in expenses:
@@ -409,6 +450,15 @@ class RadarService:
             ).all()
         }
 
+        step_counts = {}
+        if procedures:
+            grouped = await s.execute(
+                select(ProcedureStep.procedure_id, func.count(ProcedureStep.id))
+                .where(ProcedureStep.procedure_id.in_([proc.id for proc in procedures]))
+                .group_by(ProcedureStep.procedure_id)
+            )
+            step_counts = {proc_id: int(count) for proc_id, count in grouped.all()}
+
         for proc in procedures:
             if (
                 proc.status in {RecordStatus.VALIDATED, RecordStatus.TO_VERIFY}
@@ -455,14 +505,7 @@ class RadarService:
                         {"next_review_date": proc.next_review_date.isoformat()},
                     )
                 )
-            step_count = int(
-                await s.scalar(
-                    select(func.count())
-                    .select_from(ProcedureStep)
-                    .where(ProcedureStep.procedure_id == proc.id)
-                )
-                or 0
-            )
+            step_count = step_counts.get(proc.id, 0)
             departments = self.params(configs, "procedure.steps_missing").get(
                 "operational_departments", []
             )

@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     DateTime,
     Float,
@@ -51,11 +52,32 @@ class OrganizationIntegrationConfig(Base):
     telegram_bot_username: Mapped[str | None] = mapped_column(String(120))
     telegram_link_code: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
     telegram_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    telegram_webhook_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class TelegramWebhookEvent(Base):
+    """Immutable replay marker, unique per bot integration and update_id."""
+    __tablename__ = "telegram_webhook_events"
+    __table_args__ = (
+        UniqueConstraint("integration_config_id", "update_id", name="uq_telegram_webhook_update"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    integration_config_id: Mapped[str] = mapped_column(
+        ForeignKey("organization_integration_configs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    update_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
 

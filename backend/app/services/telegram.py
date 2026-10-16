@@ -79,11 +79,11 @@ class TelegramService:
         except Exception:
             return False
 
-    async def set_webhook(self, bot_token: str, webhook_url: str) -> dict[str, Any]:
+    async def set_webhook(self, bot_token: str, webhook_url: str, secret_token: str) -> dict[str, Any]:
         url = f"{TELEGRAM_API_BASE}/bot{bot_token}/setWebhook"
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.post(url, json={"url": webhook_url})
+                resp = await client.post(url, json={"url": webhook_url, "secret_token": secret_token, "allowed_updates": ["message", "callback_query"]})
                 return resp.json()
         except Exception as e:
             return {"ok": False, "description": str(e)}
@@ -113,14 +113,15 @@ class TelegramService:
         link_code = await self.get_or_create_link_code(s, org_id)
         custom_token = self.configs.decrypt(cfg.telegram_bot_token_encrypted)
         
-        deep_link_url = f"https://t.me/{OFFICIAL_BOT_USERNAME}?start={link_code}"
+        live_username = cfg.telegram_bot_username if cfg.telegram_webhook_enabled and custom_token else OFFICIAL_BOT_USERNAME
+        deep_link_url = f"https://t.me/{live_username}?start={link_code}"
 
         return TelegramConfigRead(
-            is_active=cfg.telegram_active,
+            is_active=bool(cfg.telegram_active and cfg.telegram_webhook_enabled and custom_token),
             link_code=link_code,
             deep_link_url=deep_link_url,
             bot_username=cfg.telegram_bot_username or OFFICIAL_BOT_USERNAME,
-            custom_bot_active=bool(custom_token),
+            custom_bot_active=bool(custom_token and cfg.telegram_webhook_enabled),
             custom_bot_username=cfg.telegram_bot_username if custom_token else None,
             has_custom_bot_token=bool(custom_token),
         )
@@ -201,14 +202,24 @@ class TelegramService:
     async def set_custom_bot(
         self, s: AsyncSession, org_id: str, bot_token: str, app_url: str
     ) -> dict[str, Any]:
+        from app.services.telegram_auth import webhook_secret
+        cfg = await self.configs.get(s, org_id)
+        # Public URL is derived from a server-side config ID, never client org_id.
+        url = f"https://api.service-ia.koryxa.fr/api/v1/telegram/webhook/{cfg.id}"
+        secret = webhook_secret(cfg.id, bot_token)
         me_data = await self.get_me(bot_token)
         if not me_data.get("ok"):
-            return {"ok": False, "message": "Token de bot Telegram invalide ou rejeté par Telegram."}
-        
-        bot_user = me_data.get("result", {})
-        bot_username = bot_user.get("username", "")
-
-        return {"ok": False, "message": "Réception Telegram suspendue : sécurisation du webhook requise."}
+            return {"ok": False, "message": "Identifiants du bot invalides."}
+        configured = await self.set_webhook(bot_token, url, secret)
+        if not configured.get("ok"):
+            return {"ok": False, "message": "Telegram n'a pas confirmé la configuration sécurisée du webhook."}
+        cfg.telegram_bot_token_encrypted = self.configs.encrypt(bot_token)
+        cfg.telegram_bot_username = me_data.get("result", {}).get("username", "")
+        cfg.telegram_active = True
+        cfg.telegram_webhook_enabled = True
+        await s.flush()
+        return {"ok": True, "message": "Bot personnalisé configuré avec authentification et anti-rejeu.",
+                "bot_username": cfg.telegram_bot_username}
 
     # =========================================================================
     # INBOUND UPDATE HANDLER (WEBHOOK)
@@ -259,7 +270,7 @@ class TelegramService:
                     OrganizationIntegrationConfig.telegram_link_code == link_code
                 )
             )
-            if not cfg:
+            if not cfg or (explicit_org_id and cfg.organization_id != explicit_org_id):
                 await self.send_message(
                     bot_token,
                     chat_id,
@@ -298,6 +309,19 @@ class TelegramService:
             first_name = from_user.get("first_name") or from_user.get("username") or "Gestionnaire"
             await self._send_welcome_menu(bot_token, chat_id, target_org.name, first_name)
             return True
+
+        # On a custom bot, a valid Telegram sender must also be actively linked
+        # to this specific organization. Header auth alone does not authorize users.
+        if explicit_org_id:
+            user_record = await s.scalar(select(TelegramAuthorizedUser).where(
+                TelegramAuthorizedUser.organization_id == explicit_org_id,
+                TelegramAuthorizedUser.telegram_user_id == telegram_user_id,
+                TelegramAuthorizedUser.is_active.is_(True),
+            ))
+            if user_record is None:
+                await self.send_message(bot_token, chat_id,
+                    "Compte non lié. Ouvrez CAURI pour obtenir un lien de connexion.")
+                return True
 
         # 4. If not a linking command, find linked organization for this user
         if not target_org:
@@ -474,17 +498,24 @@ class TelegramService:
         telegram_user_id = str(from_user.get("id", ""))
         bot_token = self._get_official_bot_token()
 
-        # Acknowledge callback immediately to dismiss loading spinner
-        if callback_id:
-            await self.answer_callback_query(bot_token, callback_id)
-
         if not chat_id or not data:
             return True
 
         # Find org
         target_org: Organization | None = None
         if explicit_org_id:
+            user_record = await s.scalar(select(TelegramAuthorizedUser).where(
+                TelegramAuthorizedUser.organization_id == explicit_org_id,
+                TelegramAuthorizedUser.telegram_user_id == telegram_user_id,
+                TelegramAuthorizedUser.is_active.is_(True),
+            ))
+            if user_record is None:
+                return True
             target_org = await s.scalar(select(Organization).where(Organization.id == explicit_org_id))
+            cfg = await s.scalar(select(OrganizationIntegrationConfig).where(
+                OrganizationIntegrationConfig.organization_id == explicit_org_id))
+            if cfg:
+                bot_token = self.configs.decrypt(cfg.telegram_bot_token_encrypted) or bot_token
         else:
             user_record = await s.scalar(
                 select(TelegramAuthorizedUser).where(
@@ -502,6 +533,10 @@ class TelegramService:
                 "⚠️ Session expirée. Veuillez renvoyer votre lien de connexion depuis : https://cauri.koryxa.fr/espace/telegram",
             )
             return True
+
+        # Acknowledge only after tenant membership and correct bot token are resolved.
+        if callback_id and bot_token:
+            await self.answer_callback_query(bot_token, callback_id)
 
         if data == "action_solde":
             await self._send_daily_summary(s, bot_token, chat_id, target_org.id, target_org.name)

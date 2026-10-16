@@ -15,10 +15,10 @@ class RadarRuleConfigUpdate(BaseModel):
 
 class RadarRuleConfigRead(RadarRuleConfigUpdate):
     model_config = ConfigDict(from_attributes=True)
-    id: str
+    id: str | None = None
     rule_code: str
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class RadarRunRead(BaseModel):

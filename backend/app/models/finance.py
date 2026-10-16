@@ -2,7 +2,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from uuid import uuid4
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text, Boolean, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, ForeignKey, ForeignKeyConstraint, Numeric, String, Text, Boolean, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
@@ -22,7 +22,10 @@ class CashAccount(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_by_user_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    __table_args__ = (UniqueConstraint("organization_id", "name", name="uq_finance_cash_account_name_per_org"),)
+    __table_args__ = (
+        UniqueConstraint("organization_id", "name", name="uq_finance_cash_account_name_per_org"),
+        UniqueConstraint("organization_id", "id", name="uq_finance_cash_accounts_org_id"),
+    )
 
 
 class CashMovement(Base):
@@ -40,7 +43,14 @@ class CashMovement(Base):
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by_user_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    __table_args__ = (UniqueConstraint("organization_id", "source_kind", "source_id", "direction", name="uq_finance_cash_movement_source"),)
+    __table_args__ = (
+        UniqueConstraint("organization_id", "source_kind", "source_id", "direction", name="uq_finance_cash_movement_source"),
+        ForeignKeyConstraint(
+            ["organization_id", "account_id"],
+            ["finance_cash_accounts.organization_id", "finance_cash_accounts.id"],
+            name="fk_finance_cash_movement_tenant_account", ondelete="RESTRICT",
+        ),
+    )
 
 
 class FinancialCostClassification(Base):
@@ -52,4 +62,10 @@ class FinancialCostClassification(Base):
     relation: Mapped[str] = mapped_column(String(16))  # direct / indirect / unknown
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_by_user_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    __table_args__ = (UniqueConstraint("organization_id", "expense_id", name="uq_finance_classification_expense"),)
+    __table_args__ = (
+        UniqueConstraint("organization_id", "expense_id", name="uq_finance_classification_expense"),
+        ForeignKeyConstraint(
+            ["organization_id", "expense_id"], ["expenses.organization_id", "expenses.id"],
+            name="fk_finance_cost_classification_tenant_expense", ondelete="CASCADE",
+        ),
+    )
