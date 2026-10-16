@@ -7,7 +7,9 @@ from app.api.routes import (
     billing,
     contact,
     dashboard,
+    departments,
     finance,
+    grand_hall,
     direct_uploads,
     health,
     identity,
@@ -19,6 +21,7 @@ from app.api.routes import (
     radar,
     registers,
     telegram,
+    temporal_analytics,
     voice,
     whatsapp,
     workflow,
@@ -28,6 +31,9 @@ api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
 api_router.include_router(contact.router, prefix="/contact", tags=["contact"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+api_router.include_router(departments.router, prefix="/departments", tags=["departments"])
+api_router.include_router(grand_hall.router, prefix="/grand-hall", tags=["grand-hall"])
+api_router.include_router(temporal_analytics.router, prefix="/analytics/temporal", tags=["analytics"])
 api_router.include_router(identity.router, prefix="/context", tags=["context"])
 api_router.include_router(organizations.router, prefix="/organizations", tags=["organizations"])
 api_router.include_router(members.router, prefix="/members", tags=["members"])

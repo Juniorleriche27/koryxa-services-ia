@@ -6,14 +6,14 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
-from app.services.radar_scoring import radar_quality_score
+from app.services.radar_quality import radar_quality_snapshot
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import get_current_member, get_current_organization
 from app.db.session import get_session
 from app.models.member import OrganizationMember
 from app.models.organization import Organization
-from app.models.radar import AlertStatus, RadarAlert
+from app.models.radar import AlertStatus, RadarAlert, RadarRun
 from app.models.workflow import ActionStatus, CorrectiveAction
 from app.schemas.organizations import OrganizationRead
 from app.schemas.radar import RadarAlertRead
@@ -58,12 +58,7 @@ async def get_dashboard(s: SessionDep, organization: OrgDep, _: MemberDep) -> di
     summary = await _fetch_summary(s, org_id)
     alerts = await _fetch_alerts(s, org_id)
     actions = await _fetch_actions(s, org_id)
-    # Score all open alerts, not only the latest 20 displayed in the cockpit.
-    all_dimensions = (await s.scalars(select(RadarAlert.dimension).where(
-        RadarAlert.organization_id == org_id,
-        RadarAlert.status == AlertStatus.OPEN,
-    ))).all()
-    summary["radar_quality"] = radar_quality_score(all_dimensions)
+    summary["radar_quality"] = await radar_quality_snapshot(s, org_id)
     # Serialize ORM objects with Pydantic schemas before returning
     summary["recent_sales"] = [
         SaleRead.model_validate(sale, from_attributes=True).model_dump(mode="json")

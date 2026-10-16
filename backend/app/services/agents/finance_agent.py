@@ -69,9 +69,13 @@ class FinanceAgent(BaseSpecializedAgent):
             "decaissement de",
         ]
         if any(w in msg_lower for w in expense_triggers):
-            action_res = await self._try_record_expense(s, org, user, user_message, currency)
-            if action_res:
-                return action_res
+            return {
+                "reply": "Confirmez cette dépense depuis son registre. Aucune opération n'a été créée.",
+                "agent_name": self.name,
+                "agent_badge": self.badge,
+                "action_executed": None,
+                "suggested_actions": [{"title": "Ouvrir le registre", "action_type": "navigate", "payload": {"path": "/espace/depenses"}}],
+            }
 
         # Reuse the same calculation as the dashboard and Cora Orchestrator.
         snap = await collect_financial_registers(s, org)

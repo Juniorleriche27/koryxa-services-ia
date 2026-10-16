@@ -9,6 +9,9 @@ from sqlalchemy import func, select
 
 from app.core.errors import ApplicationError
 from app.models.member import MemberStatus, OrganizationMember
+from app.models.workflow import AuditEvent
+from app.services.radar_scoring import radar_quality_score
+from app.services.tenant_lock import tenant_transaction_lock
 from app.models.radar import (
     AlertPriority,
     AlertStatus,
@@ -132,6 +135,9 @@ class RadarService:
 
     async def run(self, s, org, user):
         configs = {x.rule_code: x for x in await self.list_configs(s, org)}
+        # Serialize Radar runs per tenant in production: identity checks and
+        # inserts must be within the same lock-protected transaction.
+        await tenant_transaction_lock(s, "radar_run", org)
         run = RadarRun(organization_id=org, triggered_by_user_id=user)
         s.add(run)
         await s.flush()
@@ -495,37 +501,48 @@ class RadarService:
                     )
                 )
         created = 0
+        # Stable alert identity is rule + record, not mutable evidence. Existing
+        # alerts are reused, including those created with legacy fingerprints.
+        seen = set()
         for finding in findings:
             cfg = configs[finding["rule_code"]]
             if not cfg.enabled:
                 continue
-            fp = self.fingerprint(
-                finding["rule_code"],
-                finding["record_type"],
-                finding["record_id"],
-                finding["evidence"],
-            )
-            alert = await s.scalar(
-                select(RadarAlert).where(
-                    RadarAlert.organization_id == org, RadarAlert.fingerprint == fp
-                )
-            )
+            key = (finding["rule_code"], finding["record_type"], finding["record_id"])
+            if key in seen:
+                continue
+            seen.add(key)
+            alert = await s.scalar(select(RadarAlert).where(
+                RadarAlert.organization_id == org,
+                RadarAlert.rule_code == key[0],
+                RadarAlert.record_type == key[1],
+                RadarAlert.record_id == key[2],
+            ).order_by(RadarAlert.created_at.asc()))
             if alert is None:
+                fp = self.fingerprint(*key, finding["evidence"])
                 alert = RadarAlert(
-                    organization_id=org,
-                    run_id=run.id,
-                    priority=cfg.priority,
-                    fingerprint=fp,
-                    status=AlertStatus.OPEN,
-                    **finding,
+                    organization_id=org, run_id=run.id, priority=cfg.priority,
+                    fingerprint=fp, status=AlertStatus.OPEN, **finding,
                 )
                 s.add(alert)
                 created += 1
-            elif alert.status in {AlertStatus.RESOLVED, AlertStatus.IGNORED}:
-                alert.status = AlertStatus.OPEN
+            else:
+                # Acknowledge is not erased by a replay. Resolved alerts reopen
+                # only if their rule still produces a finding on a later run.
+                if alert.status in {AlertStatus.RESOLVED, AlertStatus.IGNORED}:
+                    alert.status = AlertStatus.OPEN
                 alert.run_id = run.id
+                alert.priority = cfg.priority
+                alert.evidence = finding["evidence"]
+                alert.explanation = finding["explanation"]
+                alert.recommendation = finding["recommendation"]
+        await s.flush()
+        active_dimensions = (await s.scalars(select(RadarAlert.dimension).where(
+            RadarAlert.organization_id == org,
+            RadarAlert.status.in_([AlertStatus.OPEN, AlertStatus.ACKNOWLEDGED]),
+        ))).all()
         run.alerts_created = created
-        run.scores = self.scores(findings, configs, offers, sales, procedures)
+        run.scores = self.scores(active_dimensions)
         await s.commit()
         await s.refresh(run)
         return run
@@ -549,13 +566,13 @@ class RadarService:
     def fingerprint(self, code, typ, rid, evidence):
         return hashlib.sha256(f"{code}:{typ}:{rid}:{evidence}".encode()).hexdigest()
 
-    def scores(self, findings, configs, offers, sales, procedures):
-        total = max(1, len(offers) + len(sales) + len(procedures))
-        counts = {d.value: 0 for d in RadarDimension}
-        for f in findings:
-            if configs[f["rule_code"]].enabled:
-                counts[f["dimension"].value] += 1
-        return {k: round(max(0, 100 - (v / total * 100)), 2) for k, v in counts.items()}
+    def scores(self, dimensions, *legacy_args):
+        # Preserve old run.scores dimension map for existing API consumers.
+        # Scoring rule itself is authoritative in radar_scoring.py.
+        if legacy_args:
+            configs = legacy_args[0]
+            dimensions = [f["dimension"] for f in dimensions if configs[f["rule_code"]].enabled]
+        return radar_quality_score(dimensions)["dimensions"]
 
     async def alerts(self, s, org, status=None, dimension=None):
         stmt = select(RadarAlert).where(RadarAlert.organization_id == org)
@@ -565,13 +582,28 @@ class RadarService:
             stmt = stmt.where(RadarAlert.dimension == dimension)
         return list((await s.scalars(stmt.order_by(RadarAlert.created_at.desc()))).all())
 
-    async def update_alert(self, s, org, alert_id, status):
+    async def update_alert(self, s, org, alert_id, status, actor_user_id=None):
         alert = await s.scalar(
             select(RadarAlert).where(RadarAlert.id == alert_id, RadarAlert.organization_id == org)
         )
         if not alert:
             raise ApplicationError("alert_not_found", "Alerte introuvable", 404)
-        alert.status = status
+        transitions = {
+            AlertStatus.OPEN: {AlertStatus.ACKNOWLEDGED, AlertStatus.RESOLVED, AlertStatus.IGNORED},
+            AlertStatus.ACKNOWLEDGED: {AlertStatus.OPEN, AlertStatus.RESOLVED, AlertStatus.IGNORED},
+            AlertStatus.RESOLVED: {AlertStatus.OPEN},
+            AlertStatus.IGNORED: {AlertStatus.OPEN},
+        }
+        if status != alert.status and status not in transitions[alert.status]:
+            raise ApplicationError("invalid_alert_transition", "Transition d'alerte non autorisée", 409)
+        if status != alert.status:
+            old_status = alert.status
+            alert.status = status
+            s.add(AuditEvent(
+                organization_id=org, entity_type="radar_alert", entity_id=alert.id,
+                event_type="radar_alert_status_changed", actor_user_id=actor_user_id or "system",
+                payload={"from": old_status.value, "to": status.value},
+            ))
         await s.commit()
         await s.refresh(alert)
         return alert

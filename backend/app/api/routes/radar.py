@@ -21,6 +21,7 @@ from app.schemas.radar import (
     RadarRunRead,
 )
 from app.services.radar import RadarService
+from app.services.radar_quality import radar_quality_snapshot
 
 router = APIRouter()
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -65,6 +66,12 @@ async def alerts(
 
 @router.patch("/alerts/{alert_id}", response_model=RadarAlertRead)
 async def update_alert(
-    alert_id: str, data: RadarAlertStatusUpdate, s: SessionDep, o: OrgDep, _: ManageDep
+    alert_id: str, data: RadarAlertStatusUpdate, s: SessionDep, i: IdentityDep, o: OrgDep, _: ManageDep
 ):
-    return await RadarService().update_alert(s, o.id, alert_id, data.status)
+    return await RadarService().update_alert(s, o.id, alert_id, data.status, i.user_id)
+
+
+@router.get("/quality")
+async def quality(s: SessionDep, o: OrgDep, _: ReadDep):
+    """Contrat officiel v2 : score, couverture des règles et dernier audit."""
+    return await radar_quality_snapshot(s, o.id)

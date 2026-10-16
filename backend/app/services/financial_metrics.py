@@ -17,6 +17,7 @@ from typing import Any, Iterable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.services.analytics_contract import exact_decimal, round_money
 from app.models.registers import (
     DocumentType,
     Expense,
@@ -36,7 +37,7 @@ def _value(value: Any) -> str:
 
 
 def _decimal(value: Any) -> Decimal:
-    return Decimal(str(value if value is not None else ZERO))
+    return exact_decimal(value if value is not None else ZERO)
 
 
 def _paid_amount(record: Any) -> tuple[Decimal, bool]:
@@ -50,13 +51,20 @@ def _paid_amount(record: Any) -> tuple[Decimal, bool]:
     status = _value(record.payment_status)
     if status in {"cancelled", "refunded"}:
         return ZERO, False
-    paid = min(amount, max(ZERO, _decimal(raw)))
-    incomplete = (status == "paid" and paid != amount) or (status == "partial" and paid == ZERO)
-    return paid, incomplete
+    recorded_paid = _decimal(raw)
+    paid = min(amount, max(ZERO, recorded_paid))
+    # A ledger conflict must never be hidden by capping the value for display.
+    inconsistent_amount = recorded_paid < ZERO or recorded_paid > amount
+    inconsistent_status = (
+        (status == "paid" and paid != amount)
+        or (status == "partial" and not (ZERO < paid < amount))
+        or (status == "unpaid" and paid != ZERO)
+    )
+    return paid, inconsistent_amount or inconsistent_status
 
 
 def _money(value: Decimal | None) -> Decimal | None:
-    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if value is not None else None
+    return round_money(value) if value is not None else None
 
 
 @dataclass(frozen=True)

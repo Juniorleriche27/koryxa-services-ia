@@ -73,9 +73,13 @@ class SalesRecoveryAgent(BaseSpecializedAgent):
             "enregistre l'inscription",
         ]
         if any(w in msg_lower for w in sale_triggers):
-            action_res = await self._try_record_sale(s, org, user, user_message, currency)
-            if action_res:
-                return action_res
+            return {
+                "reply": "Confirmez cette vente depuis son registre. Aucune opération n'a été créée.",
+                "agent_name": self.name,
+                "agent_badge": self.badge,
+                "action_executed": None,
+                "suggested_actions": [{"title": "Ouvrir le registre", "action_type": "navigate", "payload": {"path": "/espace/ventes"}}],
+            }
 
         # Recovery & Unpaid debts analysis
         total_sales_count = context.get("total_sales_count", 0)

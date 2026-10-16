@@ -7,6 +7,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import get_current_organization, require_permission
@@ -134,7 +135,12 @@ async def add_movement(data: MovementIn, s: Session, org: Org, _: Manage, identi
                        category=data.category, note=data.note, source_kind=data.source_kind,
                        source_id=data.source_id, created_by_user_id=identity.user_id)
     s.add(obj)
-    await s.commit()
+    try:
+        await s.commit()
+    except IntegrityError as exc:
+        await s.rollback()
+        # Database uniqueness is the final guard against concurrent requests.
+        raise HTTPException(409, "Ce mouvement source est déjà enregistré") from exc
     return {"id": obj.id, "status": "recorded"}
 
 

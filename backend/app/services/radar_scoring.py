@@ -8,7 +8,7 @@ PENALTY = {"completeness": 8, "freshness": 8, "consistency": 10, "traceability":
 CAP = {"completeness": 30, "freshness": 25, "consistency": 25, "traceability": 20}
 
 
-def radar_quality_score(dimensions: Iterable[str]) -> dict:
+def radar_quality_score(dimensions: Iterable[str], *, audited: bool | None = None) -> dict:
     counts = Counter(str(getattr(d, "value", d)).lower() for d in dimensions)
     per_dimension = {key: max(0, 100 - min(CAP[key], counts[key] * PENALTY[key])) for key in WEIGHTS}
     weighted = sum((Decimal(per_dimension[key]) * weight for key, weight in WEIGHTS.items()), Decimal(0))
@@ -17,5 +17,7 @@ def radar_quality_score(dimensions: Iterable[str]) -> dict:
         "dimensions": per_dimension,
         "alert_counts": {key: counts[key] for key in WEIGHTS},
         "metric_type": "data_quality_alerts",
-        "scoring_version": "1",
+        "scoring_version": "2",
+        "audit_status": "not_executed" if audited is False else ("executed" if audited is True else "unknown"),
+        "quality_certified": False,
     }

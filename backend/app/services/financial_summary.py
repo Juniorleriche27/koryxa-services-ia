@@ -12,6 +12,7 @@ from app.models.attendance import AttendanceRecord
 from app.models.registers import Offer, Procedure, Supplier
 from app.services.financial_metrics import collect_financial_registers
 from app.services.finance_ledger import account_balances, direct_cost_coverage
+from app.services.financial_analysis import FinancialEvidence, calculate_financial_indicators
 
 async def fetch_summary(s: AsyncSession, org_id: str) -> dict[str, Any]:
     snapshot = await collect_financial_registers(s, org_id)
@@ -43,8 +44,18 @@ async def fetch_summary(s: AsyncSession, org_id: str) -> dict[str, Any]:
         reasons["cash_runway_days"] = "Compléter les soldes d'ouverture des comptes."
     elif not comparable:
         reasons["cash_runway_days"] = "Comptes multidevises : conversion fiable nécessaire."
+    # This projection uses only evidence backed by the existing ledgers. The
+    # classification of expenses alone does not attest to complete costs.
+    currency = financial_summary.get("primary_currency")
+    analysis = calculate_financial_indicators(FinancialEvidence(
+        organization_id=org_id,
+        currency=currency if currency and len(currency) == 3 else "XXX",
+        period="all_time",
+        revenue=financial_summary.get("total_sales_amount") if currency else None,
+    ))
     financial_summary = {
         **financial_summary,
+        "financial_analysis": {key: result.model_dump(mode="json") for key, result in analysis.items()},
         "declared_cash_balance": declared_balance,
         "declared_cash_currency": next(iter(currencies)) if comparable and currencies else None,
         "declared_cash_status": ("declared_unreconciled" if declared_balance is not None else "missing_or_incompatible"),
