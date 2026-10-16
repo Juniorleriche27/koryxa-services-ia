@@ -117,13 +117,13 @@ class RadarService:
                 obj = RadarRuleConfig(
                     organization_id=org,
                     rule_code=code,
+                    enabled=True,
                     priority=priority,
                     parameters=params,
                     updated_by_user_id="system",
                 )
-                s.add(obj)
+                # Default configuration is a read-only projection. GET must not mutate DB.
                 existing[code] = obj
-        await s.commit()
         return list(existing.values())
 
     async def add_fact(self, s, org, data):
@@ -384,27 +384,18 @@ class RadarService:
                     )
                 )
 
-        total_income_paid = sum(
-            (sa.total_amount for sa in sales if sa.payment_status == PaymentStatus.PAID),
-            Decimal("0.00"),
-        )
-        total_expenses_paid = sum(
-            (ex.amount for ex in expenses if ex.payment_status == PaymentStatus.PAID),
-            Decimal("0.00"),
-        )
-        net_cash = total_income_paid - total_expenses_paid
-        if net_cash < Decimal("0.00") and expenses:
-            findings.append(
-                self.f(
-                    "cashflow.deficit_risk",
-                    "cashflow",
-                    expenses[0].id,
-                    "Risque de trésorerie négative",
-                    f"Les sorties d'argent effectives ({total_expenses_paid}) dépassent les encaissements ({total_income_paid}).",
-                    "Accélérer le recouvrement des ventes impayées et maîtriser les dépenses.",
-                    {"net_cash": str(net_cash)},
-                )
-            )
+        from app.services.financial_metrics import summarize_registers
+        register_summary = summarize_registers(sales, expenses).summary
+        net_registers = register_summary.get("cash_movement_net")
+        if net_registers is not None and net_registers < Decimal("0") and expenses:
+            findings.append(self.f(
+                "cashflow.deficit_risk", "cashflow", expenses[0].id,
+                "Écart négatif des registres",
+                "Les dépenses payées déclarées dépassent les paiements de ventes déclarés. "
+                "Ce constat n'est pas un solde bancaire.",
+                "Contrôler les écritures et les flux réels avant toute conclusion de trésorerie.",
+                {"register_delta": str(net_registers), "metric": "cash_movement_net"},
+            ))
 
         active_members = {
             m.user_id

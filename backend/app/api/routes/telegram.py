@@ -33,15 +33,11 @@ async def handle_telegram_webhook(
     s: SessionDep,
     org_id: str | None = Query(None),
 ):
-    """Point d'entrée Webhook pour les mises à jour Telegram (Bot KORYXA & Bots personnalisés)."""
-    try:
-        payload: dict[str, Any] = await request.json()
-    except Exception:
-        return Response(status_code=status.HTTP_400_BAD_REQUEST)
+    """Fail closed: webhook disabled until Telegram sender + tenant binding are proven.
 
-    await service.handle_inbound_update(s, payload, explicit_org_id=org_id)
-    await s.commit()
-    return {"ok": True}
+    Never trust `org_id` or `from.id` from unauthenticated public requests.
+    """
+    raise HTTPException(status_code=403, detail="Webhook Telegram désactivé pour sécurité")
 
 
 @router.get("/config", response_model=TelegramConfigRead)

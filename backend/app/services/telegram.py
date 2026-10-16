@@ -38,7 +38,7 @@ class TelegramService:
 
     def _get_official_bot_token(self) -> str:
         settings = get_settings()
-        return getattr(settings, "telegram_bot_token", None) or "8884618965:AAGPcrd5MQQWr-iibxs0DvByIvH0vVXjpRA"
+        return getattr(settings, "telegram_bot_token", None) or ""
 
     async def send_message(
         self,
@@ -208,22 +208,7 @@ class TelegramService:
         bot_user = me_data.get("result", {})
         bot_username = bot_user.get("username", "")
 
-        webhook_url = f"{app_url.rstrip('/')}/api/v1/telegram/webhook?org_id={org_id}"
-        wh_result = await self.set_webhook(bot_token, webhook_url)
-        if not wh_result.get("ok"):
-            return {"ok": False, "message": f"Erreur lors de la configuration du webhook : {wh_result.get('description')}"}
-
-        cfg = await self.configs.get(s, org_id)
-        cfg.telegram_bot_token_encrypted = self.configs.encrypt(bot_token)
-        cfg.telegram_bot_username = bot_username
-        cfg.telegram_active = True
-        await s.flush()
-
-        return {
-            "ok": True,
-            "message": f"Bot @{bot_username} configuré et activé avec succès !",
-            "bot_username": bot_username,
-        }
+        return {"ok": False, "message": "Réception Telegram suspendue : sécurisation du webhook requise."}
 
     # =========================================================================
     # INBOUND UPDATE HANDLER (WEBHOOK)
@@ -452,148 +437,31 @@ class TelegramService:
         }
         await self.send_message(bot_token, chat_id, text, reply_markup)
 
-    async def _send_daily_summary(
-        self, s: AsyncSession, bot_token: str, chat_id: int | str, org_id: str, org_name: str
-    ) -> None:
-        today = date.today()
-        # Sales today
-        sales_today = await s.execute(
-            select(
-                func.count(Sale.id).label("count"),
-                func.coalesce(func.sum(Sale.total_amount), Decimal("0")).label("total_ca"),
-                func.coalesce(
-                    func.sum(
-                        case(
-                            (Sale.payment_status == "paid", func.coalesce(func.nullif(Sale.paid_amount, Decimal("0")), Sale.total_amount)),
-                            (Sale.payment_status == "partial", func.coalesce(Sale.paid_amount, Decimal("0"))),
-                            else_=Decimal("0"),
-                        )
-                    ),
-                    Decimal("0"),
-                ).label("total_paid"),
-            ).where(
-                Sale.organization_id == org_id,
-                Sale.date == today,
-            )
-        )
-        row = sales_today.one()
-        count = row.count or 0
-        total_ca = float(row.total_ca or 0)
-        total_paid = float(row.total_paid or 0)
-        pending_creances = max(0, total_ca - total_paid)
+    async def _send_daily_summary(self, s: AsyncSession, bot_token: str, chat_id: int | str, org_id: str, org_name: str) -> None:
+        from app.services.financial_summary import fetch_summary
+        snapshot = await fetch_summary(s, org_id)
+        status = snapshot.get("financial_data_status")
+        currency = snapshot.get("primary_currency")
+        if status != "registers_only" or not currency:
+            msg = "📊 Données financières incomplètes ou devises incompatibles. Consultez le cockpit CAURI."
+        else:
+            sales = snapshot.get("total_sales_amount")
+            paid = snapshot.get("total_paid_amount")
+            expenses = snapshot.get("total_expenses_paid")
+            msg = (f"📊 <b>Registres déclarés — historique complet</b>\n"
+                   f"Ventes validées : {sales} {currency}\n"
+                   f"Paiements enregistrés : {paid} {currency}\n"
+                   f"Dépenses payées : {expenses} {currency}\n"
+                   "⚠️ Flux déclarés, pas un solde bancaire ni un bilan journalier.")
+        await self.send_message(bot_token, chat_id, msg)
 
-        # Expenses today
-        expenses_today = await s.scalar(
-            select(func.coalesce(func.sum(Expense.amount), Decimal("0"))).where(
-                Expense.organization_id == org_id,
-                Expense.date == today,
-            )
-        )
-        total_expenses = float(expenses_today or 0)
-        net_cash = total_paid - total_expenses
-
-        msg = (
-            f"📊 <b>Bilan Opérationnel du Jour</b> ({today.strftime('%d/%m/%Y')})\n"
-            f"🏢 <b>{org_name}</b>\n\n"
-            f"📈 <b>Chiffre d'Affaires :</b> <code>{total_ca:,.0f} XOF</code> ({count} vente(s))\n"
-            f"💵 <b>Total Encaissé :</b> <code>{total_paid:,.0f} XOF</code>\n"
-            f"💸 <b>Dépenses :</b> <code>{total_expenses:,.0f} XOF</code>\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"💰 <b>Trésorerie Nette :</b> <code>{net_cash:,.0f} XOF</code>\n"
-            f"⏳ <b>Créances du jour :</b> <code>{pending_creances:,.0f} XOF</code>"
-        )
-        reply_markup = {
-            "inline_keyboard": [
-                [
-                    {
-                        "text": "🚀 Voir les détails sur le Cockpit",
-                        "web_app": {"url": "https://cauri.koryxa.fr/espace"},
-                    }
-                ],
-                [
-                    {"text": "🔄 Actualiser le Solde", "callback_data": "action_solde"},
-                    {"text": "📡 Radar Alertes", "callback_data": "action_radar"},
-                ],
-            ]
-        }
-        await self.send_message(bot_token, chat_id, msg, reply_markup)
-
-    async def _send_radar_alerts(
-        self, s: AsyncSession, bot_token: str, chat_id: int | str, org_id: str
-    ) -> None:
-        alerts = await s.scalars(
-            select(RadarAlert)
-            .where(
-                RadarAlert.organization_id == org_id,
-                RadarAlert.status == AlertStatus.OPEN,
-            )
-            .order_by(RadarAlert.severity.desc())
-            .limit(5)
-        )
-        alerts_list = alerts.all()
-        if not alerts_list:
-            reply_markup = {
-                "inline_keyboard": [
-                    [
-                        {
-                            "text": "📡 Ouvrir le Radar complet",
-                            "web_app": {"url": "https://cauri.koryxa.fr/espace/radar"},
-                        }
-                    ]
-                ]
-            }
-            await self.send_message(
-                bot_token,
-                chat_id,
-                "📡 <b>Radar Opérationnel KORYXA</b>\n\n✅ <b>Tout est sous contrôle !</b> Aucune anomalie critique ou impayé majeur détecté.",
-                reply_markup,
-            )
-            return
-
-        lines = ["📡 <b>Alertes Radar Actives :</b>\n"]
-        for a in alerts_list:
-            icon = "🔴" if a.severity == "critical" else "🟠" if a.severity == "warning" else "🔵"
-            lines.append(f"{icon} <b>{a.title}</b>\n{a.description or ''}\n")
-
-        lines.append("<i>Consultez votre radar complet pour traiter ces points.</i>")
-        reply_markup = {
-            "inline_keyboard": [
-                [
-                    {
-                        "text": "📡 Traiter sur le Radar CAURI",
-                        "web_app": {"url": "https://cauri.koryxa.fr/espace/radar"},
-                    }
-                ]
-            ]
-        }
-        await self.send_message(bot_token, chat_id, "\n".join(lines), reply_markup)
-
-    async def _send_help_guide(self, bot_token: str, chat_id: int | str) -> None:
-        msg = (
-            "💡 <b>Guide d'Utilisation CAURI Telegram</b>\n\n"
-            "<b>1. Actions directes :</b>\n"
-            "• <code>/cockpit</code> : Lance l'application complète\n"
-            "• <code>/vente</code> : Saisie guidée d'une vente\n"
-            "• <code>/depense</code> : Saisie guidée d'une dépense\n"
-            "• <code>/solde</code> : Bilan et trésorerie du jour\n"
-            "• <code>/radar</code> : Alertes de stock et créances\n\n"
-            "<b>2. Saisie en direct par message texte ou audio :</b>\n"
-            "Écrivez simplement votre opération :\n"
-            "👉 <i>« Vente 5 cartons de savon 25000 payé espèces »</i>\n"
-            "👉 <i>« Dépense 3000 carburant livraison »</i>\n\n"
-            "L'IA enregistre automatiquement l'opération dans votre comptabilité !"
-        )
-        reply_markup = {
-            "inline_keyboard": [
-                [
-                    {
-                        "text": "🚀 Ouvrir le Cockpit",
-                        "web_app": {"url": "https://cauri.koryxa.fr/espace"},
-                    }
-                ]
-            ]
-        }
-        await self.send_message(bot_token, chat_id, msg, reply_markup)
+    async def _send_radar_alerts(self, s: AsyncSession, bot_token: str, chat_id: int | str, org_id: str) -> None:
+        from app.services.radar_quality import radar_quality_snapshot
+        quality = await radar_quality_snapshot(s, org_id)
+        count = sum(quality["alert_counts"].values())
+        await self.send_message(bot_token, chat_id,
+            f"📡 Radar : {count} alerte(s) active(s). Consultez /espace/radar pour les détails. "
+            "Aucune alerte connue ne signifie pas absence de risques.")
 
     async def _handle_callback_query(
         self, s: AsyncSession, callback_query: dict[str, Any], explicit_org_id: str | None
@@ -644,108 +512,7 @@ class TelegramService:
 
         return True
 
-    async def _process_natural_language_message(
-        self,
-        s: AsyncSession,
-        bot_token: str,
-        chat_id: int | str,
-        org_id: str,
-        org_name: str,
-        text: str,
-    ) -> None:
-        parsed = self.voice_service.parse_transcript(text)
-        
-        # If no recognized intent
-        if not parsed.intent or parsed.intent.value == "unknown":
-            await self.send_message(
-                bot_token,
-                chat_id,
-                "🤖 <i>Je n'ai pas bien compris votre opération.</i>\n\n"
-                "Pour enregistrer une opération, écrivez par exemple :\n"
-                "• <code>Vente 2 cartons savon 15000 payé espèces</code>\n"
-                "• <code>Dépense 5000 essence moto</code>\n\n"
-                "Ou tapez <code>/menu</code> pour afficher tous les modules.",
-            )
-            return
-
-        # Confirm and persist the record
-        payload: dict[str, Any] | list[dict[str, Any]]
-        if parsed.intent.value == "sale":
-            if parsed.sales:
-                payload = [s.model_dump() for s in parsed.sales]
-            elif parsed.sale:
-                payload = parsed.sale.model_dump()
-            else:
-                payload = {}
-        elif parsed.intent.value == "expense":
-            if parsed.expenses:
-                payload = [e.model_dump() for e in parsed.expenses]
-            elif parsed.expense:
-                payload = parsed.expense.model_dump()
-            else:
-                payload = {}
-        elif parsed.intent.value == "offer" and parsed.offer:
-            payload = parsed.offer.model_dump()
-        elif parsed.intent.value == "procedure" and parsed.procedure:
-            payload = parsed.procedure.model_dump()
-        else:
-            payload = {}
-
-        req = VoiceConfirmRequest(
-            intent=parsed.intent,
-            payload=payload,
-            source=RecordSource.VOICE,
-        )
-
-        try:
-            confirmed = await self.voice_service.confirm_record(
-                s=s,
-                org_id=org_id,
-                user_id=f"telegram:{chat_id}",
-                request=req,
-            )
-            await s.commit()
-
-            if parsed.intent.value == "sale" and (parsed.sales or parsed.sale):
-                sale = parsed.sales[0] if parsed.sales else parsed.sale
-                status_badge = "✅ Payé" if sale.payment_status == PaymentStatus.PAID else "⏳ À crédit / Partiel"
-                msg = (
-                    f"🎉 <b>Vente Enregistrée !</b>\n\n"
-                    f"📦 <b>Offre :</b> {sale.item_label or 'Vente standard'}\n"
-                    f"🔢 <b>Quantité :</b> {sale.quantity or 1}\n"
-                    f"💰 <b>Montant Total :</b> <code>{sale.total_amount:,.0f} {sale.currency or 'XOF'}</code>\n"
-                    f"💳 <b>Statut :</b> {status_badge}\n"
-                    f"👤 <b>Client :</b> {sale.client_name or 'Comptant'}\n\n"
-                    f"🏢 Synchronisé avec <b>{org_name}</b>"
-                )
-            elif parsed.intent.value == "expense" and (parsed.expenses or parsed.expense):
-                exp = parsed.expenses[0] if parsed.expenses else parsed.expense
-                msg = (
-                    f"💸 <b>Dépense Enregistrée !</b>\n\n"
-                    f"🏷️ <b>Bénéficiaire / Description :</b> {exp.beneficiary or 'Dépense diverse'}\n"
-                    f"💰 <b>Montant :</b> <code>{exp.amount:,.0f} {exp.currency or 'XOF'}</code>\n"
-                    f"📁 <b>Catégorie :</b> {exp.category or 'Générale'}\n\n"
-                    f"🏢 Synchronisé avec <b>{org_name}</b>"
-                )
-            else:
-                msg = f"✅ <b>Opération ({parsed.intent.value}) enregistrée avec succès sur {org_name} !</b>"
-
-            reply_markup = {
-                "inline_keyboard": [
-                    [
-                        {
-                            "text": "🚀 Voir sur le Cockpit",
-                            "web_app": {"url": "https://cauri.koryxa.fr/espace"},
-                        }
-                    ]
-                ]
-            }
-            await self.send_message(bot_token, chat_id, msg, reply_markup)
-
-        except Exception as e:
-            await s.rollback()
-            await self.send_message(
-                bot_token,
-                chat_id,
-                f"⚠️ Une erreur est survenue lors de l'enregistrement : {str(e)}",
-            )
+    async def _process_natural_language_message(self, s: AsyncSession, bot_token: str, chat_id: int | str, org_id: str, org_name: str, text: str) -> None:
+        await self.send_message(bot_token, chat_id,
+            "Pour enregistrer une vente, une dépense, une offre ou une procédure, ouvrez "
+            "le registre CAURI et confirmez l'opération. Aucune écriture créée via Telegram.")

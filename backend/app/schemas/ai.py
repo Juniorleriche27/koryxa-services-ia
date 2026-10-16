@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -64,7 +64,7 @@ class AIConfigRead(AIConfigBase):
 
 
 class ChatMessage(BaseModel):
-    role: str = Field(..., description="Rôle du message: user, assistant ou system")
+    role: Literal["user", "assistant"] = Field(..., description="Seuls les rôles user et assistant sont acceptés depuis le client")
     content: str = Field(..., description="Contenu texte du message")
 
 
