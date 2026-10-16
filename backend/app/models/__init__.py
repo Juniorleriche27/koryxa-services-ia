@@ -1,6 +1,11 @@
 from app.models.attendance import AttendanceRecord
-from app.models.finance import CashAccount, CashMovement, FinancialCostClassification
 from app.models.billing import BillingTransaction
+from app.models.finance import (
+    CashAccount,
+    CashMovement,
+    FinancialAuditEvent,
+    FinancialCostClassification,
+)
 from app.models.imports import Attachment, ImportJob, ImportStatus
 from app.models.integrations import (
     OrganizationIntegrationConfig,
@@ -43,8 +48,12 @@ __all__ = [
     "AttendanceRecord",
     "AuditEvent",
     "BillingTransaction",
+    "CashAccount",
+    "CashMovement",
     "CorrectiveAction",
     "Expense",
+    "FinancialAuditEvent",
+    "FinancialCostClassification",
     "ImportJob",
     "ImportStatus",
     "InvitationStatus",

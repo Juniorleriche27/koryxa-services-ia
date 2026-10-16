@@ -1,11 +1,10 @@
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import and_, delete, func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApplicationError
-from app.models.attendance import AttendanceRecord
 from app.models.registers import (
     DocumentType,
     Expense,
@@ -33,6 +32,7 @@ from app.schemas.registers import (
     SupplierCreate,
     SupplierUpdate,
 )
+from app.services.financial_audit import add_financial_audit
 from app.services.reference_generator import (
     generate_next_expense_reference,
     generate_next_sale_reference,
@@ -40,7 +40,7 @@ from app.services.reference_generator import (
 
 
 def serialize_val(v: object) -> object:
-    if isinstance(v, (date, Decimal)):
+    if isinstance(v, date | Decimal):
         return str(v)
     return v
 
@@ -74,6 +74,16 @@ class RegisterService:
                 changes=changes,
             )
         )
+        if typ in {"sale", "expenses", "expense"}:
+            add_financial_audit(
+                s,
+                organization_id=org,
+                entity_type="sale" if typ == "sale" else "expense",
+                entity_id=rid,
+                event_type=action,
+                actor_user_id=user,
+                payload=changes,
+            )
 
     async def create_offer(self, s, org, user, data: OfferCreate):
         obj = Offer(

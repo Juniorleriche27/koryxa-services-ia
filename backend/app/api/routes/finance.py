@@ -10,13 +10,14 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.permissions import get_current_organization, require_permission
 from app.core.identity import KoryxaIdentity, require_koryxa_identity
+from app.core.permissions import get_current_organization, require_permission
 from app.db.session import get_session
 from app.models.finance import CashAccount, CashMovement, FinancialCostClassification
-from app.models.registers import Expense
 from app.models.organization import Organization
+from app.models.registers import Expense
 from app.services.finance_ledger import account_balances, direct_cost_coverage
+from app.services.financial_audit import add_financial_audit
 
 router = APIRouter()
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -83,6 +84,11 @@ async def add_account(data: AccountIn, s: Session, org: Org, _: Manage, identity
                       opening_balance=data.opening_balance, opening_date=data.opening_date,
                       created_by_user_id=identity.user_id)
     s.add(obj)
+    add_financial_audit(s, organization_id=org.id, entity_type="cash_account",
+                        entity_id=obj.id, event_type="created", actor_user_id=identity.user_id,
+                        payload={"name": obj.name, "currency": obj.currency,
+                                 "opening_balance": obj.opening_balance,
+                                 "opening_date": obj.opening_date})
     await s.commit()
     return {"id": obj.id, "status": "created", "balance_known": data.opening_balance is not None}
 
@@ -105,6 +111,11 @@ async def set_opening_balance(account_id: str, data: OpeningBalanceIn, s: Sessio
         raise HTTPException(422, "Des mouvements précèdent cette date; rapprochez le compte avant de fixer le solde")
     account.opening_balance = data.opening_balance
     account.opening_date = data.opening_date
+    add_financial_audit(s, organization_id=org.id, entity_type="cash_account",
+                        entity_id=account.id, event_type="opening_balance_declared",
+                        actor_user_id=identity.user_id,
+                        payload={"opening_balance": data.opening_balance,
+                                 "opening_date": data.opening_date})
     await s.commit()
     return {"account_id": account.id, "opening_status": "declared", "entered_by_user_id": identity.user_id}
 
@@ -135,6 +146,12 @@ async def add_movement(data: MovementIn, s: Session, org: Org, _: Manage, identi
                        category=data.category, note=data.note, source_kind=data.source_kind,
                        source_id=data.source_id, created_by_user_id=identity.user_id)
     s.add(obj)
+    add_financial_audit(s, organization_id=org.id, entity_type="cash_movement",
+                        entity_id=obj.id, event_type="recorded", actor_user_id=identity.user_id,
+                        payload={"account_id": account.id, "occurred_on": data.occurred_on,
+                                 "amount": data.amount, "direction": data.direction,
+                                 "category": data.category, "source_kind": data.source_kind,
+                                 "source_id": data.source_id})
     try:
         await s.commit()
     except IntegrityError as exc:
@@ -162,12 +179,19 @@ async def transfer(data: TransferIn, s: Session, org: Org, _: Manage, identity: 
         raise HTTPException(422, "Transfert antérieur à la date d'ouverture")
     transfer_id = str(uuid4())
     for acc, direction in ((source, "out"), (target, "in")):
-        s.add(CashMovement(
+        movement = CashMovement(
             id=str(uuid4()), organization_id=org.id, account_id=acc.id,
             occurred_on=data.occurred_on, amount=data.amount, direction=direction,
             category="transfer", transfer_group_id=transfer_id, note=data.note,
             created_by_user_id=identity.user_id,
-        ))
+        )
+        s.add(movement)
+        add_financial_audit(s, organization_id=org.id, entity_type="cash_movement",
+                            entity_id=movement.id, event_type="transfer_leg_recorded",
+                            actor_user_id=identity.user_id,
+                            payload={"transfer_group_id": transfer_id, "account_id": acc.id,
+                                     "direction": direction, "amount": data.amount,
+                                     "currency": source.currency, "occurred_on": data.occurred_on})
     await s.commit()
     return {"transfer_id": transfer_id, "legs": 2, "currency": source.currency}
 
@@ -193,5 +217,10 @@ async def classify_expense(expense_id: str, data: CostIn, s: Session, org: Org, 
     current.relation = data.relation
     current.note = data.note
     current.updated_by_user_id = identity.user_id
+    add_financial_audit(s, organization_id=org.id, entity_type="expense_classification",
+                        entity_id=current.id, event_type="classified",
+                        actor_user_id=identity.user_id,
+                        payload={"expense_id": expense_id, "behavior": data.behavior,
+                                 "relation": data.relation})
     await s.commit()
     return {"expense_id": expense_id, "behavior": data.behavior, "relation": data.relation}

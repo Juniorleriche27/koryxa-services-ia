@@ -25,6 +25,7 @@ from app.models.registers import (
     Sale,
     Supplier,
 )
+from app.services.financial_audit import add_financial_audit
 
 FIELD_MAPS = {
     "offers": {
@@ -299,6 +300,16 @@ class ImportService:
                 session.add(record)
                 await session.flush()
                 imported_ids.append(record.id)
+                if isinstance(record, Sale | Expense):
+                    add_financial_audit(
+                        session,
+                        organization_id=organization_id,
+                        entity_type="sale" if isinstance(record, Sale) else "expense",
+                        entity_id=record.id,
+                        event_type="imported",
+                        actor_user_id=user_id,
+                        payload={"import_job_id": job.id, "source": "excel"},
+                    )
             except Exception as exc:
                 errors.append({"row": row_number, "message": str(exc)})
 
@@ -452,6 +463,18 @@ class ImportService:
             "procedures": Procedure,
         }
         model = model_map.get(job.register_type, Offer)
+        if model in {Sale, Expense}:
+            entity_type = "sale" if model is Sale else "expense"
+            for entity_id in job.imported_record_ids:
+                add_financial_audit(
+                    session,
+                    organization_id=organization_id,
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    event_type="import_rolled_back",
+                    actor_user_id=job.created_by_user_id,
+                    payload={"import_job_id": job.id},
+                )
         await session.execute(
             delete(model).where(
                 model.organization_id == organization_id,

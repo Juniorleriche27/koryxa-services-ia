@@ -6,12 +6,13 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.registers import Sale, Expense
-from app.services.financial_metrics import summarize_registers
+from app.core.config import get_settings
+from app.models.registers import Expense, Sale
 from app.services.analytics_contract import exact_decimal, round_money
+from app.services.financial_metrics import summarize_registers
 
 
 @dataclass(frozen=True)
@@ -30,7 +31,7 @@ class DateWindow:
         return (self.end - self.start).days
 
     @property
-    def previous(self) -> "DateWindow":
+    def previous(self) -> DateWindow:
         return DateWindow(self.start - timedelta(days=self.days), self.start)
 
 
@@ -85,10 +86,20 @@ def trend_signals(metric: str, current: Decimal | None, previous: Decimal | None
 
 async def temporal_snapshot(session: AsyncSession, org_id: str, window: DateWindow) -> dict[str, Any]:
     prev = window.previous
-    sales = (await session.scalars(select(Sale).where(Sale.organization_id == org_id,
-                 Sale.sale_date >= prev.start, Sale.sale_date < window.end))).all()
-    expenses = (await session.scalars(select(Expense).where(Expense.organization_id == org_id,
-                    Expense.expense_date >= prev.start, Expense.expense_date < window.end))).all()
+    limit = get_settings().max_analytics_records
+    sale_filter = (Sale.organization_id == org_id, Sale.sale_date >= prev.start, Sale.sale_date < window.end)
+    expense_filter = (Expense.organization_id == org_id, Expense.expense_date >= prev.start, Expense.expense_date < window.end)
+    sale_count = int(await session.scalar(select(func.count()).select_from(Sale).where(*sale_filter)) or 0)
+    expense_count = int(await session.scalar(select(func.count()).select_from(Expense).where(*expense_filter)) or 0)
+    if sale_count > limit or expense_count > limit:
+        return {"schema_version": "1.0", "organization_id": org_id,
+                "window": {"start": window.start.isoformat(), "end_exclusive": window.end.isoformat()},
+                "status": "analytics_capacity_exceeded", "comparisons": {}, "signals": [],
+                "forecast": {"status": "incomplet", "reason": "Budget analytique dépassé", "scenarios": None},
+                "record_counts": {"sales": sale_count, "expenses": expense_count},
+                "record_limit": limit}
+    sales = (await session.scalars(select(Sale).where(*sale_filter))).all()
+    expenses = (await session.scalars(select(Expense).where(*expense_filter))).all()
 
     def calc(w: DateWindow) -> dict[str, Any]:
         result = summarize_registers(

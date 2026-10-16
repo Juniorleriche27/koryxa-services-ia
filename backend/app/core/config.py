@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     )
     file_storage_path: str = "storage/files"
     max_upload_bytes: int = 104_857_600
+    max_analytics_records: int = Field(default=50_000, ge=1_000, le=1_000_000)
     smtp_host: str | None = None
     smtp_port: int = 465
     smtp_username: str | None = None

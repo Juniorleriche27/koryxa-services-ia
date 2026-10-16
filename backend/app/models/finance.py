@@ -2,8 +2,22 @@
 from datetime import date, datetime
 from decimal import Decimal
 from uuid import uuid4
-from sqlalchemy import Date, DateTime, ForeignKey, ForeignKeyConstraint, Numeric, String, Text, Boolean, UniqueConstraint, func
+
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.db.base import Base
 
 
@@ -68,4 +82,22 @@ class FinancialCostClassification(Base):
             ["organization_id", "expense_id"], ["expenses.organization_id", "expenses.id"],
             name="fk_finance_cost_classification_tenant_expense", ondelete="CASCADE",
         ),
+    )
+
+
+class FinancialAuditEvent(Base):
+    """Append-only evidence for every mutation affecting financial truth."""
+
+    __tablename__ = "financial_audit_events"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    organization_id: Mapped[str] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"), index=True
+    )
+    entity_type: Mapped[str] = mapped_column(String(40), index=True)
+    entity_id: Mapped[str] = mapped_column(String(36), index=True)
+    event_type: Mapped[str] = mapped_column(String(80), index=True)
+    actor_user_id: Mapped[str] = mapped_column(String(120), index=True)
+    payload: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
     )

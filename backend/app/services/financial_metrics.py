@@ -9,22 +9,23 @@ runway, or working capital can be inferred from these registers alone.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Any, Iterable
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.analytics_contract import exact_decimal, round_money
+from app.core.config import get_settings
 from app.models.registers import (
     DocumentType,
     Expense,
     PaymentStatus,
-    RecordStatus,
     Sale,
 )
+from app.services.analytics_contract import exact_decimal, round_money
 
 ZERO = Decimal("0")
 HUNDRED = Decimal("100")
@@ -214,11 +215,44 @@ def summarize_registers(
 
 
 async def collect_financial_registers(s: AsyncSession, org_id: str) -> FinancialRegisterSnapshot:
-    """Database isolation is enforced before any in-memory arithmetic."""
+    """Database isolation is enforced before arithmetic; memory use is bounded.
+
+    When the configured evidence budget is exceeded, no partial monetary total is
+    returned as reliable. This is deliberately fail-closed until SQL aggregation
+    or a warehouse is selected for that tenant's volume.
+    """
+    limit = get_settings().max_analytics_records
+    sale_count = int(await s.scalar(select(func.count()).select_from(Sale).where(
+        Sale.organization_id == org_id, Sale.is_archived.is_(False),
+    )) or 0)
+    expense_count = int(await s.scalar(select(func.count()).select_from(Expense).where(
+        Expense.organization_id == org_id, Expense.is_archived.is_(False),
+    )) or 0)
     sales = (await s.scalars(select(Sale).where(
         Sale.organization_id == org_id, Sale.is_archived.is_(False),
-    ).order_by(Sale.sale_date.desc()))).all()
+    ).order_by(Sale.sale_date.desc()).limit(limit + 1))).all()
     expenses = (await s.scalars(select(Expense).where(
         Expense.organization_id == org_id, Expense.is_archived.is_(False),
-    ).order_by(Expense.expense_date.desc()))).all()
+    ).order_by(Expense.expense_date.desc()).limit(limit + 1))).all()
+    if sale_count > limit or expense_count > limit:
+        snapshot = summarize_registers(sales[:limit], expenses[:limit])
+        summary = dict(snapshot.summary)
+        for key in (
+            "total_sales_amount", "total_paid_amount", "total_unpaid_amount",
+            "total_partial_amount", "total_expenses_paid", "total_expenses_unpaid",
+            "receivables_overdue", "receivables_not_due", "receivables_due_today",
+            "receivables_without_due_date", "payables_overdue", "cash_movement_net",
+            "average_order_value", "recovery_rate",
+        ):
+            summary[key] = None
+        summary.update({
+            "sales_records_count": sale_count,
+            "expenses_records_count": expense_count,
+            "financial_data_status": "analytics_capacity_exceeded",
+            "financial_warnings": [
+                f"Volume supérieur au budget analytique de {limit} écritures par registre; "
+                "aucun total partiel n'est présenté comme fiable."
+            ],
+        })
+        return FinancialRegisterSnapshot(summary, tuple(sales[:limit]), tuple(expenses[:limit]))
     return summarize_registers(sales, expenses)
