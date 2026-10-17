@@ -1,2 +1,5 @@
-import { LiveDashboard } from "@/components/app/LiveData";
-export default LiveDashboard;
+import { GrandHall } from "@/components/grand-siege/GrandHall";
+
+export default function EspaceHomePage() {
+  return <GrandHall />;
+}

@@ -1,0 +1,37 @@
+/* CAURI departments: modern institutional frame; all existing business screens remain intact. */
+:global(.app-shell.is-department) { grid-template-columns: minmax(0, 1fr); background: #f2f5f1; }
+:global(.app-shell.is-department .app-sidebar), :global(.app-shell.is-department .app-overlay) { display: none !important; }
+:global(.app-shell.is-department .app-topbar .mobile-only) { display: none !important; }
+:global(.app-shell.is-department .app-topbar) { background: #f6f8f4; border-bottom: 1px solid #dbe5dd; }
+:global(.app-shell.is-department .app-content) { padding: 0 !important; max-width: none; }
+.frame { min-height: 100dvh; background: var(--gs-paper); }
+.masthead { color: #f4f7ed; padding: clamp(18px,3vw,36px) clamp(16px,4vw,60px) 0; background: radial-gradient(ellipse at 85% 5%,rgba(182,149,93,.30),transparent 44%),linear-gradient(125deg,#112f34,#1d5552); }
+.mastheadTop { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back { display: inline-flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 750; text-decoration: none; color: #f2ddae; padding: 9px 0; }
+.identity { display: inline-flex; align-items: center; gap: 7px; font-size: .75rem; font-weight: 650; color: #c6d8cf; overflow-wrap: anywhere; }
+.headline { margin: 28px 0 24px; }
+.kicker { display: inline-flex; align-items: center; gap: 8px; font-size: .7rem; font-weight: 750; letter-spacing: .15em; color: #e4c48b; }
+.headline h1 { font-family: Georgia,serif; font-weight: 550; font-size: clamp(1.8rem,4vw,3.3rem); line-height: 1.2; letter-spacing: -.025em; margin: 10px 0; color: #fffdf3; }
+.headline p { margin: 0; color: #d1e3de; line-height: 1.5; font-size: .92rem; }
+.localNav { display: flex; gap: 6px; align-items: center; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; scroll-snap-type: x proximity; }
+.localLink { position: relative; white-space: nowrap; flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 13px 15px 15px; color: #c6dbd5; font-size: .84rem; font-weight: 680; text-decoration: none; border-radius: 11px 11px 0 0; scroll-snap-align: start; }
+.localLink[aria-current='page'] { background: var(--gs-paper); color: var(--gs-ink); }
+.localLink:hover:not([aria-current='page']) { color: white; background: rgba(255,255,255,.10); }
+.activeMark { position: absolute; bottom: 0; left: 16px; right: 16px; height: 3px; border-radius: 3px; background: var(--gs-jade); }
+.content { background: var(--gs-paper); color: var(--gs-ink); padding: clamp(16px,3vw,38px) clamp(14px,4vw,60px) 96px; min-width: 0; }
+.currentSection { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 0 0 18px; border-bottom: 1px solid var(--gs-border); margin-bottom: 22px; color: var(--gs-muted); font-size: .8rem; }
+.currentSection span { text-transform: uppercase; font-weight: 780; letter-spacing: .1em; }
+.currentSection a { display: inline-flex; align-items: center; gap: 5px; text-decoration: none; color: var(--gs-jade); font-weight: 750; }
+.back:focus-visible,.localLink:focus-visible,.currentSection a:focus-visible { outline: 3px solid #9dccff; outline-offset: 3px; }
+@media (max-width: 640px) { .masthead { padding-top: 14px; } .headline { margin: 23px 0 18px; } .identity { max-width: 55%; } .content { padding-bottom: 110px; } }
+/* Pocket layouts: keep department navigation discoverable, keyboard-scrollable and finger-sized. */
+@media (max-width: 1023px) {
+  .localNav { margin-inline: -16px; padding: 0 16px 8px; scroll-padding-inline: 16px; -webkit-overflow-scrolling: touch; overscroll-behavior-inline: contain; }
+  .localLink { min-height: 48px; }
+  .content { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+  .mastheadTop { min-width: 0; }
+  .headline h1 { overflow-wrap: anywhere; }
+  .localNav:focus-visible { outline: 3px solid #9dccff; outline-offset: -3px; }
+}
+@media (max-width: 380px) { .currentSection { align-items: flex-start; } .currentSection a { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .localNav { scroll-behavior: auto; } }

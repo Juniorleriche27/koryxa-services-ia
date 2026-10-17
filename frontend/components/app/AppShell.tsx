@@ -4,6 +4,11 @@ import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { DepartmentShell } from "@/components/grand-siege/DepartmentShell";
+import { MobileSiegeDock } from '@/components/grand-siege/MobileSiegeDock';
+import { resolveDepartment } from "@/components/grand-siege/departments";
+import { CAURI_AI_OPEN_EVENT } from "@/components/grand-siege/intelligence-context";
+import { fetchFreshCommandData } from '@/components/grand-siege/fresh-command-data';
 import {
   Activity,
   BookOpen,
@@ -37,7 +42,6 @@ import {
   HelpCircle,
   Download,
   PhoneCall,
-  Send,
 } from "lucide-react";
 
 import clsx from "clsx";
@@ -46,7 +50,6 @@ import { serviceIaFetch } from "@/lib/service-ia/api";
 import { getBusinessCategoryConfig } from "@/lib/service-ia/business-categories";
 import BrandLogo from "@/components/layout/BrandLogo";
 import { OfflineSyncBanner } from "./OfflineSyncBanner";
-import { TelegramWebAppProvider } from "./TelegramWebAppProvider";
 import { LanguageSelector } from "./LanguageSelector";
 import { useI18n } from "@/lib/i18n";
 
@@ -77,6 +80,8 @@ const PwaInstaller = dynamic(() =>
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isGrandHall = pathname === "/espace";
+  const isDepartment = resolveDepartment(pathname) !== null;
   const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -85,7 +90,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [copilotMinimized, setCopilotMinimized] = useState(false);
+  const [copilotDraft, setCopilotDraft] = useState("");
+  const [copilotDraftRevision, setCopilotDraftRevision] = useState(0);
+
+  useEffect(() => {
+    const openIntelligence = (event: Event) => {
+      const detail = (event as CustomEvent<{ prompt?: unknown }>).detail;
+      if (typeof detail?.prompt !== 'string' || !detail.prompt.trim()) return;
+      setCopilotDraft(detail.prompt.slice(0, 1500));
+      setCopilotDraftRevision((revision) => revision + 1);
+      setCopilotMinimized(false);
+      setCopilotOpen(true);
+    };
+    window.addEventListener(CAURI_AI_OPEN_EVENT, openIntelligence);
+    return () => window.removeEventListener(CAURI_AI_OPEN_EVENT, openIntelligence);
+  }, []);
   const [organization, setOrganization] = useState<{
+    id?: string;
     name: string;
     business_category?: string;
     latitude?: number | null;
@@ -95,6 +116,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     created_by_user_id?: string;
   }>({ name: "Organisation KORYXA", business_category: "retail" });
   const [organizationLoaded, setOrganizationLoaded] = useState(false);
+  // Never preserve an AI conversation or draft across two tenant identities.
+  const activeOrganizationId = organization.id;
+  useEffect(() => {
+    setCopilotOpen(false);
+    setCopilotMinimized(false);
+    setCopilotDraft('');
+    setCopilotDraftRevision(0);
+  }, [activeOrganizationId]);
   const [logoBroken, setLogoBroken] = useState(false);
 
   useEffect(() => {
@@ -142,7 +171,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       title: t("group_system"),
       items: [
         { label: t("nav_whatsapp"), href: "/espace/whatsapp", icon: MessageSquare },
-        { label: "Telegram Mini App", href: "/espace/telegram", icon: Send },
         { label: "Formules & Facturation", href: "/espace/parametres/facturation", icon: CreditCard },
         { label: t("nav_imports"), href: "/espace/imports", icon: FileSpreadsheet },
         { label: t("nav_organization"), href: "/espace/organisation", icon: Building2 },
@@ -191,7 +219,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     "/espace/validations": { eyebrow: t("page_ctx_validations"), description: t("page_ctx_validations_desc") },
     "/espace/actions": { eyebrow: t("page_ctx_actions"), description: t("page_ctx_actions_desc") },
     "/espace/whatsapp": { eyebrow: t("page_ctx_whatsapp"), description: t("page_ctx_whatsapp_desc") },
-    "/espace/telegram": { eyebrow: "Canaux & Mobilité", description: "Accès Telegram Mini App et mobilité terrain" },
     "/espace/organisation": { eyebrow: t("page_ctx_org"), description: t("page_ctx_org_desc") },
     "/espace/parametres": { eyebrow: t("page_ctx_settings"), description: t("page_ctx_settings_desc") },
   };
@@ -200,34 +227,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     type Organization = {
-        name: string;
-        business_category?: string;
-        latitude?: number | null;
-        longitude?: number | null;
-        logo_updated_at?: string | null;
-        onboarding_completed_at?: string | null;
-        created_by_user_id?: string;
+      id: string;
+      name: string;
+      business_category?: string;
+      latitude?: number | null;
+      longitude?: number | null;
+      logo_updated_at?: string | null;
+      onboarding_completed_at?: string | null;
+      created_by_user_id?: string;
     };
-    type DashboardOrganization = { organization: Organization };
-
-    // On the cockpit, reuse the dashboard request instead of issuing a second
-    // identity lookup and a second backend round-trip for the same company.
+    let current = true;
+    let controller = new AbortController();
     const load = () => {
-      const organizationRequest = pathname === "/espace"
-        ? serviceIaFetch<DashboardOrganization>("/dashboard").then((data) => data.organization)
-        : serviceIaFetch<Organization>("/organizations/current");
-      return organizationRequest
-        .then(setOrganization)
-        // A transport/authentication failure must never be interpreted as a
-        // missing organization, otherwise the UI displays a false onboarding.
-        .catch(() => undefined)
-        .finally(() => setOrganizationLoaded(true));
+      controller.abort();
+      controller = new AbortController();
+      const activeController = controller;
+      // Resolve current tenant without using the generic persistent dashboard cache.
+      void fetchFreshCommandData<Organization>('/organizations/current', activeController.signal)
+        .then((next) => { if (current && !activeController.signal.aborted && next.id) setOrganization(next); })
+        .catch(() => { if (current && !activeController.signal.aborted) setOrganization(prev => ({ ...prev, id: undefined })); })
+        .finally(() => { if (current && !activeController.signal.aborted) setOrganizationLoaded(true); });
     };
-    void load();
-    const updated = (event: Event) =>
-      setOrganization((event as CustomEvent<any>).detail);
-    window.addEventListener("koryxa:organization-updated", updated);
-    return () => window.removeEventListener("koryxa:organization-updated", updated);
+    load();
+    const updated = (event: Event) => {
+      const detail = (event as CustomEvent<Partial<Organization>>).detail;
+      // Disable the old tenant's AI immediately until the active id is verified.
+      setOrganization(prev => ({ ...prev, id: undefined }));
+      if (detail?.id && typeof detail.id === 'string') {
+        // Do not trust a client-side event alone as proof of membership.
+        setOrganizationLoaded(false);
+      }
+      load();
+    };
+    window.addEventListener('koryxa:organization-updated', updated);
+    return () => { current = false; controller.abort(); window.removeEventListener('koryxa:organization-updated', updated); };
   }, [pathname]);
 
   useEffect(() => {
@@ -303,7 +336,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className={clsx("app-shell", collapsed && "is-sidebar-collapsed")}>
+    <div className={clsx("app-shell", collapsed && !isGrandHall && !isDepartment && "is-sidebar-collapsed", isGrandHall && "is-grand-hall", isDepartment && "is-department")}>
       {commandOpen && (
         <CommandPalette
           open
@@ -343,7 +376,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <PwaInstaller />
-      <TelegramWebAppProvider />
 
       {onboardingRequired && (
         <OrganizationOnboarding
@@ -357,8 +389,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="app-brand">
           <BrandLogo className="app-brand-logo" />
           <div>
-            <strong>KORYXA</strong>
-            <small>CAURI</small>
+            <strong>CAURI</strong>
+            <small>{organization.name}</small>
           </div>
           <button className="app-icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Fermer le menu">
             <X size={20} />
@@ -594,7 +626,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <div className="app-content pb-24 lg:pb-8">{children}</div>
+          <div key={organization.id || 'unverified-tenant'} className="app-content pb-24 lg:pb-8">
+            {!organization.id ? <div role="status" className="p-6 text-sm">{organizationLoaded ? 'Impossible de vérifier votre entreprise. Actualisez la page pour réessayer.' : 'Vérification de votre entreprise…'}</div> : isDepartment ? <DepartmentShell pathname={pathname} organizationName={organization.name} organizationId={organization.id}>{children}</DepartmentShell> : children}
+          </div>
 
           {/* Floating Cora bubble — hidden when panel is open */}
           {!copilotOpen && (
@@ -619,8 +653,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          {/* Mobile Bottom Navigation Bar (Glassmorphism Dock) */}
-          <nav className={clsx(
+          {(isGrandHall || isDepartment) && <MobileSiegeDock pathname={pathname} organizationId={organization.id || null} hidden={copilotOpen && !copilotMinimized} />}
+          {/* Legacy mobile navigation applies only to non-Grand-Siège screens. */}
+          {!(isGrandHall || isDepartment) && <nav className={clsx(
             "fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/80 px-2 py-1.5 flex items-center justify-around lg:hidden shadow-[0_-10px_25px_rgba(0,0,0,0.06)]",
             copilotOpen && !copilotMinimized && "hidden"
           )}>
@@ -679,20 +714,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span>Radar</span>
             </Link>
 
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              <Menu size={20} />
-              <span>Menu</span>
-            </button>
-          </nav>
+            {isDepartment ? (
+              <Link href="/espace" className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold text-muted-foreground hover:text-foreground">
+                <Compass size={20} />
+                <span>Grand Hall</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <Menu size={20} />
+                <span>Menu</span>
+              </button>
+            )}
+          </nav>}
         </main>
 
         {/* Inline AI Copilot Panel — appears alongside main content */}
-        {copilotOpen && (
+        {copilotOpen && organization.id && (
           <AICopilotDrawer
+            key={organization.id}
+            initialDraft={copilotDraft}
+            draftRevision={copilotDraftRevision}
             open
             onClose={() => { setCopilotOpen(false); setCopilotMinimized(false); }}
             minimized={copilotMinimized}

@@ -145,6 +145,8 @@ function renderInlineMarkdown(content: string) {
 
 interface AICopilotDrawerProps {
   open: boolean;
+  initialDraft?: string;
+  draftRevision?: number;
   onClose: () => void;
   minimized?: boolean;
   onMinimize?: () => void;
@@ -153,6 +155,8 @@ interface AICopilotDrawerProps {
 
 export function AICopilotDrawer({
   open,
+  initialDraft,
+  draftRevision,
   onClose,
   minimized = false,
   onMinimize,
@@ -184,6 +188,10 @@ export function AICopilotDrawer({
   }, [lang, t]);
 
   const [input, setInput] = useState("");
+  // Suggestions are drafts, never auto-submitted to /ai/chat.
+  useEffect(() => {
+    if (initialDraft) setInput(initialDraft);
+  }, [initialDraft, draftRevision]);
   const [loading, setLoading] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [actions, setActions] = useState<SuggestedAction[]>([]);

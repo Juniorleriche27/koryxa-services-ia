@@ -9,7 +9,6 @@ from app.models.finance import (
 from app.models.imports import Attachment, ImportJob, ImportStatus
 from app.models.integrations import (
     OrganizationIntegrationConfig,
-    TelegramWebhookEvent,
     WhatsAppAuthorizedSender,
     WhatsAppWebhookEvent,
 )
@@ -78,7 +77,6 @@ __all__ = [
     "RecordStatus",
     "Sale",
     "Supplier",
-    "TelegramWebhookEvent",
     "ValidationRequest",
     "WhatsAppAuthorizedSender",
     "WhatsAppWebhookEvent",
