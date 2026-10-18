@@ -560,7 +560,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             <div className="app-topbar-context">
               <h1 className="kx-topbar-title m-0 p-0">
-                {pathname === "/espace" ? t("topbar_eyebrow") : context.eyebrow}
+                {pathname === "/espace" ? "CAURI · Grand Siège" : context.eyebrow}
               </h1>
             </div>
 

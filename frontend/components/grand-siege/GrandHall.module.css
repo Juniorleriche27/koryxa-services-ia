@@ -80,3 +80,107 @@
   .roomSignals { max-width: 100%; overflow-wrap: anywhere; }
 }
 @media (prefers-reduced-motion: reduce) { .pulse, .signalDot { box-shadow: none; } }
+
+
+/* CAURI PREMIUM 2.0 — CHANTIER 1: LIGHT INSTITUTIONAL GRAND HALL */
+/* These overrides are intentionally limited to the Grand Hall, not the command room or copilote. */
+:global(.app-shell.is-grand-hall) { background: #f8fbf8; }
+:global(.app-shell.is-grand-hall .app-topbar) {
+  background: rgba(255,255,255,.96);
+  border-bottom: 1px solid #e0ece4;
+  box-shadow: 0 1px 12px rgba(20,62,55,.035);
+}
+:global(.app-shell.is-grand-hall .kx-topbar-title) { color: #143e37; letter-spacing: -.025em; font-weight: 790; }
+.hall {
+  --gs-ink: #163d34;
+  --gs-muted: #567568;
+  --gs-paper: #f8fbf8;
+  --gs-glass: #fff;
+  --gs-border: #dce8df;
+  --gs-jade: #168064;
+  --gs-gold: #886336;
+  --gs-shadow: 0 14px 34px rgba(31,75,58,.055);
+  background: radial-gradient(circle at 3% 20%, rgba(210,235,219,.48), transparent 30%), #f8fbf8 !important;
+}
+.hall::before { opacity: .11; background: repeating-linear-gradient(90deg, transparent 0, transparent 96px, #bad7c5 97px); }
+.topline { border-color: #d8e8dc; padding-bottom: 18px; }
+.identity { letter-spacing: .13em; color: #668076; }
+.identity strong { color: #163d34; font-size: 1.08rem; }
+.identitySymbol { background: #167b60; color: #fff; border-radius: 10px; box-shadow: 0 5px 14px rgba(22,128,100,.2); }
+.secure { padding: 8px 12px; background: #ebf5ed; color: #286950; border-radius: 999px; font-weight: 650; }
+.intro { gap: 28px; padding: clamp(28px, 4vw, 54px) 0 26px; align-items: center; }
+.intro h1 { max-width: 790px; letter-spacing: -.045em; color: #133e33; font-weight: 560; }
+.organization { margin-top: 20px; background: #eaf4ed; color: #176d52; padding: 10px 14px; border-radius: 999px; max-width: 100%; overflow-wrap: anywhere; }
+.today { background: rgba(255,255,255,.85); border: 1px solid #dae9dd; border-left: 3px solid #2c9973; border-radius: 15px; padding: 18px 18px 17px; box-shadow: 0 10px 30px rgba(31,75,58,.045); }
+.todayTitle { color: #225748; letter-spacing: .09em; }
+.todayDescription { line-height: 1.5; }
+.today a { font-size: .82rem; min-height: 40px; align-items: center; }
+.pulse,.signalDot { background: #2bb486; box-shadow: 0 0 0 4px rgba(43,180,134,.13); }
+/* The entrance is a light architectural atrium, not a heavy dark dashboard. */
+.commandRoom {
+  min-height: 222px;
+  border-radius: 22px;
+  border: 1px solid #cfdfd2;
+  padding: clamp(22px, 3vw, 34px);
+  background: radial-gradient(ellipse at 70% 20%, rgba(214,237,219,.9), transparent 49%), linear-gradient(112deg,#f5faf5 0%,#e6f3e9 55%,#d9ecdf 100%);
+  color: #153f35;
+  box-shadow: 0 16px 38px rgba(21,72,49,.055);
+}
+.architecture { opacity: .62; }
+.sunlight { background: #fff; opacity: .78; filter: blur(65px); }
+.pillarLeft,.pillarRight { border-color: rgba(40,118,84,.12); background: linear-gradient(90deg,rgba(60,140,100,.1),transparent 45%,rgba(255,255,255,.55)); }
+.upperBridge { border-color: rgba(33,114,74,.18); box-shadow: none; }
+.horizon { border-color: rgba(27,122,86,.22); }
+.centralRing { width: 150px; height: 150px; left: 68%; border-color: rgba(33,128,86,.27); box-shadow: 0 0 0 16px rgba(37,131,94,.035),0 0 0 36px rgba(37,131,94,.03); }
+.innerRing { width: 108px; height: 108px; border-color: rgba(33,128,86,.28); background: rgba(255,255,255,.44); }
+.monogram { font-size: 59px; color: rgba(31,118,79,.28); text-shadow: none; }
+.floorOne,.floorTwo { background: rgba(38,120,83,.09); }
+.roomInfo { max-width: 440px; background: none; padding: 0; }
+.roomEyebrow { color: #287a5b; font-weight: 800; }
+.roomInfo h2 { color: #143e37; font-size: clamp(1.35rem, 2.3vw, 2.1rem); }
+.roomInfo p { color: #577467; font-size: .9rem; }
+.roomSignals { background: rgba(255,255,255,.8); border-color: #d6e7db; box-shadow: 0 9px 25px rgba(25,77,55,.05); color: #315e4d; padding: 12px 15px; }
+.roomSignals a { color: #116d50; }
+/* Hierarchical executive summary: one headline metric, three supporting indicators. */
+.metrics { position: relative; margin: 18px 0 34px; gap: 13px; }
+.metric { border: 1px solid #dfe9e0; border-radius: 17px; padding: 20px; background: #fff; gap: 10px; box-shadow: 0 8px 24px rgba(19,62,43,.035); }
+.metric:nth-child(2) { background: linear-gradient(120deg,#eaf6ee,#f7fcf8); border-color: #c2e0ce; }
+.metric:nth-child(2) strong { color: #126d50; }
+.metric>span { color: #4f6c60; font-size: .78rem; }
+.metric strong { color: #173d34; font-size: clamp(1.45rem,2.6vw,2.1rem); letter-spacing: -.035em; }
+.metric small { color: #668274; }
+.metric .signalText { color: #195b47; font-size: clamp(.94rem,1.4vw,1.1rem); }
+.sectionHead { margin-top: 36px; }
+.sectionHead h2 { color: #163d34; letter-spacing: -.04em; }
+.sectionIndex { color: #178064; }
+.departmentFrame { background: #fff; border-color: #dbe7dd; border-radius: 20px; box-shadow: 0 8px 27px rgba(19,62,43,.035); transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.departmentFrame:hover { border-color: #99ccb0; box-shadow: 0 18px 34px rgba(19,90,56,.09); transform: translateY(-2px); }
+.departmentIndex { color: #74897b; font-size: .67rem; letter-spacing: .12em; }
+.departmentFrame :global(a) { min-height: 156px; }
+.departmentFrame :global(a:hover) { box-shadow: none; }
+.accessText { color: #117457; font-size: .76rem; }
+.alertSurface { border-color: #dfe9e0 !important; box-shadow: 0 8px 25px rgba(19,62,43,.035) !important; }
+.shortcuts a { background: #f8fcf8; border-color: #dce9de; min-height: 42px; }
+.footer { margin-top: 28px; }
+@media (min-width: 850px) {
+  .intro { grid-template-columns: minmax(0,1fr) 250px; }
+  .metrics { grid-template-columns: 1fr 1.3fr 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .commandRoom { min-height: 245px; justify-content: space-between; gap: 22px; }
+  .architecture { opacity: .35; }
+  .centralRing { left: 75%; top: 34%; width: 100px; height: 100px; }
+  .innerRing { width: 72px; height: 72px; }
+  .monogram { font-size: 43px; }
+  .roomInfo { max-width: 280px; }
+  .metrics { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .metric { border-radius: 15px; padding: 15px 12px; }
+  .metric strong { font-size: clamp(1.14rem,5vw,1.45rem); }
+  .secure { font-size: .7rem; }
+}
+@media (max-width: 360px) {
+  .identity { letter-spacing: .08em; }
+  .intro h1 { font-size: 1.85rem; }
+  .metrics { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .departmentFrame { transition: none; } .departmentFrame:hover { transform: none; } }

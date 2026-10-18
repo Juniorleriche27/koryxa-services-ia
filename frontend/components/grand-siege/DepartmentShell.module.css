@@ -1,37 +1,56 @@
-/* CAURI departments: modern institutional frame; all existing business screens remain intact. */
-:global(.app-shell.is-department) { grid-template-columns: minmax(0, 1fr); background: #f2f5f1; }
-:global(.app-shell.is-department .app-sidebar), :global(.app-shell.is-department .app-overlay) { display: none !important; }
-:global(.app-shell.is-department .app-topbar .mobile-only) { display: none !important; }
-:global(.app-shell.is-department .app-topbar) { background: #f6f8f4; border-bottom: 1px solid #dbe5dd; }
-:global(.app-shell.is-department .app-content) { padding: 0 !important; max-width: none; }
-.frame { min-height: 100dvh; background: var(--gs-paper); }
-.masthead { color: #f4f7ed; padding: clamp(18px,3vw,36px) clamp(16px,4vw,60px) 0; background: radial-gradient(ellipse at 85% 5%,rgba(182,149,93,.30),transparent 44%),linear-gradient(125deg,#112f34,#1d5552); }
-.mastheadTop { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.back { display: inline-flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 750; text-decoration: none; color: #f2ddae; padding: 9px 0; }
-.identity { display: inline-flex; align-items: center; gap: 7px; font-size: .75rem; font-weight: 650; color: #c6d8cf; overflow-wrap: anywhere; }
-.headline { margin: 28px 0 24px; }
-.kicker { display: inline-flex; align-items: center; gap: 8px; font-size: .7rem; font-weight: 750; letter-spacing: .15em; color: #e4c48b; }
-.headline h1 { font-family: Georgia,serif; font-weight: 550; font-size: clamp(1.8rem,4vw,3.3rem); line-height: 1.2; letter-spacing: -.025em; margin: 10px 0; color: #fffdf3; }
-.headline p { margin: 0; color: #d1e3de; line-height: 1.5; font-size: .92rem; }
-.localNav { display: flex; gap: 6px; align-items: center; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; scroll-snap-type: x proximity; }
-.localLink { position: relative; white-space: nowrap; flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 13px 15px 15px; color: #c6dbd5; font-size: .84rem; font-weight: 680; text-decoration: none; border-radius: 11px 11px 0 0; scroll-snap-align: start; }
-.localLink[aria-current='page'] { background: var(--gs-paper); color: var(--gs-ink); }
-.localLink:hover:not([aria-current='page']) { color: white; background: rgba(255,255,255,.10); }
-.activeMark { position: absolute; bottom: 0; left: 16px; right: 16px; height: 3px; border-radius: 3px; background: var(--gs-jade); }
-.content { background: var(--gs-paper); color: var(--gs-ink); padding: clamp(16px,3vw,38px) clamp(14px,4vw,60px) 96px; min-width: 0; }
-.currentSection { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 0 0 18px; border-bottom: 1px solid var(--gs-border); margin-bottom: 22px; color: var(--gs-muted); font-size: .8rem; }
-.currentSection span { text-transform: uppercase; font-weight: 780; letter-spacing: .1em; }
-.currentSection a { display: inline-flex; align-items: center; gap: 5px; text-decoration: none; color: var(--gs-jade); font-weight: 750; }
-.back:focus-visible,.localLink:focus-visible,.currentSection a:focus-visible { outline: 3px solid #9dccff; outline-offset: 3px; }
-@media (max-width: 640px) { .masthead { padding-top: 14px; } .headline { margin: 23px 0 18px; } .identity { max-width: 55%; } .content { padding-bottom: 110px; } }
-/* Pocket layouts: keep department navigation discoverable, keyboard-scrollable and finger-sized. */
-@media (max-width: 1023px) {
-  .localNav { margin-inline: -16px; padding: 0 16px 8px; scroll-padding-inline: 16px; -webkit-overflow-scrolling: touch; overscroll-behavior-inline: contain; }
-  .localLink { min-height: 48px; }
-  .content { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
-  .mastheadTop { min-width: 0; }
-  .headline h1 { overflow-wrap: anywhere; }
-  .localNav:focus-visible { outline: 3px solid #9dccff; outline-offset: -3px; }
+/* CAURI Premium 2.0 · Six institutional departments. Scoped; business views remain intact. */
+:global(.app-shell.is-department) { grid-template-columns:minmax(0,1fr); background:#f8fbf8; }
+:global(.app-shell.is-department .app-sidebar),:global(.app-shell.is-department .app-overlay) { display:none!important; }
+:global(.app-shell.is-department .app-topbar .mobile-only) { display:none!important; }
+:global(.app-shell.is-department .app-topbar) { background:rgba(255,255,255,.97); border-bottom:1px solid #dfebe2; box-shadow:0 1px 14px rgba(27,75,48,.035); }
+:global(.app-shell.is-department .app-content) { padding:0!important; max-width:none; }
+.frame { --dept-ink:#173d33;--dept-muted:#5a7868;--dept-line:#dce9df;--dept-green:#168064;min-height:100dvh;background:#f8fbf8;color:var(--dept-ink);min-width:0; }
+.masthead { position:relative;isolation:isolate;overflow:hidden;padding:clamp(18px,3vw,36px) clamp(16px,4vw,60px) 0;background:radial-gradient(ellipse at 88% 0%,rgba(210,235,217,.65),transparent 43%),linear-gradient(120deg,#fff,#f3faf4 75%,#e8f4ec);border-bottom:1px solid var(--dept-line); }
+.masthead:before { content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;opacity:.27;background:repeating-linear-gradient(90deg,transparent 0,transparent 108px,#cde1d1 109px); }
+.mastheadTop { display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;min-width:0; }
+.back { display:inline-flex;align-items:center;gap:9px;min-height:44px;font-size:.82rem;font-weight:760;text-decoration:none;color:#176f52;padding:8px 12px;border-radius:11px;border:1px solid #d1e7d8;background:rgba(255,255,255,.8);transition:background .18s ease,border-color .18s ease; }
+.back:hover { background:#e9f5ec;border-color:#add5bb; }
+.identity { display:inline-flex;align-items:center;gap:8px;padding:7px 11px;background:#e9f5ed;border:1px solid #d4e8da;border-radius:999px;font-size:.73rem;font-weight:700;color:#2d7056;overflow-wrap:anywhere;max-width:100%; }
+.headline { max-width:850px;margin:clamp(24px,3.7vw,46px) 0 clamp(22px,3vw,36px); }
+.kicker { display:inline-flex;align-items:center;gap:8px;font-size:.69rem;font-weight:830;letter-spacing:.13em;color:#168064; }
+.headline h1 { font-family:Georgia,serif;font-weight:540;font-size:clamp(1.9rem,4vw,3.35rem);line-height:1.15;letter-spacing:-.04em;margin:12px 0;color:#153e33;overflow-wrap:anywhere; }
+.headline p { max-width:58ch;margin:0;color:var(--dept-muted);line-height:1.6;font-size:clamp(.88rem,1.5vw,.98rem); }
+.localNav { display:flex;gap:7px;align-items:stretch;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#b8d8c3 transparent;padding:0 0 12px;scroll-snap-type:x proximity;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch; }
+.localLink { position:relative;white-space:nowrap;flex:none;display:inline-flex;align-items:center;justify-content:center;min-height:45px;padding:11px 17px;color:#507365;font-size:.82rem;font-weight:720;text-decoration:none;border-radius:12px;border:1px solid transparent;scroll-snap-align:start;transition:background .15s ease,border-color .15s ease,color .15s ease; }
+.localLink[aria-current='page'] { background:#fff;color:#126d50;border-color:#c5e3cf;box-shadow:0 4px 15px rgba(23,82,52,.06); }
+.localLink:hover:not([aria-current='page']) { color:#126d50;background:#e8f4eb;border-color:#d9e9dc; }
+.activeMark { position:absolute;bottom:1px;left:18px;right:18px;height:3px;border-radius:3px;background:#168064; }
+.content { background:#f8fbf8;color:var(--dept-ink);padding:clamp(18px,3vw,38px) clamp(14px,4vw,60px) 100px;min-width:0; }
+.currentSection { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:0 0 20px;border-bottom:1px solid var(--dept-line);margin-bottom:24px;font-size:.8rem; }
+.currentSection span { color:#286a52;font-size:.72rem;text-transform:uppercase;font-weight:800;letter-spacing:.11em; }
+.currentSection a { display:inline-flex;align-items:center;gap:6px;min-height:44px;text-decoration:none;color:#167b5a;font-weight:750; }
+.currentSection a:hover { text-decoration:underline;text-underline-offset:3px; }
+.accessState { display:flex;align-items:flex-start;gap:12px;max-width:750px;padding:23px;border:1px solid #dbe9de;border-radius:17px;background:#fff;box-shadow:0 8px 22px rgba(20,70,40,.04);color:#4d6c5c;font-size:.87rem;line-height:1.6; }
+.accessStateIcon { display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:10px;background:#e9f5ec;color:#177654; }
+.accessState strong { display:block;color:#173d33;font-size:1rem;margin:0 0 4px; }
+.accessState p { margin:0; }
+.back:focus-visible,.localLink:focus-visible,.currentSection a:focus-visible,.localNav:focus-visible { outline:3px solid #83c5a1;outline-offset:3px; }
+@media(max-width:1023px) {
+  .localNav { margin-inline:-16px;padding:0 16px 12px;scroll-padding-inline:16px; }
+  .localLink { min-height:48px; }
+  .content { padding-bottom:calc(110px + env(safe-area-inset-bottom,0px)); }
 }
-@media (max-width: 380px) { .currentSection { align-items: flex-start; } .currentSection a { min-height: 44px; } }
-@media (prefers-reduced-motion: reduce) { .localNav { scroll-behavior: auto; } }
+@media(max-width:640px) {
+  .masthead { padding-top:15px; }
+  .mastheadTop { align-items:flex-start; }
+  .identity { max-width:100%; }
+  .headline { margin:23px 0 20px; }
+  .headline h1 { font-size:clamp(1.8rem,8vw,2.35rem); }
+  .currentSection { align-items:flex-start; }
+  .content { padding-top:19px; }
+}
+@media(max-width:380px) { .masthead { padding-inline:14px; }.localNav { margin-inline:-14px;padding-inline:14px; }.identity { font-size:.68rem; }.accessState { padding:16px; } }
+/* Presentation-only finishing for existing business components inside a department. */
+:global(.app-shell.is-department .app-panel),:global(.app-shell.is-department .app-company-card) { background:#fff;border-color:#dce9df;border-radius:18px;box-shadow:0 7px 24px rgba(23,74,46,.04); }
+:global(.app-shell.is-department .app-panel-head) { color:#173d33; }
+:global(.app-shell.is-department .app-button-primary) { background:#168064;color:#fff; }
+:global(.app-shell.is-department .app-button-primary:hover) { background:#106a50; }
+:global(.app-shell.is-department input:focus-visible),:global(.app-shell.is-department select:focus-visible),:global(.app-shell.is-department textarea:focus-visible) { outline:2px solid #168064;outline-offset:2px; }
+:global(.app-shell.is-department .app-data-table) { max-width:100%; }
+@media(max-width:760px) { :global(.app-shell.is-department .app-panel),:global(.app-shell.is-department .app-company-card) { border-radius:15px; } :global(.app-shell.is-department .app-data-table) { display:block;overflow-x:auto;-webkit-overflow-scrolling:touch; } }
+@media(prefers-reduced-motion:reduce) { .back,.localLink { transition:none; }.localNav { scroll-behavior:auto; } }

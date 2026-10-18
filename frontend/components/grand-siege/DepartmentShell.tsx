@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, Building2, Compass } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Building2, Compass, ShieldCheck } from "lucide-react";
 import { GrandSiegeThemeProvider } from "./index";
 import { DEPARTMENTS, resolveDepartment } from "./departments";
 import { IntelligenceEntry } from "./IntelligenceEntry";
@@ -45,7 +45,7 @@ export function DepartmentShell({ pathname, organizationName, organizationId, ch
         </header>
         <div className={styles.content} id="department-content">
           <div className={styles.currentSection}><span>{section.label}</span><Link href="/espace" title="Retourner au Grand Hall">Tous les départements <ArrowUpRight size={15} aria-hidden="true" /></Link></div>
-          {allowed ? <><IntelligenceEntry context={department.id} compact />{children}</> : <p role="status">{catalogue.loading ? 'Vérification de vos accès…' : catalogue.error ? 'Impossible de vérifier les autorisations pour cette entreprise. Réessayez après avoir actualisé la page.' : 'Ce département est indisponible pour votre rôle.'}</p>}
+          {allowed ? <><IntelligenceEntry context={department.id} compact />{children}</> : <div className={styles.accessState} role="status" aria-live="polite"><span className={styles.accessStateIcon}><ShieldCheck size={20} aria-hidden="true" /></span><div><strong>{catalogue.loading ? 'Vérification des autorisations' : catalogue.error ? 'Accès momentanément indisponible' : 'Département non accessible'}</strong><p>{catalogue.loading ? 'Nous vérifions vos droits d’accès pour cette entreprise.' : catalogue.error ? 'Impossible de confirmer vos autorisations. Actualisez la page pour réessayer.' : 'Ce département est indisponible pour votre rôle actuel.'}</p></div></div>}
         </div>
       </div>
     </GrandSiegeThemeProvider>

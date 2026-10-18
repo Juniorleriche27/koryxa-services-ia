@@ -55,7 +55,7 @@ export function GrandHall() {
 
         <div className={styles.intro}>
           <div>
-            <InstitutionalHeading eyebrow="LA DIRECTION · VOTRE INSTITUTION NUMÉRIQUE" title="Votre entreprise. Votre siège." description="Tous vos départements, réunis autour d'une même vision. Explorez votre organisation et dirigez ce qui compte." />
+            <InstitutionalHeading eyebrow="BIENVENUE DANS VOTRE SIÈGE NUMÉRIQUE" title="La clarté pour décider. L’espace pour grandir." description="Une vue d’ensemble de votre entreprise, des décisions importantes aux équipes qui les réalisent." />
             {organizationName && <p className={styles.organization}><Building2 size={15} aria-hidden="true" /> Siège de {organizationName}</p>}
           </div>
           <div className={styles.today} aria-label="Centre de pilotage">
