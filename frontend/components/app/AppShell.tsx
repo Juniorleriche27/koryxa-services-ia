@@ -9,6 +9,7 @@ import { MobileSiegeDock } from '@/components/grand-siege/MobileSiegeDock';
 import { resolveDepartment } from "@/components/grand-siege/departments";
 import { CAURI_AI_OPEN_EVENT } from "@/components/grand-siege/intelligence-context";
 import { fetchFreshCommandData } from '@/components/grand-siege/fresh-command-data';
+import { OrganizationGate } from '@/components/grand-siege/OrganizationGate';
 import {
   Activity,
   BookOpen,
@@ -116,6 +117,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     created_by_user_id?: string;
   }>({ name: "Organisation KORYXA", business_category: "retail" });
   const [organizationLoaded, setOrganizationLoaded] = useState(false);
+  const [organizationRetry, setOrganizationRetry] = useState(0);
   // Never preserve an AI conversation or draft across two tenant identities.
   const activeOrganizationId = organization.id;
   useEffect(() => {
@@ -237,31 +239,49 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       created_by_user_id?: string;
     };
     let current = true;
-    let controller = new AbortController();
+    let controller: AbortController | null = null;
+    let requestTimeout: ReturnType<typeof setTimeout> | null = null;
     const load = () => {
-      controller.abort();
+      controller?.abort();
+      if (requestTimeout) clearTimeout(requestTimeout);
       controller = new AbortController();
       const activeController = controller;
-      // Resolve current tenant without using the generic persistent dashboard cache.
+      setOrganizationLoaded(false);
+      setOrganization(previous => ({ ...previous, id: undefined }));
+      // A slow identity endpoint must never leave the Grand Hall blank indefinitely.
+      const localTimeout = setTimeout(() => {
+        if (!current || activeController.signal.aborted) return;
+        activeController.abort();
+        setOrganizationLoaded(true);
+      }, 12000);
+      requestTimeout = localTimeout;
       void fetchFreshCommandData<Organization>('/organizations/current', activeController.signal)
-        .then((next) => { if (current && !activeController.signal.aborted && next.id) setOrganization(next); })
-        .catch(() => { if (current && !activeController.signal.aborted) setOrganization(prev => ({ ...prev, id: undefined })); })
-        .finally(() => { if (current && !activeController.signal.aborted) setOrganizationLoaded(true); });
+        .then((next) => {
+          if (!current || activeController.signal.aborted) return;
+          if (!next?.id || typeof next.id !== 'string') throw new Error('Identité d’organisation incomplète');
+          setOrganization(next);
+        })
+        .catch(() => {
+          if (current && !activeController.signal.aborted) setOrganization(previous => ({ ...previous, id: undefined }));
+        })
+        .finally(() => {
+          clearTimeout(localTimeout);
+          if (current && !activeController.signal.aborted) setOrganizationLoaded(true);
+        });
     };
     load();
-    const updated = (event: Event) => {
-      const detail = (event as CustomEvent<Partial<Organization>>).detail;
-      // Disable the old tenant's AI immediately until the active id is verified.
-      setOrganization(prev => ({ ...prev, id: undefined }));
-      if (detail?.id && typeof detail.id === 'string') {
-        // Do not trust a client-side event alone as proof of membership.
-        setOrganizationLoaded(false);
-      }
+    const updated = () => {
+      // Revalidate identity on the server; never trust a client-side event as tenant proof.
       load();
     };
     window.addEventListener('koryxa:organization-updated', updated);
-    return () => { current = false; controller.abort(); window.removeEventListener('koryxa:organization-updated', updated); };
-  }, [pathname]);
+    return () => {
+      current = false;
+      controller?.abort();
+      if (requestTimeout) clearTimeout(requestTimeout);
+      window.removeEventListener('koryxa:organization-updated', updated);
+    };
+  }, [organizationRetry]);
 
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("koryxa:sidebar-collapsed") === "true");
@@ -627,7 +647,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </header>
 
           <div key={organization.id || 'unverified-tenant'} className="app-content pb-24 lg:pb-8">
-            {!organization.id ? <div role="status" className="p-6 text-sm">{organizationLoaded ? 'Impossible de vérifier votre entreprise. Actualisez la page pour réessayer.' : 'Vérification de votre entreprise…'}</div> : isDepartment ? <DepartmentShell pathname={pathname} organizationName={organization.name} organizationId={organization.id}>{children}</DepartmentShell> : children}
+            {!organization.id ? <OrganizationGate loading={!organizationLoaded} onRetry={() => setOrganizationRetry(value => value + 1)} /> : isDepartment ? <DepartmentShell pathname={pathname} organizationName={organization.name} organizationId={organization.id}>{children}</DepartmentShell> : children}
           </div>
 
           {/* Floating Cora bubble — hidden when panel is open */}
