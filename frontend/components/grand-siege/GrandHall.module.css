@@ -206,3 +206,24 @@
 .welcomeBanner .today a:hover { background: #dbeee1; }
 @media(max-width:850px){.welcomeBanner .intro { grid-template-columns: 1fr; }.welcomeBanner .today { gap: 9px; }.welcomeMain { padding: 19px; }}
 @media(max-width:600px){.welcomeBanner { border-radius: 15px; padding: 14px; margin-bottom: 17px; }.welcomeBanner .topline { align-items: flex-start; }.welcomeBanner .secure { max-width: 100%; }.welcomeMain :global(h1) { font-size: clamp(1.45rem,6vw,1.95rem) !important; }.welcomeBanner .identity { flex-wrap: wrap; }.welcomeBanner .officialLogo { width: 110px; }}
+
+/* Six departments — editorial, compact and clearly actionable instead of generic large tiles. */
+.departmentSection { margin: 18px 0 25px; padding:clamp(14px,2.4vw,27px); border:1px solid #dae9df; border-radius:20px; background:linear-gradient(130deg,#f3faf5,#fff 45%,#f8fbf8); box-shadow:0 9px 26px rgba(24,76,48,.035); scroll-margin-top:85px; }
+.departmentSection .sectionHead { display:flex; align-items:center; gap:16px; justify-content:space-between; flex-wrap:wrap; margin:0 0 17px; padding:clamp(15px,2vw,21px); border:1px solid #dcebe0; background:#fff; border-radius:14px; }
+.departmentSection .sectionHead h2 { margin:9px 0 6px; font-size:clamp(1.4rem,2.3vw,1.95rem); font-weight:620; letter-spacing:-.025em; }
+.departmentSection .sectionHead p { max-width:56ch; font-size:.83rem; line-height:1.6; color:#607d6d; margin:0; }
+.departmentSection .departmentCount { display:inline-flex; padding:9px 12px; border:1px solid #d5e8da; border-radius:10px; background:#f0f8f2; color:#277355; font-size:.69rem; letter-spacing:.08em; font-weight:800; white-space:nowrap; }
+.departmentSection .departmentFrame { display:flex; flex-direction:column; gap:0; padding:0; min-width:0; border:1px solid #dbe9df; border-radius:15px; background:#fff; overflow:hidden; box-shadow:0 5px 18px rgba(23,75,50,.035); }
+.departmentSection .departmentFrame:hover { border-color:#a9d7b8; box-shadow:0 13px 29px rgba(24,96,59,.075); transform:translateY(-1px); }
+.departmentSection .departmentIndex { display:flex; align-items:center; gap:11px; min-height:40px; margin:0; padding:10px 15px; color:#647e6f; background:#f5faf6; border-bottom:1px solid #e5eee6; font-size:.67rem; font-weight:770; letter-spacing:.075em; line-height:1.35; }
+.departmentSection .departmentIndex span:first-child { display:grid; place-items:center; flex:none; width:26px; height:25px; border-radius:7px; background:#e4f1e9; color:#167754; font-variant-numeric:tabular-nums; }
+.departmentSection .departmentFrame :global(a),.departmentSection .departmentFrame :global([data-disabled='true']) { flex:1; display:flex; align-items:flex-start; gap:13px; min-height:154px; padding:16px 16px 13px; border:0; border-radius:0; background:transparent; box-shadow:none; text-decoration:none; }
+.departmentSection .departmentFrame :global(a:hover) { background:#f9fcfa; transform:none; }
+.departmentSection .departmentFrame :global([data-disabled='true']) { opacity:.64; }
+.departmentSection .departmentFrame :global([class*='departmentIcon']) { width:42px; height:42px; flex-basis:42px; border-radius:11px; background:#e8f4ec; color:#167c59; }
+.departmentSection .departmentFrame :global([class*='departmentTitle']) { color:#153e33; font-size:.96rem; font-weight:760; line-height:1.3; }
+.departmentSection .departmentFrame :global([class*='departmentSummary']) { color:#607b6b; font-size:.8rem; line-height:1.5; max-width:40ch; }
+.departmentSection .accessText { display:inline-flex; align-items:center; gap:8px; width:fit-content; border-radius:8px; padding:8px 10px; min-height:36px; background:#ebf6ee; color:#167354; font-size:.73rem; font-weight:760; }
+.departmentSection [data-department='direction'] .departmentIndex,.departmentSection [data-department='organisation'] .departmentIndex { background:#eef8f1; }
+@media(max-width:760px) { .departmentSection { padding:12px; border-radius:16px; }.departmentSection .sectionHead { padding:15px; }.departmentSection .departmentFrame :global(a),.departmentSection .departmentFrame :global([data-disabled='true']) { min-height:135px; padding:14px; }.departmentSection .departmentCount { display:inline-flex; } }
+@media(prefers-reduced-motion:reduce) { .departmentSection .departmentFrame:hover { transform:none; } }

@@ -53,4 +53,29 @@
 :global(.app-shell.is-department input:focus-visible),:global(.app-shell.is-department select:focus-visible),:global(.app-shell.is-department textarea:focus-visible) { outline:2px solid #168064;outline-offset:2px; }
 :global(.app-shell.is-department .app-data-table) { max-width:100%; }
 @media(max-width:760px) { :global(.app-shell.is-department .app-panel),:global(.app-shell.is-department .app-company-card) { border-radius:15px; } :global(.app-shell.is-department .app-data-table) { display:block;overflow-x:auto;-webkit-overflow-scrolling:touch; } }
+/* CAURI Premium department composition, shared across all six official departments. */
+.masthead { padding-top:clamp(14px,2vw,24px); background:linear-gradient(130deg,#f6fbf7,#edf7f0); }
+.mastheadTop { max-width:1440px; margin-inline:auto; }
+.departmentBanner { max-width:1440px; margin:17px auto 13px; padding:clamp(13px,2vw,19px); display:grid; grid-template-columns:minmax(0,1.75fr) minmax(205px,.55fr); align-items:stretch; gap:13px; background:#fff; border:1px solid #dce9df; border-radius:17px; box-shadow:0 9px 27px rgba(23,74,46,.035); }
+.departmentBanner .headline { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; margin:0; padding:clamp(14px,2vw,24px); max-width:none; min-width:0; background:#f5faf6; border:1px solid #e1ece4; border-radius:13px; }
+.departmentBanner .headline h1 { font-size:clamp(1.5rem,2.5vw,2.1rem); line-height:1.2; font-weight:610; letter-spacing:-.025em; margin:12px 0 9px; }
+.departmentBanner .headline p { font-size:.85rem; line-height:1.6; max-width:56ch; }
+.departmentOverview { border:1px solid #dce9df; border-radius:13px; background:linear-gradient(145deg,#fff,#f6fbf7); padding:clamp(14px,2vw,22px); display:flex; flex-direction:column; justify-content:center; gap:10px; }
+.overviewLabel { display:inline-flex; align-items:center; gap:8px; color:#277759; letter-spacing:.09em; font-size:.69rem; font-weight:810; }
+.departmentOverview strong { color:#165a40; font-size:clamp(1.8rem,3vw,2.5rem); font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
+.departmentOverview p { margin:0; max-width:36ch; color:#648071; line-height:1.5; font-size:.78rem; }
+.navigationBlock { display:flex; flex-direction:column; gap:10px; max-width:1440px; margin:0 auto; padding:13px 15px 3px; background:#fff; border:1px solid #dce9df; border-radius:14px 14px 0 0; }
+.navigationTitle { font-size:.68rem; font-weight:790; letter-spacing:.1em; color:#5b7d6a; }
+.navigationBlock .localNav { padding-bottom:10px; gap:7px; }
+.navigationBlock .localLink { min-height:43px; border:1px solid #dcebe1; border-radius:10px; background:#f7fbf8; color:#396b55; }
+.navigationBlock .localLink[aria-current='page'] { background:#e4f3e9; color:#116b4c; border-color:#b7ddc3; box-shadow:inset 0 0 0 1px #c5e6ce; }
+.content { max-width:1560px; margin-inline:auto; }
+.currentSection { padding:15px 18px; border:1px solid #dce9df; border-radius:14px; background:#fff; box-shadow:0 6px 20px rgba(23,74,46,.035); margin-bottom:19px; }
+.currentCopy { display:grid; gap:4px; min-width:0; }
+.currentCopy strong { color:#143d32; font-size:1.03rem; line-height:1.35; }
+.currentCopy small { color:#6a8576; font-size:.75rem; line-height:1.4; }
+.currentSection a { padding:9px 12px; border:1px solid #dbeade; border-radius:10px; background:#f5faf6; }
+.currentSection a:hover { background:#e8f5ec; text-decoration:none; }
+@media(max-width:760px){.departmentBanner { grid-template-columns:1fr; padding:11px; }.departmentBanner .headline { padding:17px; }.departmentOverview { flex-direction:row; align-items:center; justify-content:space-between; gap:10px; padding:13px 16px; }.departmentOverview strong { font-size:1.6rem; }.departmentOverview p { max-width:27ch; }.navigationBlock { padding:11px 12px 2px; }.navigationBlock .localNav { margin:0; padding:0 0 9px; }.currentSection { padding:14px; }.currentSection a { min-height:44px; }}
+@media(max-width:400px){.departmentOverview { align-items:flex-start; flex-wrap:wrap; }.departmentBanner .headline h1 { font-size:1.5rem; }}
 @media(prefers-reduced-motion:reduce) { .back,.localLink { transition:none; }.localNav { scroll-behavior:auto; } }

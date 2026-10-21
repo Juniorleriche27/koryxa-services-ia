@@ -96,22 +96,24 @@ export function GrandHall() {
         {catalogue.lookup('direction') && catalogue.lookup('radar') ? <CommandCenter /> : null}
         {catalogue.lookup('direction') ? <IntelligenceEntry context="hall" /> : null}
 
-        <div className={styles.sectionHead} id="departements">
-          <div><span className={styles.sectionIndex}>01 / EXPLORER VOTRE SIÈGE</span><h2>Les départements</h2><p>Entrez dans un département pour retrouver vos outils et opérations.</p></div>
-          <span className={styles.departmentCount}>06 ESPACES</span>
+        <div className={styles.departmentSection} id="departements">
+          <div className={styles.sectionHead}>
+            <div><span className={styles.sectionIndex}>01 / VOS ESPACES DE TRAVAIL</span><h2>Les six départements</h2><p>Choisissez un espace pour accéder aux outils et dossiers de votre entreprise.</p></div>
+            <span className={styles.departmentCount}>06 DÉPARTEMENTS</span>
+          </div>
+          <DepartmentGrid>
+            {DEPARTMENTS.map((department, index) => {
+              const info = CAURI_DEPARTMENTS.find((entry) => entry.id === department.id);
+              const allowed = catalogue.lookup(department.id);
+              const href = department.id === 'direction' ? '/espace/actions' : allowed?.path;
+              const enabled = Boolean(allowed && href);
+              return <div key={department.id} className={styles.departmentFrame} data-department={department.id}>
+                <span className={styles.departmentIndex}><span>{String(index + 1).padStart(2, '0')}</span><span>{info?.title || department.name}</span></span>
+                <DepartmentTile department={department.id} disabled={!enabled} href={enabled ? href : undefined} description={department.mission} status={<span className={styles.accessText}>{enabled ? 'Ouvrir cet espace' : catalogue.loading ? 'Vérification des accès…' : catalogue.error ? 'Accès non vérifiable' : 'Accès indisponible'}{enabled ? <ArrowUpRight size={15} aria-hidden="true" /> : null}</span>} />
+              </div>;
+            })}
+          </DepartmentGrid>
         </div>
-        <DepartmentGrid>
-          {DEPARTMENTS.map((department, index) => {
-            const info = CAURI_DEPARTMENTS.find((entry) => entry.id === department.id);
-            const allowed = catalogue.lookup(department.id);
-            const href = department.id === 'direction' ? '/espace/actions' : allowed?.path;
-            const enabled = Boolean(allowed && href);
-            return <div key={department.id} className={styles.departmentFrame}>
-              <span className={styles.departmentIndex}>{String(index + 1).padStart(2, '0')} / {info?.title}</span>
-              <DepartmentTile department={department.id} disabled={!enabled} href={enabled ? href : undefined} description={department.mission} status={<span className={styles.accessText}>{enabled ? 'Entrer dans le département' : catalogue.loading ? 'Vérification des accès…' : catalogue.error ? 'Accès non vérifiable' : 'Accès indisponible'}{enabled ? <ArrowUpRight size={14} aria-hidden="true" /> : null}</span>} />
-            </div>;
-          })}
-        </DepartmentGrid>
 
         <div className={styles.bottomRow}>
           <ArchitecturalSurface className={styles.alertSurface}>
