@@ -66,4 +66,10 @@
   .app-shell .app-toolbar :is(button,a){min-height:44px;}
   .app-shell .app-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 }
+/* Mobile navigation chrome: independent of page scrolling and aligned to CAURI's light palette. */
+@media(max-width:760px){
+  .app-shell .app-main { padding-top:66px; }
+  .app-shell .app-topbar { position:fixed; inset:0 0 auto 0; z-index:65; height:66px; background:#fff; border-bottom:1px solid #dce9df; box-shadow:0 3px 18px rgba(22,80,52,.07); }
+  .app-shell :is(#departements,#centre-commandement) { scroll-margin-top:84px; }
+}
 @media(prefers-reduced-motion:reduce){.app-shell .app-list-row {scroll-behavior:auto;}}
