@@ -187,3 +187,22 @@
   .metrics { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .departmentFrame { transition: none; } .departmentFrame:hover { transform: none; } }
+
+/* Premium editorial banner: compact, structured reading blocks instead of floating copy. */
+.welcomeBanner { position: relative; display: grid; gap: 16px; padding: clamp(16px, 2.2vw, 28px); margin: 0 0 23px; border: 1px solid #dbe9df; border-radius: 21px; background: linear-gradient(120deg,#fff 25%,#f4faf5 100%); box-shadow: 0 10px 32px rgba(21,73,47,.04); scroll-margin-top: 90px; min-width: 0; }
+.welcomeBanner .topline { padding: 0 0 15px; gap: 12px; }
+.welcomeBanner .identity { min-width: 0; }
+.welcomeBanner .officialLogo { width: clamp(108px,11vw,145px); }
+.welcomeBanner .intro { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(240px,.75fr); gap: 14px; padding: 0; align-items: stretch; }
+.welcomeMain { padding: clamp(20px,2.8vw,31px); background: #f6faf7; border: 1px solid #e0ebe2; border-radius: 15px; min-width: 0; }
+.welcomeMain :global(header) { display: grid; justify-items: start; }
+.welcomeMain :global(h1) { max-width: 680px; margin: 13px 0 11px; font-family: var(--font-playfair), Georgia, serif !important; font-size: clamp(1.55rem,2.8vw,2.35rem) !important; font-weight: 530; letter-spacing: -.025em; line-height: 1.22; }
+.welcomeMain :global(header p) { max-width: 57ch; font-size: .87rem; line-height: 1.65; color: #5d796a; margin: 0; }
+.welcomeMain .organization { display: inline-flex; align-items: center; gap: 7px; width: fit-content; border: 1px solid #d3e7d8; margin: 17px 0 0; font-size: .77rem; font-weight: 720; padding: 8px 12px; }
+.welcomeBanner .today { display: flex; justify-content: center; align-items: flex-start; gap: 13px; padding: clamp(18px,2.2vw,25px); border: 1px solid #d8e7dd; border-radius: 15px; background: #fff; box-shadow: none; }
+.welcomeBanner .todayTitle { font-size: .67rem; line-height: 1.4; }
+.welcomeBanner .todayDescription { color: #5d796b; max-width: 31ch; line-height: 1.6; }
+.welcomeBanner .today a { margin-top: 4px; min-height: 42px; padding: 8px 13px; border-radius: 9px; background: #eaf5ed; color: #136f51; align-items: center; }
+.welcomeBanner .today a:hover { background: #dbeee1; }
+@media(max-width:850px){.welcomeBanner .intro { grid-template-columns: 1fr; }.welcomeBanner .today { gap: 9px; }.welcomeMain { padding: 19px; }}
+@media(max-width:600px){.welcomeBanner { border-radius: 15px; padding: 14px; margin-bottom: 17px; }.welcomeBanner .topline { align-items: flex-start; }.welcomeBanner .secure { max-width: 100%; }.welcomeMain :global(h1) { font-size: clamp(1.45rem,6vw,1.95rem) !important; }.welcomeBanner .identity { flex-wrap: wrap; }.welcomeBanner .officialLogo { width: 110px; }}

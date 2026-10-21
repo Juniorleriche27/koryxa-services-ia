@@ -19,7 +19,7 @@ describe('CAURI Grand Siège — vérification de l’organisation', () => {
     const retry = vi.fn();
     render(<OrganizationGate loading={false} onRetry={retry} />);
     expect(screen.getByRole('status').getAttribute('aria-busy')).toBe('false');
-    expect(screen.getByRole('heading', { name: 'Accès à votre entreprise indisponible' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Vérification de l’entreprise indisponible' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Réessayer/ }));
     expect(retry).toHaveBeenCalledTimes(1);
   });

@@ -49,22 +49,23 @@ export function GrandHall() {
   return (
     <GrandSiegeThemeProvider>
       <GrandSiegeStage className={styles.hall} id="grand-hall">
-        <div className={styles.topline}>
-          <span className={styles.identity}><Image className={styles.officialLogo} src="/image(20261021-163619).png" alt="CAURI" width={2048} height={682} unoptimized /><span className={styles.divider} aria-hidden="true" />LE GRAND SIÈGE</span>
-          <span className={styles.secure}><ShieldCheck size={14} aria-hidden="true" /> Espace entreprise</span>
-        </div>
-
-        <div className={styles.intro}>
-          <div>
-            <InstitutionalHeading eyebrow="BIENVENUE DANS VOTRE SIÈGE NUMÉRIQUE" title="La clarté pour décider. L’espace pour grandir." description="Une vue d’ensemble de votre entreprise, des décisions importantes aux équipes qui les réalisent." />
-            {organizationName && <p className={styles.organization}><Building2 size={15} aria-hidden="true" /> Siège de {organizationName}</p>}
+        <section className={styles.welcomeBanner} aria-label="Bienvenue au Grand Siège">
+          <div className={styles.topline}>
+            <span className={styles.identity}><Image className={styles.officialLogo} src="/image(20261021-163619).png" alt="CAURI" width={2048} height={682} unoptimized /><span className={styles.divider} aria-hidden="true" />LE GRAND SIÈGE</span>
+            <span className={styles.secure}><ShieldCheck size={14} aria-hidden="true" /> Espace entreprise sécurisé</span>
           </div>
-          <div className={styles.today} aria-label="Centre de pilotage">
-            <span className={styles.todayTitle}><span className={styles.pulse} /> CENTRE DE PILOTAGE</span>
-            <span className={styles.todayDescription}>Une vue claire. Des décisions plus simples.</span>
-            {catalogue.lookup('direction') ? <Link href="/espace/actions">Voir les actions <ArrowUpRight size={15} aria-hidden="true" /></Link> : null}
+          <div className={styles.intro}>
+            <div className={styles.welcomeMain}>
+              <InstitutionalHeading eyebrow="BIENVENUE DANS VOTRE SIÈGE NUMÉRIQUE" title="La clarté pour décider. L’espace pour grandir." description="Une vue d’ensemble de votre entreprise, des décisions importantes aux équipes qui les réalisent." />
+              {organizationName && <p className={styles.organization}><Building2 size={15} aria-hidden="true" /> Siège de {organizationName}</p>}
+            </div>
+            <div className={styles.today} aria-label="Centre de pilotage">
+              <span className={styles.todayTitle}><span className={styles.pulse} /> CENTRE DE PILOTAGE</span>
+              <span className={styles.todayDescription}>Une vue claire. Des décisions plus simples.</span>
+              {catalogue.lookup('direction') ? <Link href="/espace/actions">Voir les actions <ArrowUpRight size={15} aria-hidden="true" /></Link> : null}
+            </div>
           </div>
-        </div>
+        </section>
 
         <section className={styles.commandRoom} aria-label="Atrium et centre stratégique CAURI">
           <div className={styles.architecture} aria-hidden="true">
