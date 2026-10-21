@@ -107,6 +107,9 @@
 .identity { letter-spacing: .13em; color: #668076; }
 .identity strong { color: #163d34; font-size: 1.08rem; }
 .identitySymbol { background: #167b60; color: #fff; border-radius: 10px; box-shadow: 0 5px 14px rgba(22,128,100,.2); }
+/* Exact official CAURI raster, never cropped, distorted or recolored. */
+.officialLogo { display: block; flex: none; width: clamp(114px, 14vw, 175px); height: auto; object-fit: contain; object-position: left center; }
+@media (max-width: 600px) { .officialLogo { width: 117px; } }
 .secure { padding: 8px 12px; background: #ebf5ed; color: #286950; border-radius: 999px; font-weight: 650; }
 .intro { gap: 28px; padding: clamp(28px, 4vw, 54px) 0 26px; align-items: center; }
 .intro h1 { max-width: 790px; letter-spacing: -.045em; color: #133e33; font-weight: 560; }

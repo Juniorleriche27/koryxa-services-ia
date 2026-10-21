@@ -1,8 +1,9 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { UserButton } from '@clerk/nextjs';
-import { ArrowUpRight, BookOpen, Building2, ChevronDown, CircleHelp, ExternalLink, Mic, PhoneCall, Search } from 'lucide-react';
+import { ArrowUpRight, BookOpen, ChevronDown, CircleHelp, ExternalLink, Mic, PhoneCall, Search } from 'lucide-react';
 import { LanguageSelector } from '@/components/app/LanguageSelector';
 import styles from './GrandHallTopbar.module.css';
 
@@ -25,8 +26,8 @@ export function GrandHallTopbar({
   return <header className={styles.header}>
     <div className={styles.inner}>
       <Link href="/espace" className={styles.brand} aria-label="CAURI — Grand Siège, accueil">
-        <span className={styles.monogram} aria-hidden="true"><Building2 size={20}/></span>
-        <span className={styles.brandName}>CAURI <small>GRAND SIÈGE</small></span>
+        <Image className={styles.brandLogo} src="/image(20261021-163619).png" alt="CAURI" width={2048} height={682} priority unoptimized />
+        <span className={styles.brandName}><small>GRAND SIÈGE</small></span>
       </Link>
 
       <button type="button" onClick={onSearch} className={styles.search} aria-label={searchLabel} title="Recherche et commandes (Ctrl + K)">

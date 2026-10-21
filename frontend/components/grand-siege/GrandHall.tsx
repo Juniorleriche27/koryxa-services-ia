@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight, Building2, CheckCircle2, CircleAlert, Compass, FileText, RefreshCw, Search, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { fetchFreshCommandData } from "./fresh-command-data";
 import { ArchitecturalSurface, CAURI_DEPARTMENTS, DepartmentGrid, DepartmentTile, GrandSiegeStage, GrandSiegeThemeProvider, InstitutionalHeading } from "./index";
@@ -49,7 +50,7 @@ export function GrandHall() {
     <GrandSiegeThemeProvider>
       <GrandSiegeStage className={styles.hall} id="grand-hall">
         <div className={styles.topline}>
-          <span className={styles.identity}><span className={styles.identitySymbol} aria-hidden="true">C</span><strong>CAURI</strong><span className={styles.divider} aria-hidden="true" />LE GRAND SIÈGE</span>
+          <span className={styles.identity}><Image className={styles.officialLogo} src="/image(20261021-163619).png" alt="CAURI" width={2048} height={682} unoptimized /><span className={styles.divider} aria-hidden="true" />LE GRAND SIÈGE</span>
           <span className={styles.secure}><ShieldCheck size={14} aria-hidden="true" /> Espace entreprise</span>
         </div>
 
@@ -70,7 +71,7 @@ export function GrandHall() {
             <span className={styles.sunlight} />
             <span className={styles.pillarLeft} /><span className={styles.pillarRight} />
             <span className={styles.upperBridge} /><span className={styles.horizon} />
-            <span className={styles.centralRing}><span className={styles.innerRing}><span className={styles.monogram}>C</span></span></span>
+            <span className={styles.centralRing}><span className={styles.innerRing} /></span>
             <span className={styles.floorOne} /><span className={styles.floorTwo} />
           </div>
           <div className={styles.roomInfo}>
