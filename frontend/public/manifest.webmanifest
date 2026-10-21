@@ -1,35 +1,39 @@
 {
-  "name": "KORYXA — Mémoire Opérationnelle & Service IA",
-  "short_name": "KORYXA",
+  "name": "CAURI — Grand Siège",
+  "short_name": "CAURI",
   "start_url": "/espace",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#0f172a",
-  "theme_color": "#047857",
-  "description": "Application de gestion d'entreprise, facturation, encaissement, stocks, présence et sentinelle IA KORYXA.",
-  "categories": ["business", "productivity", "finance"],
+  "background_color": "#f8fbf8",
+  "theme_color": "#168064",
+  "description": "CAURI, siège numérique pour la gestion, le pilotage et les décisions de votre entreprise.",
+  "categories": [
+    "business",
+    "productivity",
+    "finance"
+  ],
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "/icons/cauri-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/icons/cauri-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-maskable-192x192.png",
+      "src": "/icons/cauri-maskable-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icons/icon-maskable-512x512.png",
+      "src": "/icons/cauri-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -41,23 +45,36 @@
       "short_name": "Ventes",
       "url": "/espace/ventes",
       "description": "Accès direct au registre des ventes et à la caisse",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/cauri-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Cockpit Décisionnel",
       "short_name": "Cockpit",
       "url": "/espace",
       "description": "Vue d'ensemble de l'activité et indicateurs financiers",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/cauri-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Radar Sentinelle",
       "short_name": "Radar",
       "url": "/espace/radar",
       "description": "Alertes et contrôles automatisés",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/cauri-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
-
-

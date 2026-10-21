@@ -8,36 +8,36 @@ const sans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: 
 const display = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "KORYXA — Mémoire & Pilotage Opérationnel", template: "%s | KORYXA" },
-  description: "Plateforme d'entreprise, facturation, encaissement, stocks, présence et pilotage opérationnel KORYXA.",
-  applicationName: "KORYXA",
+  title: { default: "CAURI — Grand Siège", template: "%s | CAURI" },
+  description: "CAURI, siège numérique pour la gestion, le pilotage et les décisions de votre entreprise.",
+  applicationName: "CAURI",
   manifest: "/manifest.webmanifest",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://service-ia.koryxa.fr"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://cauri.koryxa.fr"),
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "KORYXA",
+    title: "CAURI",
   },
   icons: {
     icon: [
-      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/cauri-icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/cauri-icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/icons/cauri-apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
   openGraph: {
-    title: "KORYXA — Mémoire & Pilotage Opérationnel",
-    description: "Plateforme d'entreprise, facturation, encaissement, stocks, présence et pilotage opérationnel KORYXA.",
+    title: "CAURI — Grand Siège",
+    description: "CAURI, siège numérique pour la gestion, le pilotage et les décisions de votre entreprise.",
     url: "/",
-    siteName: "KORYXA",
+    siteName: "CAURI",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "KORYXA — Mémoire & Pilotage Opérationnel",
-    description: "Plateforme d'entreprise, facturation, encaissement, stocks, présence et pilotage opérationnel KORYXA.",
+    title: "CAURI — Grand Siège",
+    description: "CAURI, siège numérique pour la gestion, le pilotage et les décisions de votre entreprise.",
   },
 };
 
