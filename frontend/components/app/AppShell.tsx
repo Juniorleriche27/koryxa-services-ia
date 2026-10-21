@@ -10,6 +10,7 @@ import { resolveDepartment } from "@/components/grand-siege/departments";
 import { CAURI_AI_OPEN_EVENT } from "@/components/grand-siege/intelligence-context";
 import { fetchFreshCommandData } from '@/components/grand-siege/fresh-command-data';
 import { OrganizationGate } from '@/components/grand-siege/OrganizationGate';
+import { GrandHallTopbar } from '@/components/grand-siege/GrandHallTopbar';
 import {
   Activity,
   BookOpen,
@@ -573,7 +574,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="app-main">
           <OfflineSyncBanner />
 
-          <header className="app-topbar">
+          {isGrandHall ? <GrandHallTopbar
+            searchLabel={t("search_prompt")}
+            vocalLabel={t("vocal_btn")}
+            onSearch={() => setCommandOpen(true)}
+            onVoice={() => setVoiceOpen(true)}
+            onHelp={() => setHelpOpen(true)}
+            onContact={() => setContactModalOpen(true)}
+          /> : <header className="app-topbar">
             <button className="app-icon-button mobile-only" onClick={() => setOpen(true)} aria-label="Ouvrir le menu">
               <Menu size={21} />
             </button>
@@ -644,7 +652,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
               <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 sm:h-11 sm:w-11" } }} />
             </div>
-          </header>
+          </header>}
 
           <div key={organization.id || 'unverified-tenant'} className="app-content pb-24 lg:pb-8">
             {!organization.id ? <OrganizationGate loading={!organizationLoaded} onRetry={() => setOrganizationRetry(value => value + 1)} /> : isDepartment ? <DepartmentShell pathname={pathname} organizationName={organization.name} organizationId={organization.id}>{children}</DepartmentShell> : children}
