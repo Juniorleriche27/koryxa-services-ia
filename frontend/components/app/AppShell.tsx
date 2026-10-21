@@ -8,7 +8,7 @@ import { DepartmentShell } from "@/components/grand-siege/DepartmentShell";
 import { MobileSiegeDock } from '@/components/grand-siege/MobileSiegeDock';
 import { resolveDepartment } from "@/components/grand-siege/departments";
 import { CAURI_AI_OPEN_EVENT } from "@/components/grand-siege/intelligence-context";
-import { fetchFreshCommandData } from '@/components/grand-siege/fresh-command-data';
+import { fetchFreshCommandData, CommandDataError } from '@/components/grand-siege/fresh-command-data';
 import { OrganizationGate } from '@/components/grand-siege/OrganizationGate';
 import { GrandHallTopbar } from '@/components/grand-siege/GrandHallTopbar';
 import {
@@ -119,6 +119,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }>({ name: "Organisation KORYXA", business_category: "retail" });
   const [organizationLoaded, setOrganizationLoaded] = useState(false);
   const [organizationRetry, setOrganizationRetry] = useState(0);
+  const [organizationErrorCode, setOrganizationErrorCode] = useState<string>();
   // Never preserve an AI conversation or draft across two tenant identities.
   const activeOrganizationId = organization.id;
   useEffect(() => {
@@ -248,22 +249,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       controller = new AbortController();
       const activeController = controller;
       setOrganizationLoaded(false);
+      setOrganizationErrorCode(undefined);
       setOrganization(previous => ({ ...previous, id: undefined }));
-      // A slow identity endpoint must never leave the Grand Hall blank indefinitely.
+      // Never expose tenant-bound data until the verified response is received.
       const localTimeout = setTimeout(() => {
         if (!current || activeController.signal.aborted) return;
+        setOrganizationErrorCode('Délai dépassé (25 s)');
         activeController.abort();
         setOrganizationLoaded(true);
-      }, 12000);
+      }, 25000);
       requestTimeout = localTimeout;
-      void fetchFreshCommandData<Organization>('/organizations/current', activeController.signal)
+      // One retry is reserved for transient gateway/upstream failures, never for denied access.
+      const fetchIdentity = async (): Promise<Organization> => {
+        try {
+          return await fetchFreshCommandData<Organization>('/organizations/current', activeController.signal);
+        } catch (error) {
+          const transient = error instanceof CommandDataError
+            ? [500, 502, 503, 504].includes(error.status)
+            : error instanceof TypeError;
+          if (!transient || activeController.signal.aborted) throw error;
+          return fetchFreshCommandData<Organization>('/organizations/current', activeController.signal);
+        }
+      };
+      void fetchIdentity()
         .then((next) => {
           if (!current || activeController.signal.aborted) return;
-          if (!next?.id || typeof next.id !== 'string') throw new Error('Identité d’organisation incomplète');
+          if (!next?.id || typeof next.id !== 'string') throw new Error('Réponse d’organisation incomplète');
           setOrganization(next);
         })
-        .catch(() => {
-          if (current && !activeController.signal.aborted) setOrganization(previous => ({ ...previous, id: undefined }));
+        .catch((error: unknown) => {
+          if (!current || activeController.signal.aborted) return;
+          setOrganization(previous => ({ ...previous, id: undefined }));
+          setOrganizationErrorCode(error instanceof CommandDataError ? `HTTP ${error.status}` : error instanceof TypeError ? 'Réseau indisponible' : 'Réponse invalide');
         })
         .finally(() => {
           clearTimeout(localTimeout);
@@ -655,7 +672,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </header>}
 
           <div key={organization.id || 'unverified-tenant'} className="app-content pb-24 lg:pb-8">
-            {!organization.id ? <OrganizationGate loading={!organizationLoaded} onRetry={() => setOrganizationRetry(value => value + 1)} /> : isDepartment ? <DepartmentShell pathname={pathname} organizationName={organization.name} organizationId={organization.id}>{children}</DepartmentShell> : children}
+            {!organization.id ? <OrganizationGate loading={!organizationLoaded} errorCode={organizationErrorCode} onRetry={() => setOrganizationRetry(value => value + 1)} /> : isDepartment ? <DepartmentShell pathname={pathname} organizationName={organization.name} organizationId={organization.id}>{children}</DepartmentShell> : children}
           </div>
 
           {/* Floating Cora bubble — hidden when panel is open */}

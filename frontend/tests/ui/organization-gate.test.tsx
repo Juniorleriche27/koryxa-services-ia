@@ -12,6 +12,7 @@ describe('CAURI Grand Siège — vérification de l’organisation', () => {
     expect(screen.getByRole('heading', { name: 'Préparation de votre espace' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Réessayer/ })).toBeNull();
     expect(screen.getByText(/Aucun contenu d’entreprise/)).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'CAURI' }).getAttribute('src')).toContain('image(20261021-163619).png');
   });
 
   it('permet une nouvelle vérification après indisponibilité sans afficher de données', () => {
