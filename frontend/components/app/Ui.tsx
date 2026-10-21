@@ -1,4 +1,5 @@
 import { ArrowUpRight, CheckCircle2, Search, WifiOff, RefreshCw, AlertCircle } from "lucide-react";
+import styles from "./CauriEditorial.module.css";
 import clsx from "clsx";
 import type { Metric, RegisterItem } from "@/lib/service-ia/types";
 
@@ -18,54 +19,18 @@ export function EmptyState({
   detail: string;
   onRetry?: () => void;
 }) {
-  const isOfflineError =
-    detail.toLowerCase().includes("failed to fetch") ||
-    detail.toLowerCase().includes("networkerror") ||
-    detail.toLowerCase().includes("fetch failed") ||
-    detail.toLowerCase().includes("hors-ligne") ||
-    detail.toLowerCase().includes("indisponible");
-
-  if (isOfflineError) {
-    return (
-      <div className="p-8 sm:p-12 text-center rounded-3xl bg-card border border-border/80 shadow-xs flex flex-col items-center justify-center max-w-lg mx-auto my-6 animate-in fade-in duration-300">
-        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4 border border-amber-500/20">
-          <WifiOff size={28} />
-        </div>
-        <h3 className="text-base sm:text-lg font-black text-foreground tracking-tight mb-1">
-          Connexion réseau interrompue
-        </h3>
-        <p className="text-xs sm:text-sm text-muted-foreground mb-5 leading-relaxed max-w-sm">
-          Impossible de contacter le serveur distant. Vos opérations enregistrées hors-ligne seront synchronisées dès le retour d'Internet.
-        </p>
-        {onRetry && (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="px-4 py-2.5 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:scale-[1.02] active:scale-[0.98] transition font-bold text-xs flex items-center gap-2 cursor-pointer shadow-md"
-          >
-            <RefreshCw size={14} />
-            <span>Réessayer la synchronisation</span>
-          </button>
-        )}
-      </div>
-    );
-  }
-
+  const offline = /failed to fetch|networkerror|fetch failed|hors-ligne/i.test(detail);
+  const Icon = offline ? WifiOff : AlertCircle;
   return (
-    <div className="app-empty">
-      <div className="app-empty-orb" />
-      <h3>{title}</h3>
-      <p>{detail}</p>
-      {onRetry && (
-        <button
-          type="button"
-          onClick={onRetry}
-          className="mt-3 px-3 py-1.5 rounded-xl border border-border text-xs font-bold hover:bg-muted transition cursor-pointer"
-        >
-          Réessayer
-        </button>
-      )}
-    </div>
+    <section className={styles.emptyPanel} role="status" aria-live="polite">
+      <div className={styles.emptyIcon}><Icon size={19} aria-hidden="true" /></div>
+      <div className={styles.emptyCopy}>
+        <span className={styles.emptyEyebrow}>{offline ? "CONNEXION" : "INFORMATION"}</span>
+        <h3>{offline ? "Connexion au service indisponible" : title}</h3>
+        <p>{offline ? "Le service ne répond pas actuellement. Vérifiez votre connexion, puis réessayez. Les éventuelles opérations locales ne sont pas confirmées comme synchronisées." : detail}</p>
+      </div>
+      {onRetry && <button type="button" onClick={onRetry} className={styles.emptyRetry}><RefreshCw size={15} aria-hidden="true" /> Réessayer</button>}
+    </section>
   );
 }
 

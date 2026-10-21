@@ -1,0 +1,69 @@
+/* CAURI Premium · coherent institutional surfaces across the authenticated application.
+   Only visual hierarchy, spacing and interactive states. Business values/permissions unchanged. */
+.app-shell {
+  --cauri-page:#f8fbf8;
+  --cauri-ink:#173e34;
+  --cauri-muted:#607a6c;
+  --cauri-brand:#168064;
+  --cauri-soft:#f0f8f2;
+  --cauri-border:#dce9df;
+  --cauri-shadow:0 8px 26px rgba(25,74,52,.04);
+  color:var(--cauri-ink);
+}
+.app-shell .app-main { background:var(--cauri-page); }
+/* Shared cards, business tables and action groups; keep layout semantics unchanged. */
+.app-shell :is(.app-panel,.app-company-card,.kx-workspace-header,.kx-dashboard-command,.app-metric,.app-quick,.kx-kpi-card) {
+  border:1px solid var(--cauri-border);
+  background-color:#fff;
+  border-radius:17px;
+  box-shadow:var(--cauri-shadow);
+  color:var(--cauri-ink);
+}
+.app-shell .app-panel { padding:clamp(16px,2vw,24px); margin-bottom:17px; min-width:0; }
+.app-shell .app-panel-head {
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+  gap:11px; padding:0 0 14px; margin:0 0 16px;
+  border-bottom:1px solid var(--cauri-border);
+}
+.app-shell .app-panel-head h2 { font-size:clamp(1rem,1.55vw,1.2rem); line-height:1.3; color:var(--cauri-ink); font-weight:750; letter-spacing:-.02em; margin:0; }
+.app-shell .app-panel-head :is(button,a) { min-height:40px; }
+.app-shell .app-page-header:not(.kx-workspace-header) {
+  padding:clamp(17px,2.4vw,27px); border:1px solid var(--cauri-border);
+  border-radius:18px; background:linear-gradient(112deg,#fff 24%,#f1f8f3);
+  box-shadow:var(--cauri-shadow);
+}
+.app-shell .app-page-header:not(.kx-workspace-header) h1 {font-size:clamp(1.45rem,2.4vw,2.05rem);line-height:1.19;color:var(--cauri-ink)}
+.app-shell :is(.app-eyebrow,.kx-workspace-header .app-eyebrow) {color:var(--cauri-brand);font-size:.69rem;letter-spacing:.11em;line-height:1.45;}
+.app-shell :is(.app-page-header,.kx-workspace-header,.kx-dashboard-command) p {font-size:.85rem;line-height:1.6;color:var(--cauri-muted)}
+.app-shell :is(.app-metric,.kx-kpi-card) {padding:clamp(15px,1.5vw,20px);min-width:0;}
+.app-shell :is(.app-metric,.kx-kpi-card) strong {color:var(--cauri-ink);font-variant-numeric:tabular-nums;letter-spacing:-.035em;overflow-wrap:anywhere;}
+.app-shell .app-list {display:grid;gap:8px;}
+.app-shell .app-list-row {min-width:0;border:1px solid #e2ede5;background:#fff;border-radius:12px;padding:12px 14px;}
+.app-shell .app-list-row :is(strong,span,small) {line-height:1.5;}
+.app-shell .app-list-main {min-width:0;}
+.app-shell .app-list-main strong {font-size:.85rem;color:var(--cauri-ink);overflow-wrap:anywhere;}
+.app-shell .app-list-main span {font-size:.78rem;color:var(--cauri-muted);overflow-wrap:anywhere;}
+.app-shell .app-toolbar {display:flex;align-items:center;flex-wrap:wrap;gap:11px;margin-bottom:16px;}
+.app-shell :is(.app-toolbar,.app-form-grid,.app-form-stack,.app-settings-grid) :is(input,select,textarea) {
+  border:1px solid #d6e7dc;border-radius:10px;background:#fff;color:var(--cauri-ink);min-height:42px;
+}
+.app-shell :is(input,select,textarea,button,a):focus-visible {outline:3px solid #82c5a0;outline-offset:2px;}
+.app-shell .app-button-primary {background:var(--cauri-brand);border:1px solid var(--cauri-brand);box-shadow:none;color:#fff;}
+.app-shell .app-button-primary:hover {background:#126d52;}
+.app-shell .app-button-secondary {background:#fff;border:1px solid var(--cauri-border);color:#23634e;}
+.app-shell .app-button-secondary:hover {background:var(--cauri-soft);}
+.app-shell .app-table-scroll {border:1px solid var(--cauri-border);border-radius:13px;max-width:100%;}
+.app-shell .app-data-table th {background:#eff7f1;color:#456a58;font-size:.67rem;line-height:1.5;}
+.app-shell .app-data-table td {line-height:1.5;}
+.app-shell .app-alert {border-radius:12px;line-height:1.5;}
+.app-shell .app-panel-note {font-size:.77rem;line-height:1.5;color:var(--cauri-muted);}
+/* Specific business decisions, severity colors, high-risk warnings remain authoritative. */
+@media(max-width:760px){
+  .app-shell .app-panel {padding:15px;border-radius:14px;}
+  .app-shell .app-panel-head {align-items:flex-start;}
+  .app-shell .app-list-row {padding:11px;gap:10px;}
+  .app-shell .app-page-header:not(.kx-workspace-header) {padding:16px;border-radius:14px;}
+  .app-shell .app-toolbar :is(button,a){min-height:44px;}
+  .app-shell .app-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+}
+@media(prefers-reduced-motion:reduce){.app-shell .app-list-row {scroll-behavior:auto;}}

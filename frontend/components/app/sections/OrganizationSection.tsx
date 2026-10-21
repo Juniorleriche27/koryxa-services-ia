@@ -73,8 +73,8 @@ export function OrganizationSection({
     <>
       <PageHeader
         eyebrow="Équipe"
-        title="Organisation & Membres"
-        description="Gérez les collaborateurs, leurs rôles d'accès et les invitations d'équipe."
+        title="Équipe et accès"
+        description="Retrouvez les membres de votre entreprise, leurs rôles et les invitations en cours."
         action={
           <button className="app-button app-button-primary" onClick={() => setInviting(true)}>
             <Plus size={16} />

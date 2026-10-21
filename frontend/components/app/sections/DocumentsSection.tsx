@@ -65,9 +65,9 @@ export function DocumentsSection() {
   return (
     <>
       <PageHeader
-        eyebrow="Mémoire documentaire"
-        title="Documents & Justificatifs"
-        description="Consultez et rattachez des fichiers justificatifs aux registres opérationnels."
+        eyebrow="DOCUMENTS DE L’ENTREPRISE"
+        title="Documents et justificatifs"
+        description="Retrouvez vos justificatifs et associez-les aux dossiers concernés."
       />
       <section className="app-panel">
         <div className="app-toolbar">
