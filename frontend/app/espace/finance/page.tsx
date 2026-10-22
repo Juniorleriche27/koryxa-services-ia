@@ -132,17 +132,18 @@ export default function FinancePage() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
-      <header className="kx-workspace-header">
+    <main className="cauri-finance-ledger mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+      <header className="kx-workspace-header cauri-finance-heading">
         <div className="kx-workspace-header-copy">
-        <Link href="/espace/caisse" className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">← Retour à la caisse</Link>
-        <h1 className="mt-3 text-2xl font-bold sm:text-3xl">Comptes et mouvements de trésorerie</h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Saisissez uniquement des montants vérifiés. Les soldes affichés proviennent des déclarations et ne constituent pas un rapprochement bancaire.</p>
+        <span className="cauri-finance-eyebrow">FINANCES / TRÉSORERIE</span>
+        <h1 className="mt-3 text-2xl font-bold sm:text-3xl">Comptes et mouvements</h1>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Consultez les comptes et enregistrez les opérations vérifiées. Les soldes déclarés ne constituent pas un rapprochement bancaire.</p>
+        <Link href="/espace/caisse" className="cauri-finance-return">← Accéder à la caisse</Link>
         </div>
       </header>
       {error && <p role="alert" className="rounded-xl border border-red-300 p-3 text-red-700 dark:text-red-300">{error}</p>}
       {notice && <p role="status" className="rounded-xl border border-emerald-300 p-3 text-emerald-700 dark:text-emerald-300">{notice}</p>}
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section className="cauri-finance-accounts grid gap-4 sm:grid-cols-2" aria-label="Comptes de trésorerie">
         {accounts.map((a) => (
           <article key={a.account_id} className="rounded-2xl border border-slate-200 p-5 dark:border-slate-700">
             <h2 className="font-semibold">{a.name} — {a.currency}</h2>

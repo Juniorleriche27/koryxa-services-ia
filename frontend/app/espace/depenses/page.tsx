@@ -49,9 +49,9 @@ export default function ExpensesPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Trésorerie & Achats"
-        title="Dépenses & Décaissements"
-        description="Suivez vos sorties d'argent par catégorie, contrôlez vos factures fournisseurs et anticipez vos règlements."
+        eyebrow="FINANCES / DÉPENSES"
+        title="Dépenses et décaissements"
+        description="Suivez vos dépenses, leurs justificatifs et leur état de règlement."
         action={
           <div className="kx-header-actions-row" style={{ display: "flex", gap: 8 }}>
             <button
@@ -61,11 +61,11 @@ export default function ExpensesPage() {
               title="Scanner une facture ou un reçu avec l'IA"
             >
               <Camera size={16} />
-              <span>Scanner reçu (OCR)</span>
+              <span>Scanner un justificatif</span>
             </button>
             <button className="app-button app-button-primary" onClick={() => setCreating(true)}>
               <Plus size={16} />
-              <span>Ajouter une Dépense</span>
+              <span>Ajouter une dépense</span>
             </button>
           </div>
         }
