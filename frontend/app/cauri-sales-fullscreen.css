@@ -1,0 +1,125 @@
+/* CAURI · Sales fullscreen workspace. Portaled directly under body, outside .app-shell.
+   Presentation only: no mutations to sums, statuses, sorting, payments or document actions. */
+body.kx-fullpage-mode > .cauri-sales-fullscreen {
+  --kx-page:#f7fbf8; --kx-text:#183e33; --kx-border:#dce9df;
+  --background:#ffffff; --foreground:#183e33; --card:#ffffff;
+  --muted:#eef6f0; --muted-foreground:#657d71;
+  font-family:var(--font-dm-sans),"DM Sans",Arial,sans-serif;
+  font-size:14px; line-height:1.5; letter-spacing:0;
+  color:#173e34!important; background:#f7fbf8!important;
+  padding:clamp(14px,2vw,30px)!important; gap:17px;
+  scrollbar-width:thin; scrollbar-color:#c4dfcc #f7fbf8;
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen :is(h1,h2,h3,h4,p,span,small,strong,button,input,table,th,td,label,a){font-family:var(--font-dm-sans),"DM Sans",Arial,sans-serif}
+body.kx-fullpage-mode > .cauri-sales-fullscreen :is(button,a,input):focus-visible{outline:3px solid #85c8a1;outline-offset:2px}
+/* Masthead: a single clear operational band, no floating old-system icons. */
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  width:100%;position:sticky;top:-1px;z-index:45;
+  padding:16px 18px!important;margin:0;
+  border:1px solid #dbe9df!important;border-radius:16px;
+  background:rgba(255,255,255,.98)!important;
+  box-shadow:0 8px 25px rgba(21,73,48,.045);
+  backdrop-filter:blur(10px);
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header>div:first-child{flex:1 1 300px;min-width:0;gap:13px}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-logo{
+  width:112px;height:auto;flex:none;object-fit:contain;
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header h2{
+  color:#163d31!important;font-size:clamp(1.1rem,1.6vw,1.45rem)!important;
+  line-height:1.3;font-weight:760!important;letter-spacing:-.025em;margin:0;
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header p{color:#6a8173!important;font-size:.78rem!important;line-height:1.55;margin:5px 0 0}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header>div:last-child{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:9px;flex:0 1 auto;min-width:0}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header button{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;padding:10px 14px;border-radius:10px;
+  border:1px solid #d9e8de;background:#fff;color:#255b44;
+  font-size:.79rem;font-weight:710!important;line-height:1.35;
+  box-shadow:none!important;transform:none!important;white-space:normal;
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header button:hover{background:#f0f8f2;border-color:#bcd9c6}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header .app-button-primary{background:#168064!important;border-color:#168064!important;color:#fff!important}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header .app-button-primary:hover{background:#126b51!important}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header>div:last-child>button:last-child{background:#f0f5f2!important;border-color:#d5e4d9!important;color:#3e6452!important}
+/* KPIs: no harsh dark borders, same typography as all CAURI executive metrics. */
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;width:100%}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-kpis>div{
+  min-width:0;display:flex;flex-direction:column;justify-content:center;
+  padding:clamp(16px,2vw,23px)!important;
+  border:1px solid #dbeade!important;border-radius:15px!important;
+  background:#fff!important;box-shadow:0 6px 19px rgba(26,77,49,.035)!important;
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-kpis>div>div:first-child>span:first-child{color:#658073!important;font-size:.68rem!important;font-weight:770!important;letter-spacing:.065em;line-height:1.45}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-kpis .font-mono{
+  font-family:var(--font-dm-sans),"DM Sans",Arial,sans-serif!important;
+  font-variant-numeric:tabular-nums;
+  font-size:clamp(1.45rem,2.2vw,2rem)!important;font-weight:750!important;letter-spacing:-.035em;line-height:1.18;
+  overflow-wrap:anywhere;
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-kpis>div>div:last-child{font-size:.76rem;line-height:1.45;margin-top:10px}
+/* Search/export toolbar and tab filters read as a professional business workspace. */
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters{
+  width:100%;min-width:0;margin:0;padding:15px 17px;
+  border:1px solid #dce9df;border-radius:15px;background:#fff;
+  box-shadow:0 6px 20px rgba(21,73,48,.025);
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters>div:first-child{gap:12px}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters .kx-search-box{
+  flex:1 1 350px;max-width:720px;min-width:0;min-height:46px;
+  border:1px solid #d8e7dd;border-radius:11px;background:#f7fbf8;
+  padding:0 13px;color:#547565;
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters .kx-search-box input{font-size:.86rem;min-width:0;background:transparent;color:#163e32}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters .app-button{min-height:44px;border:1px solid #d9e8de;background:#f7fbf8;color:#215d44;font-size:.8rem;font-weight:720;border-radius:10px;box-shadow:none}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters>div:last-child{display:flex;flex-wrap:wrap;gap:8px;overflow-x:auto;max-width:100%;padding:2px 0;margin:0}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters>div:last-child>button{
+  min-height:39px;padding:8px 13px;border:1px solid #d8e8dd;
+  border-radius:10px;background:#f6faf7;color:#426653;
+  font-size:.77rem;font-weight:730;white-space:nowrap;
+  box-shadow:none;transition:background .15s ease,border-color .15s ease;
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters>div:last-child>button:hover{background:#eaf5ed;border-color:#bddac5}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters>div:last-child>button.bg-slate-950{background:#168064!important;border-color:#168064!important;color:#fff!important}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters>div:last-child>button>span:last-child{border-radius:7px}
+/* Data grid: clean hierarchy, clear separators, no archaic heavy outlines. */
+body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table-scroll{
+  min-width:0;width:100%;max-width:100%;overflow-x:auto;
+  border:1px solid #dae8dd!important;border-radius:15px!important;
+  background:#fff;box-shadow:0 6px 22px rgba(25,75,48,.03);
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table{
+  min-width:930px;width:100%;border-collapse:separate;border-spacing:0;
+  font-size:.82rem;color:#2d5340;
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table thead th{
+  position:sticky;top:0;z-index:5;padding:15px 17px;
+  background:#f0f7f2!important;color:#547364!important;
+  font-size:.69rem;line-height:1.4;letter-spacing:.055em;
+  font-weight:780;border-bottom:1px solid #dce9df;
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table tbody td{
+  padding:16px 17px;border-bottom:1px solid #e6eee8;
+  background:transparent;color:#385b48;line-height:1.55;
+}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table tbody tr{background:#fff}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table tbody tr:nth-child(even){background:#fafcfb}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table tbody tr:hover{background:#edf7f0}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table tbody td strong{font-weight:760;color:#173e33}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table tbody td .font-mono{font-family:var(--font-dm-sans),"DM Sans",Arial,sans-serif!important;font-variant-numeric:tabular-nums}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table tbody td button{font-family:inherit;min-height:29px}
+body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table tbody td button:focus-visible{outline:3px solid #88cba4;outline-offset:2px}
+@media(max-width:1100px){body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header{align-items:flex-start}body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header>div:last-child{flex:1 1 100%;justify-content:flex-start}}
+@media(max-width:760px){
+  body.kx-fullpage-mode > .cauri-sales-fullscreen{padding:12px!important;gap:12px}
+  body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header{position:relative;padding:14px!important;gap:13px;border-radius:13px}
+  body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header>div:last-child{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
+  body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-header>div:last-child>button:last-child{grid-column:1/-1}
+  body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-kpis{grid-template-columns:1fr;gap:9px}
+  body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-kpis>div{padding:14px!important}
+  body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters{padding:12px}
+  body.kx-fullpage-mode > .cauri-sales-fullscreen .cauri-sales-fs-filters .kx-search-box{flex-basis:100%;max-width:none}
+  body.kx-fullpage-mode > .cauri-sales-fullscreen .kx-rich-table{min-width:850px}
+}
+@media(prefers-reduced-motion:reduce){body.kx-fullpage-mode > .cauri-sales-fullscreen *{transition:none!important}}

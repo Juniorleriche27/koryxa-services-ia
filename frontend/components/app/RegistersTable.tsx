@@ -3,6 +3,7 @@ import { useI18n } from "@/lib/i18n";
 
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import clsx from "clsx";
 import {
   Search,
@@ -451,11 +452,9 @@ export function SalesTableInteractive({
     >
       {/* Fullscreen Sticky Exit Bar with Operations Actions */}
       {isTableFullscreen && (
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/80 bg-background/95 backdrop-blur-md sticky top-0 z-30">
+        <div className="cauri-sales-fs-header flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/80 bg-background/95 backdrop-blur-md sticky top-0 z-30">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
-              ⛶
-            </div>
+            <Image src="/image(20261021-163619).png" alt="CAURI" width={2048} height={682} unoptimized className="cauri-sales-fs-logo" />
             <div>
               <h2 className="text-sm sm:text-base font-black text-foreground tracking-tight m-0">
                 {t("sales_title")} — {t("common_fullscreen")}
@@ -486,7 +485,7 @@ export function SalesTableInteractive({
                 onClick={onAddSale}
               >
                 <Plus size={14} />
-                <span>{t("sales_btn_new")}</span>
+                <span>{t("sales_btn_new").replace(/^\s*\+\s*/, "")}</span>
               </button>
             )}
 
@@ -503,7 +502,7 @@ export function SalesTableInteractive({
       )}
 
       {/* Live KPIs Header - High Contrast Clean Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="cauri-sales-fs-kpis grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-card p-4 rounded-2xl border border-border/80 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -551,7 +550,7 @@ export function SalesTableInteractive({
       </div>
 
       {/* Controls Bar & Filter Tabs */}
-      <div className="space-y-3">
+      <div className="cauri-sales-fs-filters space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <label className="app-search kx-search-box flex-1 min-w-[240px]">
             <Search size={16} />

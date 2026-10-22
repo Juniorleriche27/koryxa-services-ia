@@ -12,11 +12,14 @@ describe('CAURI Commerce — mode plein écran', () => {
     );
     expect(container.querySelector('.kx-table-wrapper')).toBeTruthy();
     rerender(
-      <I18nProvider><SalesTableInteractive sales={[]} isFullscreen={true} onToggleFullscreen={vi.fn()} onSelect={vi.fn()} onEdit={vi.fn()} onArchive={vi.fn()} onRefresh={vi.fn()} /></I18nProvider>,
+      <I18nProvider><SalesTableInteractive sales={[]} isFullscreen={true} onToggleFullscreen={vi.fn()} onAddSale={vi.fn()} onSelect={vi.fn()} onEdit={vi.fn()} onArchive={vi.fn()} onRefresh={vi.fn()} /></I18nProvider>,
     );
     expect(container.querySelector('.cauri-sales-fullscreen')).toBeNull();
     expect(document.body.querySelector(':scope > .cauri-sales-fullscreen')).toBeTruthy();
     expect(document.body.classList.contains('kx-fullpage-mode')).toBe(true);
+    expect(screen.getByRole('img', { name: 'CAURI' }).getAttribute('src')).toContain('image(20261021-163619).png');
     expect(screen.getByRole('button', { name: /quitter.*plein.*cran/i })).toBeTruthy();
+    const createButton = screen.getByRole('button', { name: /ajouter.*facture/i });
+    expect(createButton.textContent?.trim().startsWith('+')).toBe(false);
   });
 });

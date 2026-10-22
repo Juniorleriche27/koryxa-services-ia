@@ -2,6 +2,7 @@ import "./globals.css";
 import "./cauri-workspace-premium.css";
 import "./cauri-commerce-premium.css";
 import "./cauri-commerce-layout.css";
+import "./cauri-sales-fullscreen.css";
 import "./cauri-finances-premium.css";
 import "./cauri-operations-premium.css";
 import "./cauri-members-premium.css";
