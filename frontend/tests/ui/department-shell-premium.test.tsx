@@ -21,14 +21,28 @@ describe('CAURI Premium — six institutional departments', () => {
   it.each(DEPARTMENTS)('présente une bannière et les rubriques de $name sans changer les accès', (department) => {
     const first = department.sections[0];
     render(<DepartmentShell pathname={first.href} organizationId="tenant-one" organizationName="Entreprise"><div>Contenu métier</div></DepartmentShell>);
-    expect(screen.getByRole('heading', { name: department.name })).toBeTruthy();
-    expect(screen.getByText('ACCÉDER À UNE RUBRIQUE')).toBeTruthy();
-    expect(screen.getByText('ESPACES MÉTIER')).toBeTruthy();
+    if (first.href === '/espace/actions') {
+      expect(screen.queryByRole('heading', { name: department.name })).toBeNull();
+      expect(screen.queryByText('ACCÉDER À UNE RUBRIQUE')).toBeNull();
+      expect(screen.queryByText('ESPACES MÉTIER')).toBeNull();
+    } else {
+      expect(screen.getByRole('heading', { name: department.name })).toBeTruthy();
+      expect(screen.getByText('ACCÉDER À UNE RUBRIQUE')).toBeTruthy();
+      expect(screen.getByText('ESPACES MÉTIER')).toBeTruthy();
+    }
     expect(screen.getByRole('navigation', { name: `Navigation — ${department.name}` })).toBeTruthy();
     expect(screen.getByRole('link', { name: first.label }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByText('Contenu métier')).toBeTruthy();
     const wrapper = screen.getByText('Contenu métier').closest('[data-cauri-department]');
     expect(wrapper?.getAttribute('data-cauri-department')).toBe(department.id);
+  });
+  it('prioritises Actions content without decorative AI or redundant blocks', () => {
+    render(<DepartmentShell pathname="/espace/actions" organizationId="tenant-one" organizationName="Entreprise"><div>Tableau des actions</div></DepartmentShell>);
+    expect(screen.getByText('Tableau des actions')).toBeTruthy();
+    expect(screen.queryByTestId('intelligence-entry')).toBeNull();
+    expect(screen.queryByText('ESPACES MÉTIER')).toBeNull();
+    expect(screen.queryByText('RUBRIQUE ACTIVE')).toBeNull();
+    expect(screen.getByRole('navigation', { name: 'Navigation — Direction et pilotage' })).toBeTruthy();
   });
   it('shows an authorized department and its business content', () => {
     render(<DepartmentShell pathname="/espace/finance" organizationId="tenant-one" organizationName="Entreprise" ><div>Contenu financier réservé</div></DepartmentShell>);

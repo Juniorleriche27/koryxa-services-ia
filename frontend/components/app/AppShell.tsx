@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { DepartmentShell } from "@/components/grand-siege/DepartmentShell";
 import { MobileSiegeDock } from '@/components/grand-siege/MobileSiegeDock';
@@ -605,7 +606,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             <div className="app-topbar-context">
               <h1 className="kx-topbar-title m-0 p-0">
-                {pathname === "/espace" ? "CAURI · Grand Siège" : context.eyebrow}
+                {pathname === "/espace/actions" ? <Link href="/espace" className="cauri-actions-header-brand" aria-label="CAURI, retour au Grand Hall"><Image src="/image(20261021-163619).png" alt="CAURI" width={2048} height={682} unoptimized priority /><span>Direction</span></Link> : pathname === "/espace" ? "CAURI · Grand Siège" : context.eyebrow}
               </h1>
             </div>
 

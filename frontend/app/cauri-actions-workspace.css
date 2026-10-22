@@ -1,0 +1,7 @@
+/* CAURI Actions: operational workspace, not a marketing landing page.
+   Only affects /espace/actions via the DepartmentShell.actionsWorkspace class. */
+.app-shell.is-department .cauri-actions-header-brand{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:#245b43;font-size:.76rem;font-weight:780;letter-spacing:.075em;white-space:nowrap}
+.app-shell.is-department .cauri-actions-header-brand img{display:block;width:108px;height:auto;object-fit:contain}
+.app-shell.is-department .cauri-actions-header-brand span{border-left:1px solid #dbe9df;padding-left:12px}
+.app-shell.is-department [data-cauri-department="direction"] .app-button-primary{min-height:44px}
+@media(max-width:760px){.app-shell.is-department .cauri-actions-header-brand img{width:80px}.app-shell.is-department .cauri-actions-header-brand span{font-size:.66rem;padding-left:8px}}

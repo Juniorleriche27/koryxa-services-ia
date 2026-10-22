@@ -77,7 +77,7 @@ export function ActionsSection({
         action={
           <button className="app-button app-button-primary" onClick={() => setCreating(true)}>
             <Plus size={16} />
-            <span>{t("actions_btn_new")}</span>
+            <span>{t("actions_btn_new").replace(/^\s*\+\s*/, "")}</span>
           </button>
         }
       />

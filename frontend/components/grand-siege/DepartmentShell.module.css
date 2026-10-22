@@ -45,6 +45,18 @@
   .content { padding-top:19px; }
 }
 @media(max-width:380px) { .masthead { padding-inline:14px; }.localNav { margin-inline:-14px;padding-inline:14px; }.identity { font-size:.68rem; }.accessState { padding:16px; } }
+/* Compact Actions workspace: the Kanban is the focus, not repeated introductions. */
+.actionsWorkspace .masthead{padding:10px clamp(14px,4vw,60px) 0;background:#f8fbf8;overflow:visible}
+.actionsWorkspace .masthead:before{display:none}
+.actionsWorkspace .mastheadTop{min-height:45px}
+.actionsWorkspace .back{min-height:39px;padding:7px 11px;background:#fff}
+.actionsWorkspace .identity{padding:6px 10px;font-size:.7rem}
+.actionsWorkspace .navigationBlock{margin-top:7px;padding:7px 12px 0;background:#fff;border-radius:12px 12px 0 0}
+.actionsWorkspace .navigationBlock .localNav{padding-bottom:7px;gap:6px}
+.actionsWorkspace .navigationBlock .localLink{min-height:40px;padding:8px 13px;border-radius:9px;font-size:.77rem}
+.actionsWorkspace .content{padding:clamp(12px,1.7vw,24px) clamp(14px,4vw,60px) 95px}
+.actionsWorkspace .content> :global(.app-page-header){margin-bottom:14px}
+@media(max-width:760px){.actionsWorkspace .masthead{padding-top:9px}.actionsWorkspace .mastheadTop{gap:8px}.actionsWorkspace .identity{font-size:.65rem}.actionsWorkspace .navigationBlock{padding:7px 10px 0}.actionsWorkspace .content{padding-top:12px}.actionsWorkspace .navigationBlock .localNav{margin:0;padding:0 0 7px}}
 /* Presentation-only finishing for existing business components inside a department. */
 :global(.app-shell.is-department .app-panel),:global(.app-shell.is-department .app-company-card) { background:#fff;border-color:#dce9df;border-radius:18px;box-shadow:0 7px 24px rgba(23,74,46,.04); }
 :global(.app-shell.is-department .app-panel-head) { color:#173d33; }
