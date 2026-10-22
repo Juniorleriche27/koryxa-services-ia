@@ -117,9 +117,9 @@ export default function PresencePage() {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="cauri-members-attendance space-y-6">
         <PageHeader
-          eyebrow={proConfig.registers.attendance.title}
+          eyebrow="MEMBRES ET ORGANISATION / PRÉSENCES"
           title={t("attendance_title")}
           description={t("attendance_desc")}
           action={
@@ -151,7 +151,7 @@ export default function PresencePage() {
         />
 
         {/* Daily KPI Counters */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="cauri-members-kpis grid grid-cols-1 sm:grid-cols-4 gap-4" aria-label="Synthèse des présences du jour">
           <div className="p-5 rounded-2xl border border-border bg-card shadow-sm flex items-center gap-4">
             <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <UserCheck size={24} />
@@ -210,7 +210,7 @@ export default function PresencePage() {
         </div>
 
         {/* Live Attendance Table */}
-        <section className="app-panel">
+        <section className="app-panel cauri-members-records">
           <div className="app-panel-head">
             <div className="flex items-center gap-2">
               <Users size={18} className="text-primary" />

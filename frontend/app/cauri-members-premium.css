@@ -1,0 +1,33 @@
+/* CAURI Premium — Membres et organisation only. Permissions and attendance behavior unchanged. */
+.app-shell [data-cauri-department="organisation"]{--members-ink:#173e34;--members-muted:#5e796b;--members-line:#dce9df;--members-green:#168064}
+.app-shell [data-cauri-department="organisation"] .app-page-header{gap:14px}
+.app-shell [data-cauri-department="organisation"] .app-page-action{background:#f4faf5;border:1px solid var(--members-line);border-radius:12px;padding:10px}
+.app-shell [data-cauri-department="organisation"] .app-page-action button{min-height:44px;border-radius:10px}
+.app-shell [data-cauri-department="organisation"] .app-company-profile{padding:clamp(14px,2vw,24px);border:1px solid var(--members-line);border-radius:16px;background:#fff;gap:clamp(14px,2vw,25px);box-shadow:0 9px 25px rgba(21,80,48,.04)}
+.app-shell [data-cauri-department="organisation"] .app-company-logo-editor{min-width:0;border:1px dashed #bad8c4;border-radius:14px;background:#f3faf5;padding:19px;}
+.app-shell [data-cauri-department="organisation"] .app-company-logo-editor img{object-fit:contain}
+.app-shell [data-cauri-department="organisation"] .app-company-details{padding:clamp(14px,2vw,22px);background:#f9fcfa;border:1px solid #e1ece5;border-radius:13px;min-width:0}
+.app-shell [data-cauri-department="organisation"] .app-company-details :is(input,select){max-width:100%;min-height:43px;border-radius:10px;border:1px solid #d7e7dc;background:#fff}
+.app-shell [data-cauri-department="organisation"] .app-list{gap:9px}
+.app-shell [data-cauri-department="organisation"] .app-list-row{border:1px solid #e0ece4;background:#fff;border-radius:12px;padding:14px;flex-wrap:wrap;gap:10px}
+.app-shell [data-cauri-department="organisation"] .app-list-row select{max-width:100%;min-height:43px;border-radius:10px;border:1px solid #d8e8dd;background:#f7fbf8;color:var(--members-ink)}
+.app-shell [data-cauri-department="organisation"] .cauri-members-attendance{min-width:0}
+.app-shell [data-cauri-department="organisation"] .cauri-members-kpis{padding:clamp(11px,1.6vw,17px);background:#f2f9f4;border:1px solid var(--members-line);border-radius:17px;gap:12px}
+.app-shell [data-cauri-department="organisation"] .cauri-members-kpis>div{min-width:0;padding:clamp(13px,2vw,20px);border-radius:13px;border:1px solid #daeade;background:#fff;box-shadow:0 5px 18px rgba(24,73,49,.035)}
+.app-shell [data-cauri-department="organisation"] .cauri-members-kpis strong{font-size:clamp(1.6rem,2.5vw,2rem);font-variant-numeric:tabular-nums;letter-spacing:-.04em;line-height:1.2}
+.app-shell [data-cauri-department="organisation"] .cauri-members-records{border:1px solid var(--members-line);border-radius:16px;background:#fff;padding:clamp(14px,2vw,23px);box-shadow:0 8px 27px rgba(21,75,48,.04)}
+.app-shell [data-cauri-department="organisation"] .cauri-members-records .app-panel-head{padding-bottom:14px;border-bottom:1px solid var(--members-line)}
+.app-shell [data-cauri-department="organisation"] .cauri-members-records .overflow-x-auto{max-width:100%;border:1px solid var(--members-line);border-radius:12px}
+.app-shell [data-cauri-department="organisation"] .cauri-members-records table th{background:#eff8f1;font-size:.71rem;color:#47745e;letter-spacing:.04em}
+.app-shell [data-cauri-department="organisation"] :is(a,button,input,select):focus-visible{outline:3px solid #87caa3;outline-offset:2px}
+/* Kiosk is deliberately standalone; stay light and preserve high-contrast scannable QR. */
+.cauri-members-kiosk{min-height:100dvh;background:linear-gradient(125deg,#f5faf6,#fff 58%,#eef8f0);color:#173e34;gap:18px}
+.cauri-members-kiosk-head{width:min(100%,1100px);margin-inline:auto;padding:clamp(13px,2vw,21px);border:1px solid #dce9df;background:#fff;border-radius:17px;box-shadow:0 10px 28px rgba(25,78,51,.045)}
+.cauri-members-kiosk-back,.cauri-members-kiosk-fullscreen{background:#f0f8f2;border-color:#d6e9db;color:#176e52;min-height:44px}
+.cauri-members-kiosk-back:hover,.cauri-members-kiosk-fullscreen:hover{background:#e3f2e7;color:#125e46}
+.cauri-members-kiosk-icon{background:#e7f5ec;border-color:#d4e9d9;color:#168064}
+.cauri-members-kiosk-content{width:min(100%,1100px);margin-inline:auto;padding:clamp(12px,2vw,24px);border:1px solid #deebe1;border-radius:18px;background:#fff;box-shadow:0 12px 32px rgba(24,72,51,.05)}
+.cauri-members-kiosk-content>div:first-child{max-width:100%;width:100%;box-shadow:0 5px 24px rgba(25,73,48,.055)}
+.cauri-members-kiosk-foot{width:min(100%,1100px);margin-inline:auto;padding:17px;color:#658174;background:#fff;border-color:#dce9df;border-radius:14px}
+.cauri-members-kiosk :is(a,button):focus-visible{outline:3px solid #88cfa5;outline-offset:3px}
+@media(max-width:760px){.app-shell [data-cauri-department="organisation"] .app-company-profile{grid-template-columns:1fr;padding:13px}.app-shell [data-cauri-department="organisation"] .app-company-details{padding:15px}.app-shell [data-cauri-department="organisation"] .app-list-row{padding:12px}.cauri-members-kiosk{padding:12px;gap:13px}.cauri-members-kiosk-head{padding:14px}.cauri-members-kiosk-content{padding:10px}.cauri-members-kiosk-foot{padding:13px}}
