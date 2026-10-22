@@ -119,7 +119,7 @@ export function RegistersSection({
         title={regConfig.title}
         description={regConfig.subtitle}
         action={
-          <div className="kx-header-actions-row flex items-center gap-2 flex-wrap">
+          <div className={`kx-header-actions-row flex items-center gap-2 flex-wrap ${kind === "sales" || kind === "offers" ? "cauri-commerce-register-actions" : ""}`}>
             <button
               type="button"
               className="app-button app-button-secondary"
