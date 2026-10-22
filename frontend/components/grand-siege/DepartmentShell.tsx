@@ -24,7 +24,7 @@ export function DepartmentShell({ pathname, organizationName, organizationId, ch
 
   return (
     <GrandSiegeThemeProvider>
-      <div className={styles.frame}>
+      <div className={styles.frame} data-cauri-department={department.id}>
         <header className={styles.masthead}>
           <div className={styles.mastheadTop}>
             <Link className={styles.back} href="/espace"><ArrowLeft size={16} aria-hidden="true" /> Grand Hall</Link>

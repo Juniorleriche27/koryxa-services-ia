@@ -68,7 +68,7 @@ export function SuppliersDirectory({ suppliers, onRefresh }: SuppliersTableProps
           onClick={() => setCreating(true)}
         >
           <Plus size={16} />
-          <span>Ajouter un Fournisseur</span>
+          <span>Ajouter un fournisseur</span>
         </button>
       </div>
 

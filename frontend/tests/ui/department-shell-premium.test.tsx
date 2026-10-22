@@ -27,6 +27,8 @@ describe('CAURI Premium — six institutional departments', () => {
     expect(screen.getByRole('navigation', { name: `Navigation — ${department.name}` })).toBeTruthy();
     expect(screen.getByRole('link', { name: first.label }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByText('Contenu métier')).toBeTruthy();
+    const wrapper = screen.getByText('Contenu métier').closest('[data-cauri-department]');
+    expect(wrapper?.getAttribute('data-cauri-department')).toBe(department.id);
   });
   it('shows an authorized department and its business content', () => {
     render(<DepartmentShell pathname="/espace/finance" organizationId="tenant-one" organizationName="Entreprise" ><div>Contenu financier réservé</div></DepartmentShell>);

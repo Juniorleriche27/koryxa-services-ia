@@ -341,13 +341,13 @@ export function WhatsAppConfigView({ orgSlug }: { orgSlug: string }) {
         </div>
         <div className="kx-wa-hero-text">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <h2>Passerelle WhatsApp & Mobilité Terrain</h2>
+            <h2>Connexion et activité WhatsApp</h2>
             <StatusPill>
               {sessionStatus === "connected" ? "🟢 WhatsApp Connecté" : "🟡 Prêt pour Appairage"}
             </StatusPill>
           </div>
           <p>
-            Enregistrez vos ventes, notes vocales et encaissements en direct sur le terrain par simple message ou audio WhatsApp.
+            Configurez votre connexion WhatsApp et retrouvez les outils de saisie des ventes, messages et encaissements.
           </p>
         </div>
       </div>

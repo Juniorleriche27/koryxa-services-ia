@@ -1,0 +1,39 @@
+/* CAURI Premium — Commerce only. No change to other departments or business behavior. */
+.app-shell [data-cauri-department="commerce"] { --commerce-border:#dce9df; --commerce-ink:#173e34; --commerce-muted:#5d796a; --commerce-soft:#f3f9f4; }
+.app-shell [data-cauri-department="commerce"] .app-page-header { gap:14px; }
+.app-shell [data-cauri-department="commerce"] .kx-header-actions-row { padding:10px; background:#f6faf7; border:1px solid var(--commerce-border); border-radius:13px; gap:8px; }
+.app-shell [data-cauri-department="commerce"] .kx-header-actions-row .app-button { min-height:44px; border-radius:10px; font-size:.81rem; }
+.app-shell [data-cauri-department="commerce"] .app-panel { border:1px solid var(--commerce-border); border-radius:16px; background:#fff; box-shadow:0 9px 27px rgba(25,76,50,.04); }
+.app-shell [data-cauri-department="commerce"] .kx-suppliers-section .app-toolbar { padding:15px; background:var(--commerce-soft); border:1px solid var(--commerce-border); border-radius:13px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.app-shell [data-cauri-department="commerce"] .kx-suppliers-section .app-search { min-width:0; flex:1 1 300px; max-width:540px; background:#fff; border:1px solid #d4e5d8; border-radius:10px; }
+.app-shell [data-cauri-department="commerce"] .kx-suppliers-section .app-search input { width:100%; min-width:0; }
+.app-shell [data-cauri-department="commerce"] .kx-suppliers-grid { gap:14px; }
+.app-shell [data-cauri-department="commerce"] .kx-supplier-card { min-width:0; border:1px solid var(--commerce-border); border-radius:15px; background:#fff; box-shadow:0 6px 20px rgba(20,76,49,.04); overflow:hidden; }
+.app-shell [data-cauri-department="commerce"] .kx-supplier-head { padding:15px; background:#f2f9f4; border-bottom:1px solid #deebe2; gap:10px; }
+.app-shell [data-cauri-department="commerce"] .kx-supplier-icon { background:#e1f1e6; color:#147a58; border-radius:10px; }
+.app-shell [data-cauri-department="commerce"] .kx-supplier-title h3 { color:var(--commerce-ink); font-size:1rem; letter-spacing:-.015em; line-height:1.3; overflow-wrap:anywhere; }
+.app-shell [data-cauri-department="commerce"] .kx-supplier-details { padding:14px 15px; display:grid; gap:9px; }
+.app-shell [data-cauri-department="commerce"] .kx-supplier-row { min-width:0; align-items:flex-start; color:#527363; line-height:1.5; font-size:.82rem; overflow-wrap:anywhere; }
+.app-shell [data-cauri-department="commerce"] .kx-supplier-card .app-form-actions { display:flex; flex-wrap:wrap; gap:8px; margin:0; padding:12px 15px; background:#f9fcfa; border-top:1px solid #e1ece4; }
+.app-shell [data-cauri-department="commerce"] .kx-supplier-card .app-form-actions button { min-height:42px; }
+.app-shell [data-cauri-department="commerce"] .kx-wa-container { color:var(--commerce-ink); min-width:0; }
+.app-shell [data-cauri-department="commerce"] .kx-wa-hero { display:flex; align-items:center; gap:17px; padding:clamp(17px,2.3vw,27px); border:1px solid var(--commerce-border); border-radius:17px; background:linear-gradient(110deg,#fff,#eff8f1); box-shadow:0 8px 27px rgba(25,76,50,.035); }
+.app-shell [data-cauri-department="commerce"] .kx-wa-hero-icon { flex:none; display:grid; place-items:center; width:49px; height:49px; border-radius:12px; background:#e2f1e7; color:#137c58; }
+.app-shell [data-cauri-department="commerce"] .kx-wa-hero-text { min-width:0; }
+.app-shell [data-cauri-department="commerce"] .kx-wa-hero-text > div { flex-wrap:wrap; }
+.app-shell [data-cauri-department="commerce"] .kx-wa-hero h2 { font-size:clamp(1.05rem,1.85vw,1.4rem); line-height:1.3; letter-spacing:-.02em; margin:0; color:var(--commerce-ink); }
+.app-shell [data-cauri-department="commerce"] .kx-wa-hero p { color:var(--commerce-muted); font-size:.83rem; line-height:1.6; max-width:75ch; margin-top:8px; }
+.app-shell [data-cauri-department="commerce"] .kx-wa-grid { gap:16px; align-items:start; }
+.app-shell [data-cauri-department="commerce"] .kx-wa-card { border-radius:16px; min-width:0; }
+.app-shell [data-cauri-department="commerce"] .kx-wa-card .app-panel-head { border-bottom:1px solid var(--commerce-border); padding-bottom:14px; }
+.app-shell [data-cauri-department="commerce"] .kx-wa-container input:focus-visible,
+.app-shell [data-cauri-department="commerce"] .kx-wa-container textarea:focus-visible { outline:3px solid #91cda9; outline-offset:2px; }
+@media(max-width:760px){
+ .app-shell [data-cauri-department="commerce"] .kx-header-actions-row { width:100%; }
+ .app-shell [data-cauri-department="commerce"] .kx-header-actions-row .app-button { flex:1 1 125px; }
+ .app-shell [data-cauri-department="commerce"] .kx-suppliers-section .app-toolbar { padding:12px; }
+ .app-shell [data-cauri-department="commerce"] .kx-suppliers-section .app-search { flex-basis:100%; max-width:none; }
+ .app-shell [data-cauri-department="commerce"] .kx-supplier-card .app-form-actions button { flex:1 1 100px; }
+ .app-shell [data-cauri-department="commerce"] .kx-wa-hero { align-items:flex-start; gap:12px; padding:16px; }
+ .app-shell [data-cauri-department="commerce"] .kx-wa-hero-icon { width:40px; height:40px; }
+}

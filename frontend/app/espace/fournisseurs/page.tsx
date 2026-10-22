@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
@@ -39,9 +38,9 @@ export default function SuppliersPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Partenaires & Achats"
-        title="Fournisseurs & Prestataires"
-        description="Centralisez les coordonnées, interlocuteurs et modalités de règlement de vos fournisseurs réguliers."
+        eyebrow="COMMERCE / PARTENAIRES"
+        title="Fournisseurs et prestataires"
+        description="Retrouvez vos partenaires, leurs contacts et leurs modalités de règlement."
       />
 
       <section className="app-panel">

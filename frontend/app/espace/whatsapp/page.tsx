@@ -17,9 +17,9 @@ export default function WhatsAppPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Intégrations & Mobilité"
-        title="Passerelle WhatsApp Business"
-        description="Connectez vos numéros de vente WhatsApp pour enregistrer et valider vos ventes en direct sur le terrain."
+        eyebrow="COMMERCE / CANAUX"
+        title="WhatsApp Business"
+        description="Connectez votre canal WhatsApp pour suivre les ventes et les échanges sur le terrain."
       />
       <WhatsAppConfigView orgSlug={orgSlug} />
     </>
