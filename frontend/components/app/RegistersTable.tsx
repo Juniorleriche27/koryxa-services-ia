@@ -2,6 +2,7 @@
 import { useI18n } from "@/lib/i18n";
 
 import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import clsx from "clsx";
 import {
   Search,
@@ -440,12 +441,12 @@ export function SalesTableInteractive({
   const overdueCount = sales.filter((s) => s.payment_status !== "paid" && s.due_date && s.due_date < todayStr).length;
   const paidCount = sales.filter((s) => s.payment_status === "paid").length;
 
-  return (
+  const tableView = (
     <div
       className={clsx(
         "kx-table-wrapper flex flex-col gap-4 transition-all duration-150",
         isTableFullscreen &&
-          "!fixed !inset-0 !z-50 !bg-background !w-screen !h-screen !overflow-y-auto !p-4 sm:!p-8 !m-0 shadow-2xl"
+          "cauri-sales-fullscreen !fixed !inset-0 !z-[120] !bg-white !w-screen !h-[100dvh] !overflow-y-auto !p-4 sm:!p-8 !m-0 shadow-2xl"
       )}
     >
       {/* Fullscreen Sticky Exit Bar with Operations Actions */}
@@ -870,6 +871,11 @@ export function SalesTableInteractive({
       />
     </div>
   );
+
+  // Fullscreen must live outside the application layout and its navigation layers.
+  return isTableFullscreen && typeof document !== "undefined"
+    ? createPortal(tableView, document.body)
+    : tableView;
 }
 
 /* =========================================================================

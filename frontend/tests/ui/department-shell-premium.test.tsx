@@ -63,7 +63,9 @@ describe('CAURI Premium — six institutional departments', () => {
       expect(screen.queryByText('ESPACES MÉTIER')).toBeNull();
       expect(screen.queryByText('RUBRIQUE ACTIVE')).toBeNull();
       expect(screen.getByRole('link', { name: section.label }).getAttribute('aria-current')).toBe('page');
-      expect(screen.getByRole('navigation', { name: 'Navigation — Commerce et ventes' })).toBeTruthy();
+      const commerceNav = screen.getByRole('navigation', { name: 'Navigation — Commerce et ventes' });
+      expect(commerceNav.getAttribute('data-department-tabs')).toBe('commerce');
+      expect(commerceNav.querySelectorAll(':scope > a').length).toBe(4);
     },
   );
   it('shows an authorized department and its business content', () => {

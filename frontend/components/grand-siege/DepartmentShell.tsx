@@ -46,7 +46,7 @@ export function DepartmentShell({ pathname, organizationName, organizationId, ch
           </div>}
           {allowed ? <div className={styles.navigationBlock}>
             {!isCompactDirection && <span className={styles.navigationTitle}>ACCÉDER À UNE RUBRIQUE</span>}
-            <nav className={styles.localNav} aria-label={`Navigation — ${department.name}`} tabIndex={0}>
+            <nav className={styles.localNav} data-department-tabs={department.id} aria-label={`Navigation — ${department.name}`} tabIndex={0}>
               {department.sections.map((item) => (
                 <Link key={item.href} href={item.href} aria-current={section.href === item.href ? "page" : undefined} className={styles.localLink}>
                   {item.label}{pathname === item.href ? <span className={styles.activeMark} aria-hidden="true" /> : null}
