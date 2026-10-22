@@ -70,10 +70,10 @@ export function ActionsSection({
 
   return (
     <>
-            <PageHeader
-        eyebrow={t("actions_eyebrow")}
-        title={t("actions_title_page")}
-        description={t("actions_desc_page")}
+      <PageHeader
+        eyebrow="DIRECTION / SUIVI DES ACTIONS"
+        title="Actions et décisions"
+        description="Suivez les actions à mener, leurs responsables et leurs échéances."
         action={
           <button className="app-button app-button-primary" onClick={() => setCreating(true)}>
             <Plus size={16} />
@@ -93,7 +93,7 @@ export function ActionsSection({
       )}
 
       {data && data.length > 0 && (
-        <section className="app-kanban">
+        <section className="app-kanban cauri-direction-kanban" aria-label="Suivi des actions par statut">
           {["todo", "in_progress", "blocked", "completed"].map((status) => (
             <div className="app-kanban-column" key={status}>
               <div className="app-kanban-head">
@@ -161,7 +161,7 @@ export function ActionsSection({
               <input name="due_date" type="date" />
             </label>
             <label className="app-form-span">
-              Responsable (identifiant KORYXA)
+              Responsable (identifiant du membre)
               <input name="responsible_user_id" />
             </label>
             <label className="app-form-span">

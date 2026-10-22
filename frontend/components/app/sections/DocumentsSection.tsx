@@ -65,11 +65,11 @@ export function DocumentsSection() {
   return (
     <>
       <PageHeader
-        eyebrow="DOCUMENTS DE L’ENTREPRISE"
+        eyebrow="DIRECTION / DOCUMENTS"
         title="Documents et justificatifs"
         description="Retrouvez vos justificatifs et associez-les aux dossiers concernés."
       />
-      <section className="app-panel">
+      <section className="app-panel cauri-direction-documents" aria-label="Recherche et gestion des justificatifs">
         <div className="app-toolbar">
           <select value={registerType} onChange={(e) => setRegisterType(e.target.value)}>
             <option value="offers">Offres & Tarifs</option>

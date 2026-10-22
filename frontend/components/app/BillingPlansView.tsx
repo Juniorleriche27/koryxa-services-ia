@@ -183,16 +183,16 @@ export function BillingPlansView() {
   const businessTotals = paymentTotals(businessPlan);
 
   return (
-    <div className="space-y-10 max-w-6xl mx-auto pb-16">
+    <div className="cauri-direction-billing space-y-10 max-w-6xl mx-auto pb-16">
       {/* 1. LUXURY STATUS BANNER */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-linear-to-br from-slate-950 via-slate-900 to-emerald-950 p-7 text-white shadow-2xl">
+      <div className="cauri-direction-billing-banner relative overflow-hidden rounded-2xl p-7">
         <div className="absolute top-0 right-0 -mt-8 -mr-8 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2.5">
               <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs font-mono font-extrabold uppercase tracking-widest text-emerald-400">
-                Abonnement KORYXA Service IA
+                ABONNEMENT CAURI
               </span>
             </div>
             <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">

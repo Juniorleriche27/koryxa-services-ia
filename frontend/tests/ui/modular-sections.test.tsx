@@ -19,7 +19,7 @@ describe("Modular App Sections", () => {
         onReload={async () => {}}
       />
     );
-    expect(screen.getByText("Plan d'Actions Correctives")).toBeTruthy();
+    expect(screen.getByText("Actions et décisions")).toBeTruthy();
     expect(screen.getByText("+ Nouvelle Tâche")).toBeTruthy();
     expect(screen.getByText("Aucune action")).toBeTruthy();
   });

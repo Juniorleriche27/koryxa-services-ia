@@ -113,17 +113,17 @@ function HelpPageContent() {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-16">
+    <div className="cauri-direction-help max-w-5xl mx-auto space-y-8 pb-16">
       {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 p-6 sm:p-8 text-white border border-emerald-900/50 shadow-2xl">
+      <div className="cauri-direction-help-banner relative overflow-hidden rounded-2xl p-6 sm:p-8">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="max-w-xl space-y-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-extrabold tracking-wide uppercase border border-emerald-500/30">
               <Sparkles size={13} />
-              Centre d&apos;Aide & Manuel Officiel • {proConfig.name}
+              DIRECTION / AIDE • {proConfig.name}
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
-              Tout pour maîtriser KORYXA pas-à-pas
+              Votre centre d’aide CAURI
             </h1>
             <p className="text-sm text-slate-300 leading-relaxed">
               Consultez le manuel détaillé, découvrez les astuces pour votre métier ({proConfig.shortName}) et posez vos questions en direct.

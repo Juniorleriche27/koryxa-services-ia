@@ -3,17 +3,17 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { BillingPlansView } from "@/components/app/BillingPlansView";
 
 export const metadata: Metadata = {
-  title: "Facturation & Formules d'Abonnement | KORYXA Service IA",
-  description: "Gérez votre abonnement KORYXA Service IA et souscrivez au Pack 3 Mois par Mobile Money.",
+  title: "Abonnement et facturation",
+  description: "Consultez les formules et les informations de facturation de votre espace CAURI.",
 };
 
 export default function BillingPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Paramètres & Abonnements"
-        title="Formules & Facturation"
-        description="Gérez votre formule d'abonnement et réglez en 1 clic par Wave, Orange Money ou MTN MoMo."
+        eyebrow="DIRECTION / ABONNEMENT"
+        title="Formules et facturation"
+        description="Consultez votre formule, vos capacités et les options de règlement disponibles."
       />
       <BillingPlansView />
     </>
