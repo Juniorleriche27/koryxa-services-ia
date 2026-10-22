@@ -52,8 +52,9 @@
 .actionsWorkspace .back{min-height:39px;padding:7px 11px;background:#fff}
 .actionsWorkspace .identity{padding:6px 10px;font-size:.7rem}
 .actionsWorkspace .navigationBlock{margin-top:7px;padding:7px 12px 0;background:#fff;border-radius:12px 12px 0 0}
-.actionsWorkspace .navigationBlock .localNav{padding-bottom:7px;gap:6px}
-.actionsWorkspace .navigationBlock .localLink{min-height:40px;padding:8px 13px;border-radius:9px;font-size:.77rem}
+.actionsWorkspace .navigationBlock .localNav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%;overflow:visible;padding-bottom:7px;gap:8px}
+.actionsWorkspace .navigationBlock .localLink{display:flex;align-items:center;justify-content:center;min-width:0;min-height:44px;padding:8px 13px;border-radius:9px;font-size:.77rem;text-align:center}
+@media(max-width:760px){.actionsWorkspace .navigationBlock .localNav{display:flex;overflow-x:auto;scroll-snap-type:x proximity;gap:7px}.actionsWorkspace .navigationBlock .localLink{flex:0 0 auto;min-width:110px}}
 .actionsWorkspace .content{padding:clamp(12px,1.7vw,24px) clamp(14px,4vw,60px) 95px}
 .actionsWorkspace .content> :global(.app-page-header){margin-bottom:14px}
 @media(max-width:760px){.actionsWorkspace .masthead{padding-top:9px}.actionsWorkspace .mastheadTop{gap:8px}.actionsWorkspace .identity{font-size:.65rem}.actionsWorkspace .navigationBlock{padding:7px 10px 0}.actionsWorkspace .content{padding-top:12px}.actionsWorkspace .navigationBlock .localNav{margin:0;padding:0 0 7px}}

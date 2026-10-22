@@ -4,27 +4,21 @@
 .app-shell.is-department .cauri-actions-header-brand img{display:block;width:108px;height:auto;object-fit:contain}
 .app-shell.is-department .cauri-actions-header-brand span{border-left:1px solid #dbe9df;padding-left:12px}
 .app-shell.is-department [data-cauri-department="direction"] .app-button-primary{min-height:44px}
-/* Actions: center the hierarchy and let populated columns lead the composition. */
-.app-shell [data-cauri-department="direction"] .cauri-actions-balanced {width:100%;display:grid;gap:16px;justify-items:center;min-width:0}
-.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header {width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;margin:0;padding:clamp(15px,2.5vw,25px)}
-.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header>.kx-workspace-header-copy {width:100%;flex:none;align-items:center;text-align:center;padding:16px 20px}
-.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header .app-eyebrow {justify-content:center}
-.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header h1 {text-align:center}
-.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header p {text-align:center;max-width:68ch}
-.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header>.app-page-action {width:100%;min-width:0;flex:none;padding:9px;justify-content:center}
-.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header>.app-page-action button {min-width:210px}
-.app-shell [data-cauri-department="direction"] .cauri-actions-board {width:100%;display:grid;gap:13px;justify-items:center;min-width:0}
-.app-shell [data-cauri-department="direction"] .cauri-actions-active {width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,305px),1fr));align-items:start;justify-content:center;gap:14px;min-width:0}
-.app-shell [data-cauri-department="direction"] .cauri-actions-active[data-count="1"]{max-width:690px}
-.app-shell [data-cauri-department="direction"] .cauri-actions-active[data-count="2"]{max-width:1020px;grid-template-columns:repeat(2,minmax(0,1fr))}
-.app-shell [data-cauri-department="direction"] .cauri-actions-active[data-count="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
-.app-shell [data-cauri-department="direction"] .cauri-actions-active[data-count="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}
-.app-shell [data-cauri-department="direction"] .cauri-actions-inactive {width:100%;display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
-.app-shell [data-cauri-department="direction"] .cauri-actions-inactive .app-kanban-column {flex:1 1 185px;max-width:290px;min-height:0;padding:9px;background:#f7faf8;box-shadow:none}
-.app-shell [data-cauri-department="direction"] .cauri-actions-inactive .app-kanban-head {padding:9px 12px;background:transparent;border:0}
-.app-shell [data-cauri-department="direction"] .cauri-actions-inactive .app-kanban-head strong {font-size:.8rem}
-@media(max-width:790px){.app-shell [data-cauri-department="direction"] .cauri-actions-active[data-count="3"],.app-shell [data-cauri-department="direction"] .cauri-actions-active[data-count="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:650px){.app-shell [data-cauri-department="direction"] .cauri-actions-active,.app-shell [data-cauri-department="direction"] .cauri-actions-active[data-count="1"],.app-shell [data-cauri-department="direction"] .cauri-actions-active[data-count="2"],.app-shell [data-cauri-department="direction"] .cauri-actions-active[data-count="3"],.app-shell [data-cauri-department="direction"] .cauri-actions-active[data-count="4"]{grid-template-columns:1fr;max-width:100%}.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header>.kx-workspace-header-copy{padding:13px}.app-shell [data-cauri-department="direction"] .cauri-actions-inactive .app-kanban-column{max-width:none}.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header>.app-page-action button{min-width:0;width:100%}}
+/* Actions: four equal Kanban columns span the full desktop width. */
+.app-shell [data-cauri-department="direction"] .cauri-actions-balanced {width:100%;display:grid;gap:16px;min-width:0}
+.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header {width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;margin:0;padding:clamp(15px,2.4vw,25px)}
+.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header>.kx-workspace-header-copy {width:auto;min-width:0;flex:1 1 auto;align-items:flex-start;text-align:left;padding:16px 20px}
+.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header .app-eyebrow {justify-content:flex-start}
+.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header h1 {text-align:left}
+.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header p {text-align:left;max-width:68ch}
+.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header>.app-page-action {width:auto;min-width:195px;flex:none;padding:12px 14px;justify-content:center}
+.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header>.app-page-action button {min-height:46px}
+.app-shell [data-cauri-department="direction"] .cauri-actions-board {width:100%;min-width:0}
+.app-shell [data-cauri-department="direction"] .cauri-actions-four-columns {width:100%;max-width:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;gap:14px;min-width:0}
+.app-shell [data-cauri-department="direction"] .cauri-actions-four-columns .app-kanban-column {width:100%;min-width:0;min-height:320px}
+.app-shell [data-cauri-department="direction"] .cauri-actions-four-columns .app-task {width:100%;min-width:0}
+@media(max-width:900px){.app-shell [data-cauri-department="direction"] .cauri-actions-four-columns {grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.app-shell [data-cauri-department="direction"] .cauri-actions-four-columns {grid-template-columns:1fr}.app-shell [data-cauri-department="direction"] .cauri-actions-four-columns .app-kanban-column {min-height:0}.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header {grid-template-columns:1fr;gap:10px}.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header>.kx-workspace-header-copy {padding:13px}.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header>.app-page-action {width:100%;min-width:0}.app-shell [data-cauri-department="direction"] .cauri-actions-balanced>.app-page-header>.app-page-action button {width:100%}}
 /* Page-specific panels follow the same compact hierarchy as the approved Actions screen. */
 .app-shell [data-cauri-department="direction"] :is(.cauri-direction-documents,.cauri-direction-billing,.cauri-direction-help){min-width:0}
 .app-shell [data-cauri-department="direction"] .cauri-direction-billing{display:grid;gap:18px}

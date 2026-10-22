@@ -69,8 +69,6 @@ export function ActionsSection({
   };
 
   const statusOrder = ['todo', 'in_progress', 'blocked', 'completed'] as const;
-  const activeStatuses = statusOrder.filter((status) => data?.some((action) => action.status === status));
-  const emptyStatuses = statusOrder.filter((status) => !data?.some((action) => action.status === status));
 
   const renderColumn = (status: typeof statusOrder[number]) => (
     <div className="app-kanban-column" key={status} data-empty={data?.some((a) => a.status === status) ? 'false' : 'true'}>
@@ -126,14 +124,9 @@ export function ActionsSection({
 
       {data && data.length > 0 && (
         <section className="cauri-actions-board" aria-label="Suivi des actions par statut">
-          <div className="app-kanban cauri-direction-kanban cauri-actions-active" data-count={activeStatuses.length}>
-            {activeStatuses.map(renderColumn)}
+          <div className="app-kanban cauri-direction-kanban cauri-actions-four-columns">
+            {statusOrder.map(renderColumn)}
           </div>
-          {emptyStatuses.length > 0 && (
-            <div className="cauri-actions-inactive" aria-label="Statuts sans action">
-              {emptyStatuses.map(renderColumn)}
-            </div>
-          )}
         </section>
       )}
       </div>
