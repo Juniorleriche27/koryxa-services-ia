@@ -9,7 +9,8 @@ import { DepartmentShell } from "@/components/grand-siege/DepartmentShell";
 import { MobileSiegeDock } from '@/components/grand-siege/MobileSiegeDock';
 import { resolveDepartment } from "@/components/grand-siege/departments";
 import { CAURI_AI_OPEN_EVENT } from "@/components/grand-siege/intelligence-context";
-import { fetchFreshCommandData, CommandDataError } from '@/components/grand-siege/fresh-command-data';
+import { CommandDataError } from '@/components/grand-siege/fresh-command-data';
+import { fetchVerifiedOrganization, isTransientOrganizationFailure } from '@/components/grand-siege/verified-organization';
 import { OrganizationGate } from '@/components/grand-siege/OrganizationGate';
 import { GrandHallTopbar } from '@/components/grand-siege/GrandHallTopbar';
 import {
@@ -244,11 +245,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     let current = true;
     let controller: AbortController | null = null;
     let requestTimeout: ReturnType<typeof setTimeout> | null = null;
+    let retryWhenReconnected = false;
+    let lastReconnectAttemptAt = 0;
     const load = () => {
       controller?.abort();
       if (requestTimeout) clearTimeout(requestTimeout);
       controller = new AbortController();
       const activeController = controller;
+      retryWhenReconnected = false;
       setOrganizationLoaded(false);
       setOrganizationErrorCode(undefined);
       setOrganization(previous => ({ ...previous, id: undefined }));
@@ -256,30 +260,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       const localTimeout = setTimeout(() => {
         if (!current || activeController.signal.aborted) return;
         setOrganizationErrorCode('Délai dépassé (25 s)');
+        retryWhenReconnected = true;
         activeController.abort();
         setOrganizationLoaded(true);
       }, 25000);
       requestTimeout = localTimeout;
-      // One retry is reserved for transient gateway/upstream failures, never for denied access.
-      const fetchIdentity = async (): Promise<Organization> => {
-        try {
-          return await fetchFreshCommandData<Organization>('/organizations/current', activeController.signal);
-        } catch (error) {
-          const transient = error instanceof CommandDataError
-            ? [500, 502, 503, 504].includes(error.status)
-            : error instanceof TypeError;
-          if (!transient || activeController.signal.aborted) throw error;
-          return fetchFreshCommandData<Organization>('/organizations/current', activeController.signal);
-        }
-      };
-      void fetchIdentity()
+      // Retry only transient transport / gateway failures; denied access is never bypassed.
+      void fetchVerifiedOrganization<Organization>(activeController.signal)
         .then((next) => {
           if (!current || activeController.signal.aborted) return;
           if (!next?.id || typeof next.id !== 'string') throw new Error('Réponse d’organisation incomplète');
+          retryWhenReconnected = false;
           setOrganization(next);
         })
         .catch((error: unknown) => {
           if (!current || activeController.signal.aborted) return;
+          retryWhenReconnected = isTransientOrganizationFailure(error);
           setOrganization(previous => ({ ...previous, id: undefined }));
           setOrganizationErrorCode(error instanceof CommandDataError ? `HTTP ${error.status}` : error instanceof TypeError ? 'Réseau indisponible' : 'Réponse invalide');
         })
@@ -293,12 +289,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       // Revalidate identity on the server; never trust a client-side event as tenant proof.
       load();
     };
+    const resumeAfterConnection = () => {
+      if (!current || !retryWhenReconnected || !navigator.onLine) return;
+      const now = Date.now();
+      if (now - lastReconnectAttemptAt < 15000) return;
+      lastReconnectAttemptAt = now;
+      load();
+    };
+    const resumeWhenVisible = () => {
+      if (document.visibilityState === 'visible') resumeAfterConnection();
+    };
     window.addEventListener('koryxa:organization-updated', updated);
+    window.addEventListener('online', resumeAfterConnection);
+    document.addEventListener('visibilitychange', resumeWhenVisible);
     return () => {
       current = false;
       controller?.abort();
       if (requestTimeout) clearTimeout(requestTimeout);
       window.removeEventListener('koryxa:organization-updated', updated);
+      window.removeEventListener('online', resumeAfterConnection);
+      document.removeEventListener('visibilitychange', resumeWhenVisible);
     };
   }, [organizationRetry]);
 
