@@ -65,10 +65,10 @@ export function RadarSection({
 
   return (
     <>
-            <PageHeader
-        eyebrow={t("radar_eyebrow")}
-        title={t("radar_title")}
-        description={t("radar_desc")}
+      <PageHeader
+        eyebrow="RADAR ET CONTRÔLE / ALERTES"
+        title="Surveillance et alertes"
+        description="Examinez les signaux détectés, créez les actions nécessaires et suivez leur résolution."
         action={
           <button className="app-button app-button-primary" disabled={running} onClick={run}>
             <Play size={16} />
@@ -88,7 +88,8 @@ export function RadarSection({
       )}
 
       {data && data.length > 0 && (
-        <section className="app-panel">
+        <section className="app-panel cauri-radar-alerts" aria-label="Alertes du Radar">
+          <div className="cauri-radar-panel-intro"><strong>Alertes détectées</strong><span>Chaque signal conserve sa priorité et son statut de traitement.</span></div>
           <div className="app-alert-list">
             {data.map((a) => (
               <article className="app-alert app-alert-large" key={a.id}>

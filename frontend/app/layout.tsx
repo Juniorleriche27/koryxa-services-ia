@@ -4,6 +4,7 @@ import "./cauri-commerce-premium.css";
 import "./cauri-finances-premium.css";
 import "./cauri-operations-premium.css";
 import "./cauri-members-premium.css";
+import "./cauri-radar-premium.css";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { DM_Sans, Playfair_Display } from "next/font/google";

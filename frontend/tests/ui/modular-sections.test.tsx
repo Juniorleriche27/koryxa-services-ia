@@ -44,7 +44,7 @@ describe("Modular App Sections", () => {
         onReload={async () => {}}
       />
     );
-    expect(screen.getByText("Radar Sentinelle Opérationnelle")).toBeTruthy();
+    expect(screen.getByText("Surveillance et alertes")).toBeTruthy();
     expect(screen.getByText("Vente sans client")).toBeTruthy();
     expect(screen.getByText("Lancer un Scan Complet")).toBeTruthy();
   });
@@ -69,7 +69,7 @@ describe("Modular App Sections", () => {
         onReload={async () => {}}
       />
     );
-    expect(screen.getByText("Validations")).toBeTruthy();
+    expect(screen.getByText("Décisions et validations")).toBeTruthy();
     expect(screen.getByText("client_name")).toBeTruthy();
     expect(screen.getByText("Accepter")).toBeTruthy();
     expect(screen.getByText("Rejeter")).toBeTruthy();

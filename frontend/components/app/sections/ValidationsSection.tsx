@@ -47,10 +47,10 @@ export function ValidationsSection({
 
   return (
     <>
-            <PageHeader
-        eyebrow={t("validations_eyebrow")}
-        title={t("validations_title")}
-        description={t("validations_desc")}
+      <PageHeader
+        eyebrow="RADAR ET CONTRÔLE / VALIDATIONS"
+        title="Décisions et validations"
+        description="Comparez les valeurs proposées aux données actuelles avant d’accepter ou de rejeter une modification."
       />
 
       {loading && !data && <EmptyState title={t("common_loading")} detail={t("common_loading")} />}
@@ -63,7 +63,8 @@ export function ValidationsSection({
       )}
 
       {data && data.length > 0 && (
-        <section className="app-panel">
+        <section className="app-panel cauri-radar-validations" aria-label="Décisions à examiner">
+          <div className="cauri-radar-panel-intro"><strong>Propositions à examiner</strong><span>Vérifiez chaque changement avant toute décision.</span></div>
           <div className="app-validation-list">
             {data.map((v) => (
               <article className="app-validation" key={v.id}>
