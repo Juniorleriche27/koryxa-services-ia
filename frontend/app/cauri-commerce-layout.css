@@ -1,0 +1,29 @@
+/* CAURI Commerce — full-width application layout for all four commerce routes.
+   Presentation only: do not alter business operations or authorizations. */
+.app-shell [data-cauri-department="commerce"] .navigationBlock .localNav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;gap:9px;overflow:visible;padding-bottom:8px}
+.app-shell [data-cauri-department="commerce"] .navigationBlock .localLink{display:flex;align-items:center;justify-content:center;min-width:0;min-height:45px;text-align:center;padding:10px 14px;border:1px solid #dae9df;border-radius:10px;background:#f7fbf8;white-space:normal;font-size:.81rem}
+.app-shell [data-cauri-department="commerce"] .navigationBlock .localLink[aria-current="page"]{background:#e2f3e7;border-color:#a9dabc;color:#116f50}
+.app-shell [data-cauri-department="commerce"] .app-page-header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;margin-bottom:17px;padding:clamp(13px,2vw,21px)}
+.app-shell [data-cauri-department="commerce"] .app-page-header .kx-workspace-header-copy{width:100%;min-width:0;flex:none;align-items:flex-start;text-align:left;padding:clamp(14px,2vw,22px)}
+.app-shell [data-cauri-department="commerce"] .app-page-header .app-page-action{width:auto;flex:none;min-width:0;padding:12px 15px;justify-content:flex-end}
+.app-shell [data-cauri-department="commerce"] .app-page-header .app-page-action :is(a,button){min-height:45px}
+.app-shell [data-cauri-department="commerce"] .app-page-header:not(:has(.app-page-action)){grid-template-columns:minmax(0,1fr)}
+.app-shell [data-cauri-department="commerce"] :is(.app-panel,.kx-suppliers-section,.kx-wa-container,.kx-wa-grid,.kx-suppliers-grid,.kx-table-wrapper,.app-table-scroll){width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.app-shell [data-cauri-department="commerce"] .kx-suppliers-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:15px;align-items:stretch}
+.app-shell [data-cauri-department="commerce"] .kx-supplier-card{width:100%;min-width:0}
+.app-shell [data-cauri-department="commerce"] .kx-wa-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.app-shell [data-cauri-department="commerce"] .kx-wa-card{width:100%;min-width:0}
+.app-shell [data-cauri-department="commerce"] .kx-wa-hero{width:100%;box-sizing:border-box}
+.app-shell [data-cauri-department="commerce"] .kx-header-actions-row{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:9px}
+.app-shell [data-cauri-department="commerce"] :is(.app-toolbar,.app-panel-head){justify-content:space-between;gap:11px}
+@media(max-width:1050px){.app-shell [data-cauri-department="commerce"] .kx-wa-grid{grid-template-columns:1fr}}
+@media(max-width:760px){
+ .app-shell [data-cauri-department="commerce"] .navigationBlock .localNav{display:flex;overflow-x:auto;scroll-snap-type:x proximity;gap:7px;padding-bottom:9px}
+ .app-shell [data-cauri-department="commerce"] .navigationBlock .localLink{flex:0 0 auto;min-width:125px;min-height:44px;white-space:nowrap}
+ .app-shell [data-cauri-department="commerce"] .app-page-header{grid-template-columns:minmax(0,1fr);gap:10px;padding:12px}
+ .app-shell [data-cauri-department="commerce"] .app-page-header .kx-workspace-header-copy{padding:15px}
+ .app-shell [data-cauri-department="commerce"] .app-page-header .app-page-action{width:100%;justify-content:stretch;padding:9px}
+ .app-shell [data-cauri-department="commerce"] .app-page-header .app-page-action :is(a,button){flex:1 1 140px}
+ .app-shell [data-cauri-department="commerce"] .kx-suppliers-grid{grid-template-columns:1fr}
+ .app-shell [data-cauri-department="commerce"] .kx-header-actions-row{justify-content:stretch}
+}

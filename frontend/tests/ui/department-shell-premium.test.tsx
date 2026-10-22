@@ -21,7 +21,7 @@ describe('CAURI Premium — six institutional departments', () => {
   it.each(DEPARTMENTS)('présente une bannière et les rubriques de $name sans changer les accès', (department) => {
     const first = department.sections[0];
     render(<DepartmentShell pathname={first.href} organizationId="tenant-one" organizationName="Entreprise"><div>Contenu métier</div></DepartmentShell>);
-    if (department.id === 'direction') {
+    if (department.id === 'direction' || department.id === 'commerce') {
       expect(screen.queryByRole('heading', { name: department.name })).toBeNull();
       expect(screen.queryByText('ACCÉDER À UNE RUBRIQUE')).toBeNull();
       expect(screen.queryByText('ESPACES MÉTIER')).toBeNull();
@@ -53,6 +53,17 @@ describe('CAURI Premium — six institutional departments', () => {
       expect(screen.queryByText('RUBRIQUE ACTIVE')).toBeNull();
       expect(screen.getByRole('link', { name: section.label }).getAttribute('aria-current')).toBe('page');
       expect(screen.getByRole('navigation', { name: 'Navigation — Direction et pilotage' })).toBeTruthy();
+    },
+  );
+  it.each(DEPARTMENTS.find((department) => department.id === 'commerce')!.sections)(
+    'keeps $label accessible in the compact Commerce layout', (section) => {
+      render(<DepartmentShell pathname={section.href} organizationId="tenant-one" organizationName="Entreprise"><div>Contenu Commerce</div></DepartmentShell>);
+      expect(screen.getByText('Contenu Commerce')).toBeTruthy();
+      expect(screen.queryByTestId('intelligence-entry')).toBeNull();
+      expect(screen.queryByText('ESPACES MÉTIER')).toBeNull();
+      expect(screen.queryByText('RUBRIQUE ACTIVE')).toBeNull();
+      expect(screen.getByRole('link', { name: section.label }).getAttribute('aria-current')).toBe('page');
+      expect(screen.getByRole('navigation', { name: 'Navigation — Commerce et ventes' })).toBeTruthy();
     },
   );
   it('shows an authorized department and its business content', () => {

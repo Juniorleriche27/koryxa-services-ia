@@ -20,8 +20,8 @@ export function DepartmentShell({ pathname, organizationName, organizationId, ch
   const catalogue = useDepartmentCatalogue(organizationId || null);
   if (!resolved) return <>{children}</>;
   const { department, section } = resolved;
-  // Every Direction page shares the compact, task-first layout approved on Actions.
-  const isCompactDirection = department.id === 'direction';
+  // Direction and Commerce use the full-width operational workspace without repeated introductory blocks.
+  const isCompactDirection = department.id === 'direction' || department.id === 'commerce';
   const allowed = Boolean(catalogue.lookup(department.id));
 
   return (
