@@ -339,8 +339,7 @@ export function BillingPlansView() {
         {/* CARD 2: BUSINESS (BEST SELLER) */}
         <div className="relative flex flex-col justify-between rounded-3xl border-2 border-emerald-500 bg-gradient-to-b from-white via-emerald-50/20 to-white p-8 shadow-2xl ring-4 ring-emerald-500/10">
           <div className="absolute -top-3.5 right-8 rounded-full bg-linear-to-r from-emerald-600 to-teal-600 px-4 py-1 text-[11px] font-black uppercase tracking-wider text-white shadow-md flex items-center gap-1.5">
-            <Star size={12} className="fill-current" />
-            Recommandé · Best Seller
+            Formule recommandée
           </div>
 
           <div>
@@ -400,7 +399,6 @@ export function BillingPlansView() {
               disabled={processingCode === businessPlan.code}
               className="w-full flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-emerald-600 via-emerald-500 to-teal-600 py-4 text-xs font-black text-white shadow-xl shadow-emerald-600/30 hover:brightness-110 transition active:scale-98 cursor-pointer"
             >
-              <Zap size={16} className="fill-current" />
               <span>
                 {processingCode === businessPlan.code
                   ? "Connexion KORYXA Payment…"

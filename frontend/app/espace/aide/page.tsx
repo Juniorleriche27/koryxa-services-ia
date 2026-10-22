@@ -6,7 +6,6 @@ import {
   BookOpen,
   HelpCircle,
   MessageSquarePlus,
-  Sparkles,
   Compass,
   Mic,
   ReceiptText,
@@ -119,7 +118,6 @@ function HelpPageContent() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="max-w-xl space-y-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-extrabold tracking-wide uppercase border border-emerald-500/30">
-              <Sparkles size={13} />
               DIRECTION / AIDE • {proConfig.name}
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">

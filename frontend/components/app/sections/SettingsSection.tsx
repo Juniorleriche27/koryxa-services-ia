@@ -64,7 +64,12 @@ export function SettingsSection({
 
   return (
     <>
-      {/* Banner Formule & Facturation */}
+      <PageHeader
+        eyebrow="DIRECTION / PARAMÈTRES"
+        title="Réglages et contrôles"
+        description="Configurez les règles de surveillance et les options de votre espace."
+      />
+      {/* Subscription access remains available below the primary page heading. */}
       <div className="cauri-direction-subscription-banner mb-6 rounded-2xl p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
@@ -90,12 +95,6 @@ export function SettingsSection({
 
       <BusinessCategorySettings />
       <AutomationsHubView />
-
-      <PageHeader
-        eyebrow="DIRECTION / PARAMÈTRES"
-        title="Réglages et contrôles"
-        description="Configurez les règles de surveillance et les options de votre espace."
-      />
 
       {loading && <EmptyState title="Chargement…" detail="Récupération des règles Radar." />}
       {error && <EmptyState title="Données indisponibles" detail={error} />}

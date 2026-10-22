@@ -1,7 +1,24 @@
-/* CAURI Actions: operational workspace, not a marketing landing page.
-   Only affects /espace/actions via the DepartmentShell.actionsWorkspace class. */
+/* CAURI Direction: compact operational workspaces on all five routes.
+   Shared DepartmentShell.actionsWorkspace is applied only to the Direction department. */
 .app-shell.is-department .cauri-actions-header-brand{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:#245b43;font-size:.76rem;font-weight:780;letter-spacing:.075em;white-space:nowrap}
 .app-shell.is-department .cauri-actions-header-brand img{display:block;width:108px;height:auto;object-fit:contain}
 .app-shell.is-department .cauri-actions-header-brand span{border-left:1px solid #dbe9df;padding-left:12px}
 .app-shell.is-department [data-cauri-department="direction"] .app-button-primary{min-height:44px}
-@media(max-width:760px){.app-shell.is-department .cauri-actions-header-brand img{width:80px}.app-shell.is-department .cauri-actions-header-brand span{font-size:.66rem;padding-left:8px}}
+/* Page-specific panels follow the same compact hierarchy as the approved Actions screen. */
+.app-shell [data-cauri-department="direction"] :is(.cauri-direction-documents,.cauri-direction-billing,.cauri-direction-help){min-width:0}
+.app-shell [data-cauri-department="direction"] .cauri-direction-billing{display:grid;gap:18px}
+.app-shell [data-cauri-department="direction"] .cauri-direction-billing> :not(:last-child){margin-block-end:0}
+.app-shell [data-cauri-department="direction"] .cauri-direction-billing-banner{padding:clamp(14px,2vw,21px);border-radius:15px}
+.app-shell [data-cauri-department="direction"] .cauri-direction-billing-banner>.relative{gap:14px}
+.app-shell [data-cauri-department="direction"] .cauri-direction-billing-banner>.relative>div:first-child{padding:clamp(13px,2vw,19px)}
+.app-shell [data-cauri-department="direction"] .cauri-direction-billing-banner>.relative>div:last-child{padding:14px}
+.app-shell [data-cauri-department="direction"] .cauri-direction-help{display:grid;gap:16px}
+.app-shell [data-cauri-department="direction"] .cauri-direction-help> :not(:last-child){margin-block-end:0}
+.app-shell [data-cauri-department="direction"] .cauri-direction-help-banner{padding:clamp(14px,2vw,22px);border-radius:15px}
+.app-shell [data-cauri-department="direction"] .cauri-direction-help-banner>.relative{gap:14px}
+.app-shell [data-cauri-department="direction"] .cauri-direction-help-banner>.relative>div:first-child{padding:clamp(12px,2vw,19px)}
+.app-shell [data-cauri-department="direction"] .cauri-direction-help-banner h1{font-weight:720;letter-spacing:-.025em}
+.app-shell [data-cauri-department="direction"] .cauri-direction-help-banner .text-emerald-300{color:#167853;background:#e8f6ec;border-color:#d5e8da}
+.app-shell [data-cauri-department="direction"] .cauri-direction-subscription-banner{margin-top:0;margin-bottom:15px;padding:clamp(14px,2vw,19px)}
+.app-shell [data-cauri-department="direction"] .cauri-direction-documents .app-toolbar{margin-bottom:14px}
+@media(max-width:760px){.app-shell.is-department .cauri-actions-header-brand img{width:80px}.app-shell.is-department .cauri-actions-header-brand span{font-size:.66rem;padding-left:8px}.app-shell [data-cauri-department="direction"] .cauri-direction-billing,.app-shell [data-cauri-department="direction"] .cauri-direction-help{gap:13px}.app-shell [data-cauri-department="direction"] .cauri-direction-help-banner,.app-shell [data-cauri-department="direction"] .cauri-direction-billing-banner{padding:12px}}

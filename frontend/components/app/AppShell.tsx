@@ -606,7 +606,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             <div className="app-topbar-context">
               <h1 className="kx-topbar-title m-0 p-0">
-                {pathname === "/espace/actions" ? <Link href="/espace" className="cauri-actions-header-brand" aria-label="CAURI, retour au Grand Hall"><Image src="/image(20261021-163619).png" alt="CAURI" width={2048} height={682} unoptimized priority /><span>Direction</span></Link> : pathname === "/espace" ? "CAURI · Grand Siège" : context.eyebrow}
+                {resolveDepartment(pathname)?.department.id === "direction" ? <Link href="/espace" className="cauri-actions-header-brand" aria-label="CAURI, retour au Grand Hall"><Image src="/image(20261021-163619).png" alt="CAURI" width={2048} height={682} unoptimized priority /><span>Direction</span></Link> : pathname === "/espace" ? "CAURI · Grand Siège" : context.eyebrow}
               </h1>
             </div>
 
