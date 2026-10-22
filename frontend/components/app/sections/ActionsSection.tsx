@@ -68,8 +68,40 @@ export function ActionsSection({
     await onReload();
   };
 
+  const statusOrder = ['todo', 'in_progress', 'blocked', 'completed'] as const;
+  const activeStatuses = statusOrder.filter((status) => data?.some((action) => action.status === status));
+  const emptyStatuses = statusOrder.filter((status) => !data?.some((action) => action.status === status));
+
+  const renderColumn = (status: typeof statusOrder[number]) => (
+    <div className="app-kanban-column" key={status} data-empty={data?.some((a) => a.status === status) ? 'false' : 'true'}>
+      <div className="app-kanban-head">
+        <strong>{formatLabel(status, lang)}</strong>
+        <span>{data?.filter((a) => a.status === status).length ?? 0}</span>
+      </div>
+      {data?.filter((a) => a.status === status).map((a) => (
+        <article className="app-task" key={a.id}>
+          <StatusPill>{formatLabel(a.priority)}</StatusPill>
+          <h3>{a.title}</h3>
+          <div>
+            <span><UserRound size={14} />{a.responsible_user_id || 'Non assignée'}</span>
+            <span><CalendarDays size={14} />{formatDate(a.due_date)}</span>
+          </div>
+          <div className="app-row-actions">
+            {status !== 'in_progress' && status !== 'completed' && (
+              <button className="app-text-button" onClick={() => void move(a, 'in_progress')}>Démarrer</button>
+            )}
+            {status !== 'completed' && (
+              <button className="app-text-button" onClick={() => void move(a, 'completed')}>Terminer</button>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+
   return (
     <>
+      <div className="cauri-actions-balanced">
       <PageHeader
         eyebrow="DIRECTION / SUIVI DES ACTIONS"
         title="Actions et décisions"
@@ -93,53 +125,18 @@ export function ActionsSection({
       )}
 
       {data && data.length > 0 && (
-        <section className="app-kanban cauri-direction-kanban" aria-label="Suivi des actions par statut">
-          {["todo", "in_progress", "blocked", "completed"].map((status) => (
-            <div className="app-kanban-column" key={status}>
-              <div className="app-kanban-head">
-                <strong>{formatLabel(status, lang)}</strong>
-                <span>{data.filter((a) => a.status === status).length}</span>
-              </div>
-              {data
-                .filter((a) => a.status === status)
-                .map((a) => (
-                  <article className="app-task" key={a.id}>
-                    <StatusPill>{formatLabel(a.priority)}</StatusPill>
-                    <h3>{a.title}</h3>
-                    <div>
-                      <span>
-                        <UserRound size={14} />
-                        {a.responsible_user_id || "Non assignée"}
-                      </span>
-                      <span>
-                        <CalendarDays size={14} />
-                        {formatDate(a.due_date)}
-                      </span>
-                    </div>
-                    <div className="app-row-actions">
-                      {status !== "in_progress" && status !== "completed" && (
-                        <button
-                          className="app-text-button"
-                          onClick={() => void move(a, "in_progress")}
-                        >
-                          Démarrer
-                        </button>
-                      )}
-                      {status !== "completed" && (
-                        <button
-                          className="app-text-button"
-                          onClick={() => void move(a, "completed")}
-                        >
-                          Terminer
-                        </button>
-                      )}
-                    </div>
-                  </article>
-                ))}
+        <section className="cauri-actions-board" aria-label="Suivi des actions par statut">
+          <div className="app-kanban cauri-direction-kanban cauri-actions-active" data-count={activeStatuses.length}>
+            {activeStatuses.map(renderColumn)}
+          </div>
+          {emptyStatuses.length > 0 && (
+            <div className="cauri-actions-inactive" aria-label="Statuts sans action">
+              {emptyStatuses.map(renderColumn)}
             </div>
-          ))}
+          )}
         </section>
       )}
+      </div>
 
       <Dialog open={creating} onClose={() => setCreating(false)} title="Créer une action">
         <form onSubmit={create}>

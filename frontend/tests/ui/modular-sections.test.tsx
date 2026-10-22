@@ -24,6 +24,22 @@ describe("Modular App Sections", () => {
     expect(screen.getByText("Aucune action")).toBeTruthy();
   });
 
+  it("centers active Action columns and keeps empty workflow statuses compact", () => {
+    const items = [
+      { id: "a1", title: "Relancer le fournisseur", status: "todo", priority: "normal" },
+      { id: "a2", title: "Contrôler le paiement", status: "in_progress", priority: "high" },
+    ];
+    const { container } = renderWithI18n(
+      <ActionsSection data={items} loading={false} error="" onReload={async () => {}} />,
+    );
+    expect(screen.getByText("Relancer le fournisseur")).toBeTruthy();
+    expect(screen.getByText("Contrôler le paiement")).toBeTruthy();
+    expect(container.querySelector('.cauri-actions-active[data-count="2"]')?.children.length).toBe(2);
+    expect(container.querySelectorAll('.cauri-actions-inactive [data-empty="true"]').length).toBe(2);
+    expect(container.querySelectorAll('.cauri-actions-active .app-task').length).toBe(2);
+    expect(screen.getByRole("button", { name: /Nouvelle Tâche/i })).toBeTruthy();
+  });
+
   it("renders RadarSection with alert list", () => {
     const mockAlerts = [
       {
