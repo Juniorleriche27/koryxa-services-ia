@@ -11,6 +11,12 @@
   color:var(--cauri-ink);
 }
 .app-shell .app-main { background:var(--cauri-page); }
+/* One centered reading axis on standard CAURI workspaces; the Grand Hall keeps its dedicated layout. */
+.app-shell:not(.is-department):not(.is-grand-hall) .app-content { width:100%; max-width:1360px; margin-inline:auto; box-sizing:border-box; }
+.app-shell .kx-workspace-header { width:100%; min-width:0; }
+.app-shell .app-panel { max-width:100%; box-sizing:border-box; }
+.app-shell :is(.app-grid-two,.app-metrics,.app-quick-grid,.app-kanban,.app-settings-grid) { min-width:0; }
+.app-shell :is(.app-grid-two,.app-metrics,.app-quick-grid,.app-kanban,.app-settings-grid) > * { min-width:0; }
 /* Shared cards, business tables and action groups; keep layout semantics unchanged. */
 .app-shell :is(.app-panel,.app-company-card,.kx-workspace-header,.kx-dashboard-command,.app-metric,.app-quick,.kx-kpi-card) {
   border:1px solid var(--cauri-border);
