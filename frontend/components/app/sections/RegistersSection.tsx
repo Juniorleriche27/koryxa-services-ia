@@ -174,7 +174,8 @@ export function RegistersSection({
         }
       />
 
-      <section className="app-panel">
+      <section className={`app-panel ${kind === "procedures" ? "cauri-operations-procedures" : ""}`}>
+        {kind === "procedures" && <div className="cauri-operations-register-note"><strong>Registre des procédures</strong><span>Consultez les procédures, vérifiez les responsables et gérez les documents associés.</span></div>}
         {loading && items.length === 0 && <TableSkeleton />}
         {error && items.length === 0 && <EmptyState title={t("common_error")} detail={error} onRetry={onReload} />}
         {!loading && !error && items.length === 0 && (

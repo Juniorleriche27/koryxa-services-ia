@@ -154,9 +154,9 @@ export function ImportsSection() {
   return (
     <>
       <PageHeader
-        eyebrow={t("imports_eyebrow")}
-        title={t("imports_title")}
-        description={t("imports_desc")}
+        eyebrow="OPÉRATIONS / IMPORTS"
+        title="Importer des données"
+        description="Préparez votre fichier, vérifiez les colonnes détectées et confirmez l’importation dans le registre choisi."
         action={
           <button className="app-button app-button-secondary" onClick={exportCsv}>
             <Download size={16} />
@@ -165,7 +165,7 @@ export function ImportsSection() {
         }
       />
 
-      <section className="app-panel app-upload">
+      <section className="app-panel app-upload cauri-operations-import" aria-label="Préparer une importation">
         <label>
           Registre de destination
           <select
@@ -231,24 +231,13 @@ export function ImportsSection() {
             </div>
 
             {/* Column Mapping Grid */}
-            <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
+            <div className="cauri-operations-mappings">
               <h3>Correspondance des colonnes</h3>
               {preview.detected_headers.map((header) => {
                 const currentMapped = customMapping[header] || "";
                 const sampleValue = preview.preview_rows[0]?.[header];
                 return (
-                  <div
-                    key={header}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto 1fr",
-                      alignItems: "center",
-                      gap: 12,
-                      background: "var(--kx-surface-muted, #f8fafc)",
-                      padding: "8px 14px",
-                      borderRadius: 8,
-                    }}
-                  >
+                  <div key={header} className="cauri-operations-mapping-row">
                     <div>
                       <strong>{header}</strong>
                       {sampleValue !== undefined && (

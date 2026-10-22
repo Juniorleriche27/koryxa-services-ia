@@ -77,7 +77,7 @@ describe("Modular App Sections", () => {
 
   it("renders ImportsSection with register selector", () => {
     renderWithI18n(<ImportsSection />);
-    expect(screen.getByText("Importer des données (Excel, CSV)")).toBeTruthy();
+    expect(screen.getByText("Importer des données")).toBeTruthy();
     expect(screen.getByText("Registre de destination")).toBeTruthy();
   });
 });

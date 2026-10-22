@@ -1,0 +1,30 @@
+/* CAURI Premium — Operations department: Procedures and Imports only. */
+.app-shell [data-cauri-department="operations"] { --ops-ink:#173e34;--ops-muted:#5b7769;--ops-line:#dce9df;--ops-green:#168064;--ops-soft:#f3faf5; }
+.app-shell [data-cauri-department="operations"] .app-page-header { gap:14px; }
+.app-shell [data-cauri-department="operations"] .kx-header-actions-row { display:flex;flex-wrap:wrap;gap:9px;padding:11px;border:1px solid var(--ops-line);border-radius:13px;background:#f6faf7; }
+.app-shell [data-cauri-department="operations"] .kx-header-actions-row .app-button {min-height:44px;border-radius:10px;font-size:.81rem;}
+.app-shell [data-cauri-department="operations"] .app-panel {background:#fff;border:1px solid var(--ops-line);border-radius:17px;padding:clamp(17px,2vw,25px);box-shadow:0 8px 26px rgba(23,74,46,.04);min-width:0;}
+.app-shell [data-cauri-department="operations"] .app-panel-head {margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--ops-line);}
+.app-shell [data-cauri-department="operations"] .app-panel-head h2 {font-size:1.08rem;color:var(--ops-ink);line-height:1.3;}
+.app-shell [data-cauri-department="operations"] :is(.kx-table-wrapper,.app-table-scroll) {border-radius:14px;border:1px solid var(--ops-line);max-width:100%;overflow-x:auto;}
+.app-shell [data-cauri-department="operations"] .cauri-operations-register-note { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:17px;padding:15px 17px;border:1px solid var(--ops-line);border-radius:12px;background:var(--ops-soft); }
+.app-shell [data-cauri-department="operations"] .cauri-operations-register-note strong {font-size:.84rem;color:var(--ops-ink);font-weight:780;}
+.app-shell [data-cauri-department="operations"] .cauri-operations-register-note span {font-size:.79rem;color:var(--ops-muted);line-height:1.5;}
+.app-shell [data-cauri-department="operations"] .app-upload {max-width:none;display:grid;gap:16px;}
+.app-shell [data-cauri-department="operations"] .cauri-operations-import > label:first-child {display:grid;gap:9px;background:var(--ops-soft);border:1px solid var(--ops-line);padding:15px 17px;border-radius:13px;color:#355f4c;font-size:.81rem;font-weight:770;}
+.app-shell [data-cauri-department="operations"] .cauri-operations-import > label:first-child select {min-height:46px;width:100%;max-width:540px;background:#fff;border:1px solid #d3e5d8;border-radius:10px;padding:10px 13px;color:var(--ops-ink);font-size:.87rem;}
+.app-shell [data-cauri-department="operations"] .app-dropzone {display:flex;align-items:center;justify-content:center;gap:12px;text-align:center;min-height:208px;padding:22px;border:2px dashed #b9d9c4;border-radius:15px;background:#f6fbf7;color:#47715c;transition:background .15s,border-color .15s;}
+.app-shell [data-cauri-department="operations"] .app-dropzone:hover {background:#eaf6ee;border-color:#8bc7a1;}
+.app-shell [data-cauri-department="operations"] .app-dropzone strong {font-size:.96rem;line-height:1.5;overflow-wrap:anywhere;color:var(--ops-ink);}
+.app-shell [data-cauri-department="operations"] .app-dropzone span {font-size:.78rem;line-height:1.5;color:var(--ops-muted);}
+.app-shell [data-cauri-department="operations"] .app-import-preview {border:1px solid var(--ops-line);border-radius:15px;padding:clamp(15px,2vw,24px);background:#fff;min-width:0;}
+.app-shell [data-cauri-department="operations"] .cauri-operations-mappings {display:grid;gap:10px;margin-top:17px;}
+.app-shell [data-cauri-department="operations"] .cauri-operations-mappings h3 {margin:0 0 3px;color:var(--ops-ink);font-size:.95rem;font-weight:780;}
+.app-shell [data-cauri-department="operations"] .cauri-operations-mapping-row {display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:13px;padding:14px 15px;background:#f7fbf8;border:1px solid #e1ece4;border-radius:12px;min-width:0;}
+.app-shell [data-cauri-department="operations"] .cauri-operations-mapping-row strong {display:block;font-size:.81rem;line-height:1.4;color:var(--ops-ink);overflow-wrap:anywhere;}
+.app-shell [data-cauri-department="operations"] .cauri-operations-mapping-row select {width:100%;min-width:0;min-height:43px;border-radius:10px;border:1px solid #d4e6da;background:#fff;padding:9px 11px;font-size:.82rem;color:var(--ops-ink);}
+.app-shell [data-cauri-department="operations"] .app-form-actions {display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;}
+.app-shell [data-cauri-department="operations"] .app-form-actions .app-button {min-height:44px;border-radius:10px;}
+.app-shell [data-cauri-department="operations"] :is(button,a,input,select):focus-visible {outline:3px solid #83caa3;outline-offset:2px;}
+@media(max-width:760px){.app-shell [data-cauri-department="operations"] .app-panel{padding:14px;border-radius:14px}.app-shell [data-cauri-department="operations"] .kx-header-actions-row {width:100%;}.app-shell [data-cauri-department="operations"] .kx-header-actions-row .app-button{flex:1 1 120px;}.app-shell [data-cauri-department="operations"] .cauri-operations-mapping-row{grid-template-columns:minmax(0,1fr);gap:7px;padding:13px;}.app-shell [data-cauri-department="operations"] .cauri-operations-mapping-row>svg{transform:rotate(90deg);}.app-shell [data-cauri-department="operations"] .app-form-actions .app-button {flex:1 1 145px;}.app-shell [data-cauri-department="operations"] .app-dropzone {min-height:173px;padding:17px;}}
+@media(prefers-reduced-motion:reduce){.app-shell [data-cauri-department="operations"] .app-dropzone{transition:none;}}
