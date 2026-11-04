@@ -116,3 +116,11 @@ class AuditEventRead(BaseModel):
     actor_user_id: str
     payload: dict[str, object]
     created_at: datetime
+
+
+class AuditIntegrityResponse(BaseModel):
+    is_valid: bool
+    total_events: int
+    head_hash: str
+    broken_at_event_id: str | None = None
+    verified_at: str

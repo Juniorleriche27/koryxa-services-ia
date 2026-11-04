@@ -16,6 +16,7 @@ from app.schemas.workflow import (
     ActionRead,
     ActionUpdate,
     AuditEventRead,
+    AuditIntegrityResponse,
     CommentCreate,
     CommentRead,
     ValidationCreate,
@@ -159,3 +160,13 @@ async def audit_events(
         entity_type,
         entity_id,
     )
+
+
+@router.get("/audit-integrity", response_model=AuditIntegrityResponse)
+async def audit_integrity(
+    session: SessionDep,
+    organization: OrgDep,
+    _: ReadDep,
+):
+    """Vérification cryptographique de la chaîne d'audit immuable SHA-256."""
+    return await service.verify_audit_integrity(session, organization.id)

@@ -28,6 +28,7 @@ import { SettingsSection, RadarRule } from "./sections/SettingsSection";
 import { ImportsSection } from "./sections/ImportsSection";
 import { SaleItem } from "./RegistersTable";
 import { CashflowSummaryData } from "@/lib/radar/cashflow-projection";
+import { RawAuditEvent } from "@/lib/audit/audit-hash-chain";
 
 // Common API page structure
 export type ApiPage<T> = { items: T[]; total: number; page: number; page_size: number };
@@ -138,15 +139,22 @@ export function LiveRadar() {
   );
 }
 
-// 5. LiveValidations Component
+// 5. LiveValidations Component - Double Contrôle & Registre Immuable
 export function LiveValidations() {
-  const q = useApi<ValidationItem[]>("/workflow/validations?status=pending");
+  const validationsApi = useApi<ValidationItem[]>("/workflow/validations?status=pending");
+  const auditApi = useApi<RawAuditEvent[]>("/workflow/audit");
+
+  const reloadAll = async () => {
+    await Promise.all([validationsApi.reload(), auditApi.reload()]);
+  };
+
   return (
     <ValidationsSection
-      data={q.data}
-      loading={q.loading}
-      error={q.error}
-      onReload={q.reload}
+      data={validationsApi.data}
+      loading={validationsApi.loading || auditApi.loading}
+      error={validationsApi.error || auditApi.error}
+      onReload={reloadAll}
+      auditEvents={auditApi.data ?? []}
     />
   );
 }
