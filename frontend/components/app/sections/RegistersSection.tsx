@@ -10,6 +10,8 @@ import { RegisterDetailDialog } from "../RegisterDetailDialog";
 import { ProcedureGeneratorModal } from "../ProcedureGeneratorModal";
 import { PaymentReminderDialog } from "../PaymentReminderDialog";
 import { StockAdjustmentDialog } from "../StockAdjustmentDialog";
+import { ClientSolvencyRadar } from "@/components/credit/ClientSolvencyRadar";
+import { Users, FileText } from "lucide-react";
 import { ExpressPosModal } from "../ExpressPosModal";
 import {
   SalesTableInteractive,
@@ -43,6 +45,7 @@ export function RegistersSection({
   const [posOpen, setPosOpen] = useState(false);
   const [allOffers, setAllOffers] = useState<OfferItem[]>([]);
   const [adjustingStockOffer, setAdjustingStockOffer] = useState<OfferItem | null>(null);
+  const [salesSubView, setSalesSubView] = useState<"table" | "solvency">("table");
 
   useEffect(() => {
     serviceIaFetch<{ name?: string; business_category?: string }>("/organizations/current")
@@ -186,21 +189,52 @@ export function RegistersSection({
           />
         )}
 
-        {/* Specialized Interactive Table for Sales */}
+        {/* Mode switcher pour les ventes : Table vs Solvabilité */}
         {kind === "sales" && sales.length > 0 && (
-          <SalesTableInteractive
-            sales={sales}
-            organizationName={organizationName}
-            organizationCategory={proConfig.name}
-            onSelect={(sale) => setSelectedRecord(sale)}
-            onEdit={(sale) => setEditingRecord(sale)}
-            onArchive={(id) => archiveRecord("sales", id)}
-            onRefresh={onReload}
-            isFullscreen={isFullscreen}
-            onToggleFullscreen={toggleFullscreen}
-            onAddSale={() => setCreating(true)}
-            onOpenPos={() => setPosOpen(true)}
-          />
+          <div style={{ marginBottom: "14px", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={() => setSalesSubView("table")}
+              className={`app-button ${salesSubView === "table" ? "app-button-primary" : "app-button-secondary"}`}
+              style={{ minHeight: "38px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              <FileText size={14} />
+              <span>Registre des Ventes</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSalesSubView("solvency")}
+              className={`app-button ${salesSubView === "solvency" ? "app-button-primary" : "app-button-secondary"}`}
+              style={{ minHeight: "38px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              <Users size={14} />
+              <span>Solvabilité & Risques Clients</span>
+            </button>
+          </div>
+        )}
+
+        {/* Specialized Interactive Table or Client Solvency Radar for Sales */}
+        {kind === "sales" && sales.length > 0 && (
+          salesSubView === "table" ? (
+            <SalesTableInteractive
+              sales={sales}
+              organizationName={organizationName}
+              organizationCategory={proConfig.name}
+              onSelect={(sale) => setSelectedRecord(sale)}
+              onEdit={(sale) => setEditingRecord(sale)}
+              onArchive={(id) => archiveRecord("sales", id)}
+              onRefresh={onReload}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={toggleFullscreen}
+              onAddSale={() => setCreating(true)}
+              onOpenPos={() => setPosOpen(true)}
+            />
+          ) : (
+            <ClientSolvencyRadar
+              sales={sales}
+              organizationName={organizationName}
+            />
+          )
         )}
 
         {/* Specialized Interactive Table for Offers */}

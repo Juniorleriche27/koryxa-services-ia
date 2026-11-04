@@ -947,3 +947,154 @@ class RegisterService:
         await s.refresh(sale)
         doc = await self.get_public_document(s, token, increment_view=False)
         return doc, tx_id
+
+    async def get_client_solvency(self, s: AsyncSession, org: str) -> list[dict]:
+        """Analyse et calcule le score de solvabilité et la politique de crédit par client."""
+        stmt = (
+            select(Sale)
+            .where(Sale.organization_id == org, Sale.is_archived.is_(False))
+            .order_by(Sale.sale_date.desc())
+        )
+        sales = list(await s.scalars(stmt))
+        today = date.today()
+
+        client_map: dict[str, dict] = {}
+        for sale in sales:
+            raw_name = (sale.client_name or "Client Divers").strip()
+            raw_phone = sale.client_phone.strip() if sale.client_phone else None
+            key = (
+                "".join(c for c in raw_phone if c.isdigit())
+                if raw_phone
+                else raw_name.lower()
+            )
+
+            if key not in client_map:
+                client_map[key] = {
+                    "name": raw_name,
+                    "phone": raw_phone,
+                    "email": sale.client_email,
+                    "sales": [],
+                }
+            entry = client_map[key]
+            entry["sales"].append(sale)
+            if not entry["phone"] and raw_phone:
+                entry["phone"] = raw_phone
+            if not entry["email"] and sale.client_email:
+                entry["email"] = sale.client_email
+
+        results = []
+        for key, entry in client_map.items():
+            tot_invoiced = Decimal("0")
+            tot_paid = Decimal("0")
+            overdue_count = 0
+            max_overdue_days = 0
+            sum_overdue_days = 0
+            last_date = None
+
+            for sale in entry["sales"]:
+                tot = sale.total_amount or Decimal("0")
+                paid = sale.paid_amount or Decimal("0")
+                tot_invoiced += tot
+                tot_paid += paid
+                rem = max(Decimal("0"), tot - paid)
+
+                if last_date is None or (sale.sale_date and sale.sale_date > last_date):
+                    last_date = sale.sale_date
+
+                if rem > Decimal("0") and sale.due_date:
+                    diff = (today - sale.due_date).days
+                    if diff > 0:
+                        overdue_count += 1
+                        sum_overdue_days += diff
+                        if diff > max_overdue_days:
+                            max_overdue_days = diff
+
+            tot_outstanding = max(Decimal("0"), tot_invoiced - tot_paid)
+            avg_overdue = (
+                round(sum_overdue_days / overdue_count) if overdue_count > 0 else 0
+            )
+
+            if tot_invoiced <= Decimal("0"):
+                score = 50
+            else:
+                ratio = min(Decimal("1"), max(Decimal("0"), tot_paid / tot_invoiced))
+                ratio_pts = int(ratio * 45)
+
+                if overdue_count > 0:
+                    if max_overdue_days > 45:
+                        punct_pts = 0
+                    elif max_overdue_days > 30:
+                        punct_pts = 8
+                    elif max_overdue_days > 15:
+                        punct_pts = 18
+                    elif max_overdue_days > 7:
+                        punct_pts = 25
+                    else:
+                        punct_pts = 30
+                else:
+                    punct_pts = 35
+
+                n_sales = len(entry["sales"])
+                if n_sales >= 10:
+                    loyalty_pts = 15
+                elif n_sales >= 4:
+                    loyalty_pts = 12
+                elif n_sales >= 2:
+                    loyalty_pts = 8
+                else:
+                    loyalty_pts = 5
+
+                zero_bonus = 5 if tot_outstanding <= Decimal("0") else 0
+                score = max(5, min(100, ratio_pts + punct_pts + loyalty_pts + zero_bonus))
+
+            if score >= 90:
+                tier = "A+"
+                tier_label = "Client Exemplaire"
+                policy = "Crédit 30 à 45 jours autorisé sans acompte. Client prioritaire."
+                mult = Decimal("2.5")
+            elif score >= 75:
+                tier = "A"
+                tier_label = "Client Fiable"
+                policy = "Crédit standard 15 à 30 jours. Acompte de 20% suggéré."
+                mult = Decimal("1.5")
+            elif score >= 55:
+                tier = "B"
+                tier_label = "Vigilance Modérée"
+                policy = "Acompte minimum 30% à 50% obligatoire. Relance dès J+2."
+                mult = Decimal("0.8")
+            elif score >= 35:
+                tier = "C"
+                tier_label = "Risque Élevé"
+                policy = "Acompte 70% obligatoire. Pas de livraison sans justificatif."
+                mult = Decimal("0.3")
+            else:
+                tier = "D"
+                tier_label = "Contentieux / Insolvable"
+                policy = "Comptant 100% strict exigé avant préparation. Bloquer les encours."
+                mult = Decimal("0")
+
+            avg_sale = tot_invoiced / Decimal(str(max(1, len(entry["sales"]))))
+            max_credit = round(avg_sale * mult, 2)
+
+            results.append({
+                "client_key": key,
+                "client_name": entry["name"],
+                "client_phone": entry["phone"],
+                "client_email": entry["email"],
+                "total_sales_count": len(entry["sales"]),
+                "total_invoiced": tot_invoiced,
+                "total_paid": tot_paid,
+                "total_outstanding": tot_outstanding,
+                "overdue_count": overdue_count,
+                "max_overdue_days": max_overdue_days,
+                "avg_overdue_days": avg_overdue,
+                "solvency_score": score,
+                "tier": tier,
+                "tier_label": tier_label,
+                "credit_policy": policy,
+                "max_recommended_credit": max_credit,
+                "last_sale_date": last_date,
+            })
+
+        results.sort(key=lambda x: (x["total_outstanding"], -x["solvency_score"]), reverse=True)
+        return results

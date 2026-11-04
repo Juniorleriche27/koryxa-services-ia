@@ -499,3 +499,23 @@ class CashflowSummary(BaseModel):
     receivables_overdue: Decimal | None = None
     receivables_not_due: Decimal | None = None
     recent_expenses: list[ExpenseRead] = Field(default_factory=list)
+
+
+class ClientSolvencyRead(BaseModel):
+    client_key: str
+    client_name: str
+    client_phone: str | None = None
+    client_email: str | None = None
+    total_sales_count: int
+    total_invoiced: Decimal
+    total_paid: Decimal
+    total_outstanding: Decimal
+    overdue_count: int
+    max_overdue_days: int
+    avg_overdue_days: int
+    solvency_score: int
+    tier: str
+    tier_label: str
+    credit_policy: str
+    max_recommended_credit: Decimal
+    last_sale_date: date | None = None

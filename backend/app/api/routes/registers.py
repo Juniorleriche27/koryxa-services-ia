@@ -17,6 +17,7 @@ from app.models.registers import (
 )
 from app.schemas.registers import (
     CashflowSummary,
+    ClientSolvencyRead,
     ConvertDocumentRequest,
     ExpenseCreate,
     ExpensePaymentUpdate,
@@ -352,3 +353,10 @@ async def delete_supplier(rid: str, s: SessionDep, i: IdentityDep, o: OrgDep, _:
 @router.get("/cashflow-summary", response_model=CashflowSummary)
 async def cashflow_summary(s: SessionDep, o: OrgDep, _: ReadDep):
     return await svc.get_cashflow_summary(s, o.id)
+
+
+# ------------------ CLIENT SOLVENCY & CREDIT SCORING ------------------
+@router.get("/client-solvency", response_model=list[ClientSolvencyRead])
+async def client_solvency(s: SessionDep, o: OrgDep, _: ReadDep):
+    """Analyse prédictive de solvabilité et recommandations de crédit par client."""
+    return await svc.get_client_solvency(s, o.id)

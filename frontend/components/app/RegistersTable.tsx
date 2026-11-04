@@ -35,6 +35,9 @@ import {
 import { StatusPill } from "./Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { PaymentReminderDialog } from "./PaymentReminderDialog";
+import { ClientSolvencyBadge } from "@/components/credit/ClientSolvencyBadge";
+import { aggregateClientSolvency } from "@/lib/credit/client-scoring";
+import { Phone as PhoneIcon } from "lucide-react";
 import { CommercialDocumentViewer } from "./CommercialDocumentViewer";
 import { RecordPaymentModal } from "./RecordPaymentModal";
 
@@ -307,6 +310,16 @@ export function SalesTableInteractive({
 
   // Modals state
   const [reminderSale, setReminderSale] = useState<SaleItem | null>(null);
+
+  // Solvabilité calculée dynamiquement par client
+  const clientScoreMap = useMemo(() => {
+    const map = new Map<string, { score: number; tier: any }>();
+    const metrics = aggregateClientSolvency(sales as any);
+    metrics.forEach((m) => {
+      map.set(m.clientKey, { score: m.solvencyScore, tier: m.tier });
+    });
+    return map;
+  }, [sales]);
   const [viewerDoc, setViewerDoc] = useState<SaleItem | null>(null);
   const [paymentSale, setPaymentSale] = useState<SaleItem | null>(null);
 
@@ -698,12 +711,30 @@ export function SalesTableInteractive({
                       </div>
                     </td>
 
-                    {/* Client & Sales Channel */}
+                    {/* Client & Sales Channel avec Score de Solvabilité */}
                     <td>
                       <div>
-                        <strong className="text-xs font-black text-foreground block">
-                          {sale.client_name || "Client comptant"}
-                        </strong>
+                        {(() => {
+                          const k = sale.client_phone
+                            ? sale.client_phone.replace(/[^0-9]/g, "")
+                            : (sale.client_name || "").trim().toLowerCase();
+                          const info = clientScoreMap.get(k);
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <strong className="text-xs font-black text-foreground">
+                                {sale.client_name || "Client comptant"}
+                              </strong>
+                              {info && (
+                                <ClientSolvencyBadge
+                                  score={info.score}
+                                  tier={info.tier}
+                                  size="sm"
+                                  onClick={() => setReminderSale(sale)}
+                                />
+                              )}
+                            </div>
+                          );
+                        })()}
                         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                           {sale.client_phone && (
                             <a
@@ -713,7 +744,7 @@ export function SalesTableInteractive({
                               className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-900 hover:bg-emerald-100 transition"
                               title="Ouvrir WhatsApp directement avec ce client"
                             >
-                              <span>📱</span>
+                              <PhoneIcon size={10} />
                               <span>{sale.client_phone}</span>
                             </a>
                           )}
@@ -868,12 +899,23 @@ export function SalesTableInteractive({
         }}
       />
 
-      {/* AI Payment Reminder Modal */}
-      <PaymentReminderDialog
-        open={Boolean(reminderSale)}
-        onClose={() => setReminderSale(null)}
-        sale={reminderSale}
-      />
+      {/* AI Payment Reminder Modal avec Solvabilité & SmartDoc */}
+      {reminderSale && (() => {
+        const k = reminderSale.client_phone
+          ? reminderSale.client_phone.replace(/[^0-9]/g, "")
+          : (reminderSale.client_name || "").trim().toLowerCase();
+        const info = clientScoreMap.get(k);
+        return (
+          <PaymentReminderDialog
+            open={Boolean(reminderSale)}
+            onClose={() => setReminderSale(null)}
+            organizationName={organizationName}
+            clientScore={info?.score}
+            clientTier={info?.tier}
+            sale={reminderSale}
+          />
+        );
+      })()}
     </div>
   );
 
