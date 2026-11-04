@@ -10,10 +10,12 @@ import styles from './GrandHallTopbar.module.css';
 /**
  * Floating Sovereign Island Header.
  * Narrower than the body container, centered, with equal bilateral balance.
+ * Adaptable across all pages with contextual departmentLabel.
  */
 export function GrandHallTopbar({
   searchLabel,
   vocalLabel,
+  departmentLabel,
   onSearch,
   onVoice,
   onHelp,
@@ -21,11 +23,16 @@ export function GrandHallTopbar({
 }: {
   searchLabel: string;
   vocalLabel: string;
+  departmentLabel?: string;
   onSearch: () => void;
   onVoice: () => void;
   onHelp: () => void;
   onContact: () => void;
 }) {
+  const displayBadge = departmentLabel
+    ? departmentLabel.replace(/ et pilotage| et trésorerie| et stocks| et organisation/i, '').toUpperCase()
+    : "GRAND SIÈGE";
+
   return (
     <div className={styles.headerWrapper}>
       <header className={styles.header}>
@@ -43,7 +50,7 @@ export function GrandHallTopbar({
             />
             <span className={styles.brandBadge}>
               <span className={styles.pulseDot} aria-hidden="true" />
-              <span>GRAND SIÈGE</span>
+              <span>{displayBadge}</span>
             </span>
           </Link>
         </div>

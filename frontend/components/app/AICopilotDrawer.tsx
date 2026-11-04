@@ -23,6 +23,7 @@ import {
   ChevronDown,
   PanelRightClose,
   Minimize2,
+  Sparkles,
 } from "lucide-react";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { useI18n } from "@/lib/i18n";
@@ -437,7 +438,7 @@ export function AICopilotDrawer({
       <div className="kx-copilot-header sticky top-0 z-50 shrink-0">
         <div className="kx-copilot-title-group min-w-0">
           <div className="kx-copilot-badge-icon shrink-0">
-            <MessageSquareText size={20} />
+            <Sparkles size={18} className="text-emerald-300" aria-hidden="true" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -523,7 +524,7 @@ export function AICopilotDrawer({
                     </span>
                     {m.duration && (
                       <span className="text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-300 px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1 ml-auto">
-                        ⚡ {m.duration}
+                        <Zap size={10} className="inline mr-1" aria-hidden="true" /> {m.duration}
                       </span>
                     )}
                   </div>

@@ -43,6 +43,7 @@ import {
   Zap,
   MessageSquareText,
   Compass,
+  Sparkles,
   HelpCircle,
   Download,
   PhoneCall,
@@ -610,9 +611,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="app-main">
           <OfflineSyncBanner />
 
-          {isGrandHall ? <GrandHallTopbar
+          {pathname.startsWith("/espace") ? <GrandHallTopbar
             searchLabel={t("search_prompt")}
             vocalLabel={t("vocal_btn")}
+            departmentLabel={resolveDepartment(pathname)?.department.name || (pathname.includes('/actions') ? 'Direction' : undefined)}
             onSearch={() => setCommandOpen(true)}
             onVoice={() => setVoiceOpen(true)}
             onHelp={() => setHelpOpen(true)}
@@ -694,7 +696,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {!organization.id ? <OrganizationGate loading={!organizationLoaded} errorCode={organizationErrorCode} onRetry={() => setOrganizationRetry(value => value + 1)} /> : isDepartment ? <DepartmentShell pathname={pathname} organizationName={organization.name} organizationId={organization.id}>{children}</DepartmentShell> : children}
           </div>
 
-          {/* Floating Cora bubble — hidden when panel is open */}
+          {/* Floating Cora capsule — hidden when panel is open */}
           {!copilotOpen && (
             <div className="fixed bottom-20 right-4 lg:bottom-7 lg:right-7 z-40 group">
               <button
@@ -703,15 +705,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => { setCopilotOpen(true); setCopilotMinimized(false); }}
                 aria-label="Ouvrir le panneau d’assistance"
                 title="Ouvrir l’assistance (Cmd + J / Ctrl + J)"
-                className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-700 text-white shadow-sm hover:bg-emerald-800 transition-colors cursor-pointer"
+                className="relative flex items-center gap-2.5 px-4 h-12 rounded-full bg-gradient-to-r from-emerald-800 to-emerald-950 text-white shadow-lg shadow-emerald-950/20 hover:shadow-xl hover:shadow-emerald-950/35 border border-emerald-500/30 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer"
               >
-
-                <MessageSquareText size={24} strokeWidth={2.2} className="relative z-10" />
-
+                <span className="relative flex h-2.5 w-2.5 flex-none">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
+                </span>
+                <Sparkles size={16} className="text-emerald-300" aria-hidden="true" />
+                <span className="text-xs font-bold tracking-wide">Cora IA</span>
               </button>
               <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 rounded-xl bg-slate-900/95 text-white text-xs font-bold whitespace-nowrap shadow-xl backdrop-blur-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5 border border-white/10">
                 <Compass size={13} className="text-emerald-400" />
-                <span>Assistance</span>
+                <span>Conseiller Décisionnel</span>
                 <kbd className="text-[10px] bg-slate-800 px-1 py-0.5 rounded text-slate-300">⌘J</kbd>
               </div>
             </div>
