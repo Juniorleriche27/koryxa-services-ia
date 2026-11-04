@@ -1,4 +1,4 @@
-/* CAURI Sovereign Grand Hall: Architectural, Master-Level Executive Cockpit. Scoped to /espace. */
+/* CAURI Sovereign Grand Hall: Centered, Symmetrical, Balanced Executive Architecture */
 
 :global(.app-shell.is-grand-hall) {
   grid-template-columns: minmax(0, 1fr);
@@ -13,68 +13,74 @@
   padding: 0 !important;
 }
 :global(.app-shell.is-grand-hall .app-topbar) {
-  display: none !important; /* Replaced by GrandHallTopbar */
+  display: none !important;
 }
 
+/* Master Stage: Centered alignment across all screens */
 .hall {
   --font-display: var(--font-playfair), Georgia, serif;
-  min-height: calc(100dvh - 74px);
+  min-height: calc(100vh - 60px);
   border: 0 !important;
   border-radius: 0 !important;
-  padding: clamp(16px, 2.8vw, 36px) clamp(16px, 4vw, 68px) 80px !important;
-  --gs-ink: #163d34;
-  --gs-muted: #567568;
-  --gs-paper: #f8fbf8;
-  --gs-glass: #ffffff;
-  --gs-border: #dce8df;
-  --gs-jade: #168064;
-  --gs-gold: #886336;
-  background: radial-gradient(circle at 5% 15%, rgba(210, 235, 219, 0.42), transparent 35%), #f8fbf8 !important;
+  padding: 18px 24px 80px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: radial-gradient(circle at 50% 0%, rgba(210, 235, 219, 0.45), transparent 45%), #f8fbf8 !important;
+}
+
+/* Centered Body Container: Elegant margin breathing room on wide screens */
+.stageInner {
+  width: 100%;
+  max-width: 1220px; /* Strictly wider than the floating header (1040px) */
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 /* ==========================================================================
-   1. COCKPIT EXÉCUTIF UNIFIÉ (Above the fold - 0 scroll, 0 doublons de logo)
+   1. COCKPIT EXÉCUTIF CENTRÉ & SYMÉTRIQUE
    ========================================================================== */
 .cockpitHero {
-  position: relative;
-  display: grid;
-  gap: 18px;
-  padding: clamp(18px, 2.6vw, 30px);
-  margin-bottom: 22px;
-  border: 1px solid #d9e9df;
-  border-radius: 22px;
-  background: linear-gradient(130deg, #ffffff 15%, #f6fbf7 60%, #eef7f2 100%);
-  box-shadow: 0 12px 34px rgba(22, 73, 48, 0.045), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-.cockpitTopline {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #e1eee4;
+  padding: clamp(20px, 2.8vw, 32px);
+  border: 1px solid #d9e9df;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fcf9 55%, #edf6f0 100%);
+  box-shadow: 0 10px 32px rgba(22, 73, 48, 0.045), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-.identityBadges {
+/* Symmetrical status ribbon at the top of the card */
+.cockpitTopline {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e2eee5;
+}
+
+.statusRibbon {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 9px;
   flex-wrap: wrap;
 }
 
 .orgBadge {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 13px;
+  gap: 6px;
+  padding: 5px 12px;
   border-radius: 999px;
   background: #eaf5ed;
   border: 1px solid #d2e7d8;
   color: #146f52;
-  font-size: 0.78rem;
-  letter-spacing: 0.02em;
+  font-size: 0.76rem;
 }
 
 .orgBadge strong {
@@ -85,8 +91,8 @@
 .secureSeal {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 5px;
+  padding: 5px 11px;
   border-radius: 999px;
   background: #fbf7ee;
   border: 1px solid #ebdfcd;
@@ -95,38 +101,36 @@
   font-weight: 680;
 }
 
-.syncStatus {
+.syncBadge {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-}
-
-.pulseWrapper {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 0.74rem;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: #f0f8f2;
+  border: 1px solid #d5e8da;
+  font-size: 0.73rem;
   font-weight: 650;
-  color: #4a6f5e;
+  color: #446d5c;
 }
 
 .pulseDot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
   flex: none;
 }
 
 .refreshTrigger {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   border: 1px solid #d3e7da;
   background: #ffffff;
-  border-radius: 10px;
-  padding: 6px 11px;
+  border-radius: 999px;
+  padding: 5px 11px;
   font-size: 0.73rem;
   font-weight: 700;
   color: #166c50;
@@ -153,64 +157,62 @@
   to { transform: rotate(360deg); }
 }
 
-.cockpitMainRow {
+/* Centered Title & Vision Block */
+.cockpitCenterBlock {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 18px;
-  padding: 4px 0 2px;
-}
-
-.cockpitHeroText {
-  flex: 1;
-  min-width: 0;
+  text-align: center;
+  max-width: 740px;
+  margin-inline: auto;
+  margin-bottom: 24px;
 }
 
 .cockpitEyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   font-size: 0.69rem;
   font-weight: 800;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.12em;
   color: #168064;
   text-transform: uppercase;
+  margin-bottom: 7px;
 }
 
 .cockpitTitle {
   font-family: var(--font-playfair), Georgia, serif !important;
-  font-size: clamp(1.55rem, 2.7vw, 2.3rem);
+  font-size: clamp(1.6rem, 2.7vw, 2.3rem);
   font-weight: 560;
   letter-spacing: -0.03em;
-  line-height: 1.18;
+  line-height: 1.2;
   color: #133e33;
-  margin: 9px 0 8px;
+  margin: 0 0 10px;
 }
 
 .cockpitSubtitle {
   font-size: 0.88rem;
-  line-height: 1.6;
+  line-height: 1.65;
   color: #567768;
-  max-width: 68ch;
-  margin: 0;
+  margin: 0 0 16px;
 }
 
-.cockpitQuickAction {
-  flex: none;
+.cockpitActionWrap {
+  display: flex;
+  justify-content: center;
 }
 
 .executiveActionBtn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 10px 16px;
-  border-radius: 12px;
+  gap: 7px;
+  min-height: 42px;
+  padding: 9px 18px;
+  border-radius: 999px;
   background: #eaf5ed;
   border: 1px solid #cce5d4;
   color: #116e50;
-  font-size: 0.83rem;
+  font-size: 0.82rem;
   font-weight: 750;
   text-decoration: none;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
@@ -223,160 +225,105 @@
 }
 
 /* ==========================================================================
-   LES 4 PILIERS VITAUX (Intégrés avec clarté absolue)
+   LES 4 PILIERS VITAUX (Strictement égaux, équilibrés et symétriques)
    ========================================================================== */
 .metricsPillars {
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 6px;
+  gap: 14px;
 }
 
 .metricPillar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-  padding: 18px 16px;
+  align-items: center;
+  text-align: center;
+  justify-content: space-between;
+  min-height: 124px;
+  padding: 16px 14px;
   background: #ffffff;
   border: 1px solid #dce8df;
   border-radius: 16px;
-  box-shadow: 0 4px 18px rgba(22, 68, 48, 0.03);
+  box-shadow: 0 4px 16px rgba(22, 68, 48, 0.03);
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-.heroMetricPillar {
-  background: linear-gradient(130deg, #eaf6ee 0%, #f7fcf8 100%);
-  border-color: #bee0cc;
-}
-
-.warningMetricPillar {
-  background: linear-gradient(130deg, #fdfbf5 0%, #ffffff 100%);
-  border-color: #ebd9c0;
-}
-
-.pillarHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.metricPillar:hover {
+  border-color: #a4ceb5;
+  transform: translateY(-1px);
 }
 
 .pillarLabel {
   font-size: 0.77rem;
   font-weight: 680;
-  color: #4e7061;
+  color: #527263;
 }
 
-.heroPillarTag {
-  font-size: 0.65rem;
-  font-weight: 750;
-  background: #d8efe0;
-  color: #137152;
-  padding: 2px 7px;
-  border-radius: 6px;
-  white-space: nowrap;
+.heroAmount,
+.pillarValue {
+  font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+  font-weight: 780;
+  letter-spacing: -0.04em;
+  color: #153e34;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  margin: 6px 0;
 }
 
-.pillarSubTag {
-  font-size: 0.65rem;
-  font-weight: 750;
-  background: #f1f7f3;
-  color: #5c7c6e;
-  padding: 2px 7px;
-  border-radius: 6px;
-  white-space: nowrap;
+.signalValue {
+  font-size: clamp(0.92rem, 1.3vw, 1.1rem);
+  font-weight: 760;
+  color: #195b47;
+  line-height: 1.25;
+  margin: 6px 0;
 }
 
-.warningTag {
-  font-size: 0.65rem;
-  font-weight: 750;
-  background: #fbeef0;
-  color: #9d5d1c;
-  padding: 2px 7px;
-  border-radius: 6px;
-  white-space: nowrap;
-}
-
-.successTag {
-  font-size: 0.65rem;
-  font-weight: 750;
-  background: #eaf6ed;
-  color: #167a57;
-  padding: 2px 7px;
-  border-radius: 6px;
+.pillarTag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #176f52;
+  background: #edf7f1;
+  border: 1px solid #d4e8dc;
+  padding: 3px 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   white-space: nowrap;
 }
 
 .radarLink {
+  color: #167e5f;
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 0.72rem;
   font-weight: 750;
-  color: #147a5b;
-  text-decoration: none;
 }
 
 .radarLink:hover {
   text-decoration: underline;
 }
 
-.heroAmount {
-  font-size: clamp(1.4rem, 2.3vw, 1.95rem);
-  font-weight: 780;
-  letter-spacing: -0.04em;
-  color: #126d50;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.15;
-}
-
-.pillarValue {
-  font-size: clamp(1.35rem, 2.2vw, 1.85rem);
-  font-weight: 780;
-  letter-spacing: -0.04em;
-  color: #173d34;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.15;
-}
-
-.signalValue {
-  font-size: clamp(0.92rem, 1.4vw, 1.12rem);
-  font-weight: 760;
-  color: #195b47;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-}
-
-.pillarDetail {
-  font-size: 0.73rem;
-  color: #648274;
-  line-height: 1.45;
-}
-
 /* ==========================================================================
-   2. LES SIX DÉPARTEMENTS STRATÉGIQUES (Le Cœur Opérationnel)
+   2. LES SIX DÉPARTEMENTS STRATÉGIQUES (Centrés & Égaux)
    ========================================================================== */
 .departmentSection {
-  margin: 20px 0 26px;
-  padding: clamp(16px, 2.4vw, 28px);
+  padding: clamp(18px, 2.6vw, 30px);
   border: 1px solid #dae9df;
-  border-radius: 22px;
-  background: linear-gradient(130deg, #f3faf5 0%, #ffffff 45%, #f8fbf9 100%);
-  box-shadow: 0 10px 30px rgba(24, 76, 48, 0.035);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 8px 28px rgba(24, 76, 48, 0.035);
   scroll-margin-top: 85px;
 }
 
 .sectionHead {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 18px;
-  padding: clamp(16px, 2vw, 22px);
-  border: 1px solid #dcebe0;
-  background: #ffffff;
-  border-radius: 16px;
+  text-align: center;
+  margin-bottom: 22px;
 }
 
 .sectionIndex {
@@ -385,36 +332,24 @@
   font-weight: 800;
   color: #168064;
   text-transform: uppercase;
+  margin-bottom: 6px;
 }
 
 .sectionHead h2 {
-  margin: 8px 0 6px;
+  margin: 0 0 6px;
   font-family: var(--font-playfair), Georgia, serif !important;
-  font-size: clamp(1.4rem, 2.3vw, 1.95rem);
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
   font-weight: 600;
   letter-spacing: -0.025em;
   color: #163d34;
 }
 
 .sectionHead p {
-  max-width: 58ch;
-  font-size: 0.83rem;
+  max-width: 60ch;
+  font-size: 0.84rem;
   line-height: 1.6;
   color: #607d6d;
   margin: 0;
-}
-
-.departmentCount {
-  display: inline-flex;
-  padding: 8px 13px;
-  border: 1px solid #d5e8da;
-  border-radius: 10px;
-  background: #f0f8f2;
-  color: #277355;
-  font-size: 0.69rem;
-  letter-spacing: 0.08em;
-  font-weight: 800;
-  white-space: nowrap;
 }
 
 .departmentFrame {
@@ -425,13 +360,13 @@
   border-radius: 16px;
   background: #ffffff;
   overflow: hidden;
-  box-shadow: 0 5px 18px rgba(23, 75, 50, 0.035);
+  box-shadow: 0 4px 16px rgba(23, 75, 50, 0.03);
   transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .departmentFrame:hover {
   border-color: #9eccb1;
-  box-shadow: 0 14px 32px rgba(24, 96, 59, 0.08);
+  box-shadow: 0 12px 28px rgba(24, 96, 59, 0.07);
   transform: translateY(-2px);
 }
 
@@ -444,7 +379,7 @@
   margin: 0;
   padding: 10px 14px;
   color: #647e6f;
-  background: #f5faf6;
+  background: #f6faf7;
   border-bottom: 1px solid #e5eee6;
   font-size: 0.68rem;
   font-weight: 770;
@@ -544,29 +479,31 @@
 }
 
 /* ==========================================================================
-   5. ACCÈS RAPIDES & PIED DE PAGE
+   5. ACCÈS RAPIDES & PIED DE PAGE CENTRÉ
    ========================================================================== */
 .bottomBar {
-  margin-top: 22px;
-  padding: 14px 18px;
+  display: flex;
+  justify-content: center;
+  padding: 14px 20px;
   background: #ffffff;
   border: 1px solid #dce9df;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(22, 68, 48, 0.03);
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgba(22, 68, 48, 0.025);
 }
 
 .shortcutsGroup {
   display: flex;
   align-items: center;
-  gap: 14px;
+  justify-content: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .shortcutsLabel {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 0.78rem;
+  gap: 6px;
+  font-size: 0.77rem;
   font-weight: 750;
   color: #153e33;
 }
@@ -585,11 +522,11 @@
   font-weight: 680;
   text-decoration: none;
   border: 1px solid #dce8df;
-  border-radius: 10px;
-  padding: 8px 12px;
+  border-radius: 999px;
+  padding: 7px 13px;
   background: #f8fbf9;
   color: #174236;
-  min-height: 40px;
+  min-height: 38px;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
@@ -604,7 +541,8 @@
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
-  margin-top: 26px;
+  width: 100%;
+  margin-top: 10px;
   padding-top: 18px;
   border-top: 1px solid #dce8df;
   font-size: 0.75rem;
@@ -642,37 +580,26 @@
 }
 
 @media (max-width: 650px) {
-  .cockpitHero {
-    border-radius: 16px;
-    padding: 16px 14px;
+  .hall {
+    padding: 14px 14px 70px !important;
   }
-  .cockpitTopline {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+  .cockpitHero {
+    border-radius: 18px;
+    padding: 16px 14px;
   }
   .cockpitTitle {
     font-size: 1.55rem !important;
-  }
-  .executiveActionBtn {
-    width: 100%;
-    justify-content: center;
   }
   .metricsPillars {
     grid-template-columns: 1fr;
     gap: 10px;
   }
-  .departmentSection {
-    padding: 14px;
+  .bottomBar {
     border-radius: 16px;
   }
-  .departmentCount {
-    display: none;
-  }
-  .departmentFrame :global(a),
-  .departmentFrame :global([data-disabled='true']) {
-    min-height: 132px;
-    padding: 13px;
+  .departmentSection {
+    padding: 14px;
+    border-radius: 18px;
   }
 }
 
