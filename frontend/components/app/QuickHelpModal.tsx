@@ -5,7 +5,7 @@ import {
   HelpCircle,
   CircleHelp,
   Mic,
-  Bot,
+  MessageSquare,
   Command,
   Compass,
   ArrowRight,
@@ -13,7 +13,6 @@ import {
   ExternalLink,
   ShieldCheck,
   Download,
-  MessageSquare,
 } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { BusinessCategoryConfig } from "@/lib/service-ia/business-categories";
@@ -108,7 +107,7 @@ export function QuickHelpModal({
           >
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
-                <Bot size={18} />
+                <MessageSquare size={18} />
               </div>
               <div className="min-w-0 flex-1">
                 <strong className="text-xs font-bold text-slate-900 dark:text-white block truncate">

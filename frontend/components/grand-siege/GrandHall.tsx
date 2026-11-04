@@ -11,7 +11,6 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { fetchFreshCommandData } from "./fresh-command-data";
@@ -292,7 +291,7 @@ export function GrandHall() {
           <div className={styles.bottomBar}>
             <div className={styles.shortcutsGroup}>
               <span className={styles.shortcutsLabel}>
-                <Sparkles size={15} aria-hidden="true" />
+                <Compass size={15} aria-hidden="true" />
                 Accès rapides :
               </span>
               <div className={styles.shortcutsList}>

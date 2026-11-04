@@ -8,7 +8,7 @@ import {
   MonitorSmartphone,
   SearchCheck,
   ShieldCheck,
-  Sparkles,
+  Building2,
   UsersRound,
 } from "lucide-react";
 import type { ServiceDefinition } from "@/lib/services/catalog";
@@ -27,7 +27,7 @@ const useCases = [
   {
     title: "Nouvelle marque",
     text: "Installer un positionnement crédible dès le lancement avec une identité, un message et une présence digitale cohérente.",
-    icon: Sparkles,
+    icon: Building2,
   },
 ];
 

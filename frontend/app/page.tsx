@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { ArrowRight, Bot, Code2, Globe2, Sparkles, Workflow } from "lucide-react";
+import { ArrowRight, Building2, Code2, Globe2, Compass, Workflow } from "lucide-react";
 
 import { PillarGrid, PremiumCta, SectionHeading } from "@/components/marketing/ServiceMarketing";
 
 const capabilities = [
   [Globe2, "Web premium", "Sites, commerce et expériences utiles"],
   [Code2, "Produits digitaux", "Applications métier et SaaS"],
-  [Bot, "Intelligence IA", "Assistants et agents spécialisés"],
+  [Compass, "Systèmes décisionnels", "Assistants et solutions spécialisées"],
   [Workflow, "Automatisation", "Processus reliés et mesurables"],
 ] as const;
 
@@ -34,7 +34,7 @@ export default async function HomePage() {
         <div className="relative mx-auto w-full max-w-[var(--marketing-max-w)] px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
           <div className="mx-auto flex max-w-6xl flex-col items-center text-center">
             <span className="kx-reveal kx-reveal-1 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-[.18em] text-emerald-700 shadow-sm">
-              <Sparkles className="h-4 w-4" /> Studio numérique KORYXA
+              <Building2 className="h-4 w-4" /> Studio numérique KORYXA
             </span>
             <h1 className="kx-reveal kx-reveal-2 mt-7 max-w-6xl text-balance text-[clamp(3rem,5.4vw,6rem)] font-semibold leading-[.96] tracking-[-.05em] text-[var(--kx-text)]">
               Le web, l’IA et l’automatisation réunis pour faire avancer votre entreprise.

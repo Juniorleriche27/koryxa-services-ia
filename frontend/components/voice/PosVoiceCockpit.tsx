@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Mic,
   Square,
-  Sparkles,
   Loader2,
   CheckCircle2,
   AlertCircle,

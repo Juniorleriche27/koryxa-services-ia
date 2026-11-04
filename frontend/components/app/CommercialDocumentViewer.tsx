@@ -24,7 +24,7 @@ import {
   Check,
   Eye,
   PenTool,
-  Sparkles,
+  FileCheck2,
 } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { formatMoney, formatDate } from "./RegistersTable";
@@ -237,7 +237,7 @@ export function CommercialDocumentViewer({
             <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 print:hidden">
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                  <Sparkles size={13} className="text-emerald-600" />
+                  <FileCheck2 size={13} className="text-emerald-600" />
                   <span>SmartDoc Vivant</span>
                 </span>
                 <span className="text-slate-300">|</span>

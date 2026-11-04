@@ -14,7 +14,6 @@ import {
   TrendingUp,
   AlertCircle,
   Clock,
-  Sparkles,
 } from "lucide-react";
 
 interface WhatIfSimulatorProps {
@@ -334,7 +333,7 @@ export function WhatIfSimulator({
               gap: "8px",
             }}
           >
-            <Sparkles size={14} color="#a855f7" />
+            <TrendingUp size={14} color="#10b981" />
             <span>Recouvrement 80%</span>
           </button>
         </div>

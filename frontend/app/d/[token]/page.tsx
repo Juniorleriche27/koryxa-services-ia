@@ -16,7 +16,6 @@ import {
   Calendar,
   User,
   ArrowRight,
-  Sparkles,
   Lock,
   Receipt,
   Tag,
@@ -582,7 +581,7 @@ export default function SmartDocumentPublicPage({
               <div className="p-6 rounded-3xl bg-linear-to-r from-emerald-600 to-teal-700 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-5">
                 <div className="space-y-1 text-center sm:text-left">
                   <span className="text-[10px] font-black uppercase tracking-widest text-emerald-200 flex items-center justify-center sm:justify-start gap-1">
-                    <Sparkles size={12} />
+                    <CreditCard size={12} />
                     <span>Règlement Instantané Mobile Money & CB</span>
                   </span>
                   <h2 className="text-base sm:text-lg font-black tracking-tight">

@@ -12,7 +12,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Wallet,
-  Sparkles,
   RotateCcw,
 } from "lucide-react";
 import { PageHeader } from "../PageHeader";

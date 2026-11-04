@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { BrainCircuit, Building2, Compass, Landmark } from 'lucide-react';
+import { Building2, Compass, Landmark, MessageSquare } from 'lucide-react';
 import { CAURI_AI_OPEN_EVENT, createIntelligenceRequest } from './intelligence-context';
 import { resolveDepartment } from './departments';
 import { useDepartmentCatalogue } from './useDepartmentCatalogue';
@@ -27,7 +27,7 @@ export function MobileSiegeDock({ pathname, organizationId, hidden = false }: { 
       <Compass size={21} aria-hidden="true"/><span>Pilotage</span>
     </Link>}
     <button type="button" className={styles.action} disabled={!canUseAI} onClick={() => window.dispatchEvent(new CustomEvent(CAURI_AI_OPEN_EVENT, { detail: createIntelligenceRequest(context) }))}>
-      <BrainCircuit size={21} aria-hidden="true"/><span>CAURI IA</span>
+      <MessageSquare size={20} aria-hidden="true"/><span>CAURI IA</span>
     </button>
   </nav>;
 }

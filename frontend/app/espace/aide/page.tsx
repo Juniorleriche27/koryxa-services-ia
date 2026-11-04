@@ -13,7 +13,6 @@ import {
   Wallet,
   UserCheck,
   Radar,
-  Bot,
   ChevronDown,
   ChevronUp,
   CheckCircle2,

@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   Clock,
   ArrowRight,
-  Sparkles,
   Compass,
   Check,
   Globe,

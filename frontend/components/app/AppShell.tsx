@@ -43,7 +43,6 @@ import {
   Zap,
   MessageSquareText,
   Compass,
-  Sparkles,
   HelpCircle,
   Download,
   PhoneCall,
@@ -711,7 +710,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
                 </span>
-                <Sparkles size={16} className="text-emerald-300" aria-hidden="true" />
+                <MessageSquare size={16} className="text-emerald-200" aria-hidden="true" />
                 <span className="text-xs font-bold tracking-wide">Cora IA</span>
               </button>
               <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 rounded-xl bg-slate-900/95 text-white text-xs font-bold whitespace-nowrap shadow-xl backdrop-blur-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5 border border-white/10">
