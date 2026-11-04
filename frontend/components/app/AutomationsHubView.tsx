@@ -129,8 +129,9 @@ export function AutomationsHubView() {
                   </span>
                 </div>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
-                🟢 Actif
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" aria-hidden="true" />
+                <span>Actif</span>
               </span>
             </div>
 
@@ -199,8 +200,9 @@ export function AutomationsHubView() {
                   </span>
                 </div>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
-                🟢 Actif
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" aria-hidden="true" />
+                <span>Actif</span>
               </span>
             </div>
 

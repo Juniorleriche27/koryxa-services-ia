@@ -115,8 +115,21 @@ async def list_contact_leads(
 ) -> Any:
     """
     List all recent contact leads and demo requests stored in database.
-    Requires authenticated KORYXA management identity.
+    Requires authenticated KORYXA management identity (koryxa-admin source or system:admin permission).
     """
+    is_platform_admin = (
+        identity.source in ("koryxa-admin", "koryxa-gateway")
+        and identity.role in ("admin", "owner")
+    ) or (
+        "system:admin" in identity.permissions
+        or "contact:manage" in identity.permissions
+    )
+    if not is_platform_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès interdit : consultation réservée aux administrateurs de la plateforme KORYXA.",
+        )
+
     result = await db.execute(
         select(ContactLead).order_by(desc(ContactLead.created_at)).limit(limit)
     )

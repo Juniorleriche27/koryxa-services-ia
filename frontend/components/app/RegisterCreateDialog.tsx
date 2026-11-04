@@ -4,7 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { useState, useEffect } from "react";
 import { Dialog, FormError } from "./Dialog";
 import { serviceIaFetch } from "@/lib/service-ia/api";
-import { CircleHelp, RefreshCw, Calculator, Tag } from "lucide-react";
+import { CircleHelp, RefreshCw, Calculator, Tag, FileText, Receipt, CheckCircle2 } from "lucide-react";
 
 type Kind = "offers" | "sales" | "procedures";
 const today = () => new Date().toISOString().slice(0, 10);
@@ -321,23 +321,26 @@ export function RegisterCreateDialog({
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { id: "invoice", label: "🧾 Facture", desc: "Vente standard" },
-                    { id: "quote", label: "🏷️ Devis", desc: "Proposition" },
-                    { id: "proforma", label: "📄 Pro Forma", desc: "Devis pro" },
-                    { id: "receipt", label: "✅ Reçu / Caisse", desc: "Comptant direct" },
-                  ].map((t) => (
+                    { id: "invoice", label: "Facture", icon: Receipt, desc: "Vente standard" },
+                    { id: "quote", label: "Devis", icon: Tag, desc: "Proposition" },
+                    { id: "proforma", label: "Pro Forma", icon: FileText, desc: "Devis pro" },
+                    { id: "receipt", label: "Reçu / Caisse", icon: CheckCircle2, desc: "Comptant direct" },
+                  ].map((item) => (
                     <button
-                      key={t.id}
+                      key={item.id}
                       type="button"
-                      onClick={() => handleDocTypeChange(t.id)}
+                      onClick={() => handleDocTypeChange(item.id)}
                       className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
-                        docType === t.id
+                        docType === item.id
                           ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 font-extrabold shadow-xs"
                           : "border-border text-muted-foreground hover:border-slate-400"
                       }`}
                     >
-                      <div className="text-xs font-bold">{t.label}</div>
-                      <div className="text-[10px] text-muted-foreground">{t.desc}</div>
+                      <div className="flex items-center gap-1.5 text-xs font-bold">
+                        <item.icon size={13} className="shrink-0" aria-hidden="true" />
+                        <span>{item.label}</span>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">{item.desc}</div>
                     </button>
                   ))}
                 </div>

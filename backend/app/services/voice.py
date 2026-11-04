@@ -32,10 +32,10 @@ def clean_speech_duplicates(text: str) -> str:
     t = text.strip()
     # 1. Strip multi-word duplicated phrases e.g. "vente de 10 cartons vente de 10 cartons"
     for _ in range(3):
-        t = re.sub(r"\\b(.+?)\\s+\\1\\b", r"\\1", t, flags=re.IGNORECASE)
+        t = re.sub(r"\b(.+?)\s+\1\b", r"\1", t, flags=re.IGNORECASE)
     # 2. Strip single repeated words e.g. "koffi koffi"
-    t = re.sub(r"\\b(\\w+)\\s+\\1\\b", r"\\1", t, flags=re.IGNORECASE)
-    return re.sub(r"\\s+", " ", t).strip()
+    t = re.sub(r"\b(\w+)\s+\1\b", r"\1", t, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", t).strip()
 
 
 class VoiceService:

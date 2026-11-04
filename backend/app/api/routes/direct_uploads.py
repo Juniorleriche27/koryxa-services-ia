@@ -64,6 +64,28 @@ async def authorize_upload(
     )
 
 
+async def read_upload_file_safely(file: UploadFile, max_bytes: int) -> bytes:
+    """Reads incoming upload file in streaming chunks, terminating early if size limit is exceeded."""
+    from app.core.errors import ApplicationError
+
+    chunks: list[bytes] = []
+    total_size = 0
+    chunk_size = 1024 * 1024  # 1 Mo per block
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total_size += len(chunk)
+        if total_size > max_bytes:
+            raise ApplicationError(
+                "file_too_large",
+                f"Le fichier dépasse la limite autorisée de {max_bytes // (1024 * 1024)} Mo",
+                413,
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 @router.post("/import", response_model=ImportPreview, name="direct_import_upload")
 async def direct_import_upload(
     session: SessionDep,
@@ -71,11 +93,7 @@ async def direct_import_upload(
     file: UploadFile = File(...),
 ) -> ImportPreview:
     claims = DirectUploadTokenService().verify(token, "import")
-    content = await file.read(get_settings().max_upload_bytes + 1)
-    if len(content) > get_settings().max_upload_bytes:
-        from app.core.errors import ApplicationError
-
-        raise ApplicationError("file_too_large", "Le fichier dépasse la limite de 100 Mo", 413)
+    content = await read_upload_file_safely(file, get_settings().max_upload_bytes)
     job, headers, mapping = await ImportService().preview(
         session,
         claims["organization_id"],
@@ -105,6 +123,7 @@ async def direct_attachment_upload(
     file: UploadFile = File(...),
 ) -> AttachmentRead:
     claims = DirectUploadTokenService().verify(token, "attachment")
+    content = await read_upload_file_safely(file, get_settings().max_upload_bytes)
     attachment = await FileService().upload(
         session,
         claims["organization_id"],
@@ -113,6 +132,6 @@ async def direct_attachment_upload(
         claims["record_id"],
         file.filename or "document",
         file.content_type or "application/octet-stream",
-        await file.read(get_settings().max_upload_bytes + 1),
+        content,
     )
     return AttachmentRead.model_validate(attachment)

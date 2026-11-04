@@ -23,12 +23,12 @@ interface ContactModalProps {
 }
 
 export const BUSINESS_SECTORS = [
-  { id: "services", label: "💼 Services, Conseil & B2B" },
-  { id: "retail", label: "🛍️ Commerce, Boutique & Vente" },
-  { id: "hospitality", label: "🍽️ Restauration & Hôtellerie" },
-  { id: "crafts", label: "🛠️ Artisanat, Industrie & Atelier" },
-  { id: "association", label: "🤝 Association, ONG & Communauté" },
-  { id: "other", label: "🌐 Autre secteur d'activité" },
+  { id: "services", label: "Services, Conseil & B2B" },
+  { id: "retail", label: "Commerce, Boutique & Vente" },
+  { id: "hospitality", label: "Restauration & Hôtellerie" },
+  { id: "crafts", label: "Artisanat, Industrie & Atelier" },
+  { id: "association", label: "Association, ONG & Communauté" },
+  { id: "other", label: "Autre secteur d'activité" },
 ];
 
 export function ContactModal({ open, onClose, defaultSector = "services" }: ContactModalProps) {

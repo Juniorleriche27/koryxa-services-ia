@@ -246,8 +246,9 @@ export function ActivationChecklistWidget({
           </div>
 
           {progressPercent === 100 && (
-            <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-200 text-center text-xs font-bold border border-emerald-300">
-              🎉 Félicitations ! Votre espace {proConfig.shortName} est 100% configuré et prêt pour l&apos;activité quotidienne.
+            <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-200 text-center text-xs font-bold border border-emerald-300 flex items-center justify-center gap-2">
+              <CheckCircle2 size={16} className="text-emerald-700 dark:text-emerald-400 shrink-0" aria-hidden="true" />
+              <span>Félicitations ! Votre espace {proConfig.shortName} est 100% configuré et prêt pour l&apos;activité quotidienne.</span>
             </div>
           )}
         </div>

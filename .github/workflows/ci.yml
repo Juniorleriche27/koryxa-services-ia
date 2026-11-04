@@ -60,6 +60,11 @@ jobs:
           cd frontend
           npm ci
 
+      - name: Run Frontend Tests (Vitest)
+        run: |
+          cd frontend
+          npm run test
+
       - name: Build & Check Next.js Application
         run: |
           cd frontend

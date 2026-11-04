@@ -19,6 +19,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Tag,
+  Receipt,
 } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { formatMoney, formatDate } from "./RegistersTable";
@@ -54,30 +55,34 @@ export function CommercialDocumentViewer({
   const currency = doc.currency || "XOF";
   const docType = doc.document_type || (doc.payment_status === "paid" ? "receipt" : "invoice");
 
-  const docTitles: Record<string, { title: string; subtitle: string; color: string; badge: string }> = {
+  const docTitles: Record<string, { title: string; subtitle: string; color: string; badge: string; icon: typeof Tag }> = {
     quote: {
       title: "DEVIS COMMERCIAL",
       subtitle: "Proposition tarifaire & conditions de réalisation",
       color: "border-blue-500 bg-blue-50/50 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200",
-      badge: "🏷️ DEVIS",
+      badge: "DEVIS",
+      icon: Tag,
     },
     proforma: {
       title: "FACTURE PRO FORMA",
       subtitle: "Facture préalable avant validation définitive",
       color: "border-purple-500 bg-purple-50/50 text-purple-900 dark:bg-purple-950/40 dark:text-purple-200",
-      badge: "📄 PRO FORMA",
+      badge: "PRO FORMA",
+      icon: FileText,
     },
     invoice: {
       title: "FACTURE OFFICIELLE",
       subtitle: "Titre de créance et justificatif de vente",
       color: "border-emerald-500 bg-emerald-50/50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200",
-      badge: "🧾 FACTURE",
+      badge: "FACTURE",
+      icon: Receipt,
     },
     receipt: {
       title: "REÇU DE PAIEMENT / FACTURE ACQUITTÉE",
       subtitle: "Justificatif de règlement intégral et libératoire",
       color: "border-teal-500 bg-teal-50/50 text-teal-900 dark:bg-teal-950/40 dark:text-teal-200",
-      badge: "✅ ACQUITTÉE",
+      badge: "ACQUITTÉE",
+      icon: CheckCircle2,
     },
   };
 
@@ -131,8 +136,9 @@ export function CommercialDocumentViewer({
         {/* Top Floating Actions Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-border print:hidden">
           <div className="flex items-center gap-2">
-            <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${currentMeta.color}`}>
-              {currentMeta.badge}
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black border ${currentMeta.color}`}>
+              <currentMeta.icon size={12} className="shrink-0" aria-hidden="true" />
+              <span>{currentMeta.badge}</span>
             </span>
             <span className="text-xs font-bold text-muted-foreground">
               Réf : <strong className="text-foreground">{doc.reference}</strong>

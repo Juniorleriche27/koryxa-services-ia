@@ -24,6 +24,9 @@ import {
   Printer,
   QrCode,
   Zap,
+  Lightbulb,
+  Bug,
+  Heart,
 } from "lucide-react";
 import clsx from "clsx";
 import { getBusinessCategoryConfig, BusinessCategoryConfig } from "@/lib/service-ia/business-categories";
@@ -408,22 +411,23 @@ function HelpPageContent() {
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: "suggestion", label: "💡 Suggestion d'idée" },
-                    { id: "bug", label: "🛠️ Signalement de bug" },
-                    { id: "compliment", label: "❤️ Témoignage" },
+                    { id: "suggestion", label: "Suggestion d'idée", icon: Lightbulb },
+                    { id: "bug", label: "Signalement de bug", icon: Bug },
+                    { id: "compliment", label: "Témoignage", icon: Heart },
                   ].map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
                       onClick={() => setFeedbackType(cat.id as any)}
                       className={clsx(
-                        "p-2.5 rounded-xl border text-xs font-bold text-center transition cursor-pointer",
+                        "p-2.5 rounded-xl border text-xs font-bold text-center transition cursor-pointer flex items-center justify-center gap-1.5",
                         feedbackType === cat.id
-                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300"
+                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-extrabold"
                           : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300"
                       )}
                     >
-                      {cat.label}
+                      <cat.icon size={13} className="shrink-0" aria-hidden="true" />
+                      <span>{cat.label}</span>
                     </button>
                   ))}
                 </div>

@@ -50,7 +50,7 @@ import {
 
 import clsx from "clsx";
 import { UserButton, useUser } from "@clerk/nextjs";
-import { serviceIaFetch } from "@/lib/service-ia/api";
+import { serviceIaFetch, setActiveCacheTenant, clearPersistedCache } from "@/lib/service-ia/api";
 import { getBusinessCategoryConfig } from "@/lib/service-ia/business-categories";
 import BrandLogo from "@/components/layout/BrandLogo";
 import { OfflineSyncBanner } from "./OfflineSyncBanner";
@@ -125,6 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Never preserve an AI conversation or draft across two tenant identities.
   const activeOrganizationId = organization.id;
   useEffect(() => {
+    setActiveCacheTenant(activeOrganizationId || null);
     setCopilotOpen(false);
     setCopilotMinimized(false);
     setCopilotDraft('');
@@ -136,6 +137,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setLogoBroken(false);
   }, [organization.logo_updated_at]);
   const { user } = useUser();
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) {
+      clearPersistedCache();
+      setActiveCacheTenant(null);
+    }
+  }, [userId]);
   const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress || "Compte KORYXA";
   const initials = userName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 

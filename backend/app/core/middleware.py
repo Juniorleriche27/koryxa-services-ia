@@ -45,7 +45,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)  # type: ignore[arg-type]
         self.max_general = max_general_per_minute
         self.max_ai = max_ai_per_minute
-        self._requests: dict[str, list[float]] = defaultdict(list)
+        self._requests: dict[str, list[float]] = {}
 
     async def dispatch(
         self,
@@ -89,9 +89,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         limit = self.max_ai if is_ai_or_voice else self.max_general
         tracker_key = f"{rate_key}:ai" if is_ai_or_voice else f"{rate_key}:general"
 
-        # Nettoyage de la fenêtre glissante
-        timestamps = [ts for ts in self._requests[tracker_key] if ts > window_start]
-        self._requests[tracker_key] = timestamps
+        # Periodic sweep to evict expired IP keys and prevent slow memory leaks
+        if len(self._requests) > 300:
+            stale_keys = [k for k, v in self._requests.items() if not v or max(v) <= window_start]
+            for k in stale_keys:
+                self._requests.pop(k, None)
+
+        # Nettoyage de la fenêtre glissante et éviction mémoire immédiate
+        timestamps = [ts for ts in self._requests.get(tracker_key, []) if ts > window_start]
+        if timestamps:
+            self._requests[tracker_key] = timestamps
+        else:
+            self._requests.pop(tracker_key, None)
 
         if len(timestamps) >= limit:
             logger.warning("rate_limit_exceeded", tracker_key=tracker_key, limit=limit, path=path)
@@ -106,5 +115,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 headers={"Retry-After": "60"},
             )
 
+        if tracker_key not in self._requests:
+            self._requests[tracker_key] = []
         self._requests[tracker_key].append(now)
         return await call_next(request)
