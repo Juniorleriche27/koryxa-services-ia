@@ -34,6 +34,8 @@ import { OfferItem, formatMoney } from "./RegistersTable";
 import { usePosOfflineSync } from "@/lib/offline/usePosOfflineSync";
 import { posAudioHaptics } from "@/lib/offline/pos-audio-haptics";
 import { enqueueOfflineSale } from "@/lib/offline/pos-db";
+import { PosVoiceCockpit } from "@/components/voice/PosVoiceCockpit";
+import { Mic } from "lucide-react";
 
 interface ExpressPosModalProps {
   open: boolean;
@@ -77,6 +79,51 @@ export function ExpressPosModal({
   const [lastSaleResult, setLastSaleResult] = useState<any | null>(null);
   const [mobileTab, setMobileTab] = useState<"catalog" | "cart">("catalog");
   const [soundActive, setSoundActive] = useState(true);
+  const [voiceCockpitOpen, setVoiceCockpitOpen] = useState(false);
+
+  const handleVoiceApplyItems = (data: {
+    items: Array<{ name: string; quantity: number; unitPrice: number }>;
+    clientName?: string;
+    paymentMethod?: string;
+  }) => {
+    if (data.clientName) setClientName(data.clientName);
+    if (data.paymentMethod) setPaymentMethod(data.paymentMethod);
+
+    setCart((prev) => {
+      const nextCart = [...prev];
+      for (const item of data.items) {
+        const existingOffer = safeOffers.find(
+          (o) => o.name.toLowerCase() === item.name.toLowerCase()
+        );
+        const offer: OfferItem = existingOffer || {
+          id: `custom-voice-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: item.name,
+          price: String(item.unitPrice),
+          currency: currency,
+          category: "Dictée Vocale",
+          status: "active",
+          updated_at: new Date().toISOString(),
+        };
+
+        const idx = nextCart.findIndex(
+          (c) => c.offer.name.toLowerCase() === item.name.toLowerCase()
+        );
+        if (idx >= 0) {
+          nextCart[idx] = {
+            ...nextCart[idx],
+            quantity: nextCart[idx].quantity + item.quantity,
+          };
+        } else {
+          nextCart.push({
+            offer,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+          });
+        }
+      }
+      return nextCart;
+    });
+  };
 
   // Offline-first sync hook
   const { isOnline, pendingCount, isSyncing, syncNow } = usePosOfflineSync();
@@ -446,6 +493,17 @@ export function ExpressPosModal({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Voice Dictation Cockpit Button */}
+            <button
+              type="button"
+              onClick={() => setVoiceCockpitOpen(true)}
+              className="px-3 py-2 min-h-[44px] rounded-xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100 text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Dicter une vente vocalement"
+            >
+              <Mic size={15} className="text-red-600" />
+              <span className="hidden sm:inline">Dictée Vocale</span>
+            </button>
+
             {/* Audio Toggle Button */}
             <button
               type="button"
@@ -645,13 +703,23 @@ export function ExpressPosModal({
                       onChange={(e) => setCustomItemPrice(e.target.value)}
                       className="col-span-3 px-3 py-2 min-h-[44px] rounded-xl border border-border bg-card text-xs font-mono font-bold text-foreground focus:ring-1 focus:ring-primary focus:outline-hidden"
                     />
-                    <button
-                      type="submit"
-                      className="col-span-3 px-3 py-2 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition flex items-center justify-center gap-1 cursor-pointer shadow-xs"
-                    >
-                      <Plus size={14} />
-                      <span>Ajouter</span>
-                    </button>
+                    <div className="col-span-3 flex items-center gap-1.5">
+                      <button
+                        type="submit"
+                        className="flex-1 px-3 py-2 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition flex items-center justify-center gap-1 cursor-pointer shadow-xs"
+                      >
+                        <Plus size={14} />
+                        <span>Ajouter</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVoiceCockpitOpen(true)}
+                        className="p-2 min-h-[44px] min-w-[44px] rounded-xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100 grid place-items-center cursor-pointer transition shadow-xs"
+                        title="Dicter cet article au micro"
+                      >
+                        <Mic size={16} />
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>
@@ -991,6 +1059,14 @@ export function ExpressPosModal({
             </div>
           </div>
         )}
+
+        {/* Voice Cockpit Modal */}
+        <PosVoiceCockpit
+          open={voiceCockpitOpen}
+          onClose={() => setVoiceCockpitOpen(false)}
+          onApplyItems={handleVoiceApplyItems}
+          currency={currency}
+        />
       </div>
     </div>
   );

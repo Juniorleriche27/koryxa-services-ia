@@ -15,11 +15,19 @@ import {
   Layers,
   Volume2,
   Smartphone,
+  Clock,
 } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { formatMoney, formatLabel, formatDate } from "./RegistersTable";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { useI18n } from "@/lib/i18n";
+import { AudioWaveform } from "@/components/voice/AudioWaveform";
+import {
+  AudioRecordingEngine,
+  transcribeAudioFile,
+  speakConfirmation,
+} from "@/lib/voice/audio-recorder";
+import { posAudioHaptics } from "@/lib/offline/pos-audio-haptics";
 
 const CURRENCY_OPTIONS = [
   { code: "XOF", label: "XOF - Franc CFA (UEMOA)" },
@@ -70,6 +78,17 @@ interface VoiceParseResult {
     title: string;
     steps: Array<{ position: number; title: string }>;
   };
+  expense?: {
+    reference: string;
+    expense_date: string;
+    beneficiary: string;
+    category: string;
+    amount: number;
+    currency: string;
+    payment_method: string;
+    payment_status: string;
+    comment?: string;
+  };
   summary_message: string;
 }
 
@@ -93,6 +112,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
   const { t } = useI18n();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [decibelLevel, setDecibelLevel] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -102,112 +122,88 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
   const [successMessage, setSuccessMessage] = useState("");
   const [editingTranscript, setEditingTranscript] = useState(false);
 
-  const recognitionRef = useRef<any>(null);
+  const engineRef = useRef<AudioRecordingEngine | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const transcriptBufferRef = useRef<string>("");
-  const finalSegmentsRef = useRef<string[]>([]);
 
-  // Recording Timer
   useEffect(() => {
-    if (isRecording) {
-      setRecordingSeconds(0);
-      timerRef.current = setInterval(() => {
-        setRecordingSeconds((prev) => prev + 1);
-      }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+    if (!engineRef.current) {
+      engineRef.current = new AudioRecordingEngine();
     }
     return () => {
+      if (engineRef.current?.isRecording) {
+        engineRef.current.stopRecording().catch(() => {});
+      }
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRecording]);
+  }, []);
 
-  const startRecording = () => {
+  const startRecording = async () => {
     setError("");
     setSuccessMessage("");
     setParseResult(null);
     setSalesList([]);
     setTranscript("");
-    transcriptBufferRef.current = "";
-    finalSegmentsRef.current = [];
+    setRecordingSeconds(0);
 
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      setError("La dictée vocale en direct n'est pas supportée par ce navigateur. Vous pouvez saisir votre phrase manuellement.");
-      setEditingTranscript(true);
-      return;
-    }
+    posAudioHaptics.playTapSound();
+    posAudioHaptics.triggerHaptic("medium");
 
     try {
-      const recognition = new SpeechRecognition();
-      recognition.lang = "fr-FR";
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
+      if (!engineRef.current) {
+        engineRef.current = new AudioRecordingEngine();
+      }
 
-      recognition.onstart = () => {
-        setIsRecording(true);
-      };
+      await engineRef.current.startRecording(
+        (lvl) => setDecibelLevel(lvl),
+        (liveText) => setTranscript(cleanSpeechDuplicates(liveText))
+      );
 
-      recognition.onresult = (event: any) => {
-        let interimText = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const item = event.results[i];
-          if (item.isFinal) {
-            const finalChunk = item[0]?.transcript?.trim();
-            if (finalChunk && !finalSegmentsRef.current.includes(finalChunk)) {
-              finalSegmentsRef.current.push(finalChunk);
-            }
-          } else {
-            interimText += (item[0]?.transcript || "") + " ";
-          }
-        }
-
-        const combined = [...finalSegmentsRef.current, interimText.trim()]
-          .filter(Boolean)
-          .join(" ");
-        const cleaned = cleanSpeechDuplicates(combined);
-        transcriptBufferRef.current = cleaned;
-        setTranscript(cleaned);
-      };
-
-      recognition.onerror = (event: any) => {
-        console.warn("Speech error:", event.error);
-        if (event.error === "not-allowed") {
-          setError("Accès au micro refusé. Veuillez autoriser l'accès micro dans les paramètres du navigateur.");
-        } else if (event.error === "network") {
-          setError("Problème réseau lors de la reconnaissance vocale. Vous pouvez corriger ou saisir le texte.");
-        }
-        setIsRecording(false);
-      };
-
-      recognition.onend = () => {
-        setIsRecording(false);
-        const finalText = cleanSpeechDuplicates(transcriptBufferRef.current.trim());
-        if (finalText) {
-          setTranscript(finalText);
-          void parseTranscriptText(finalText);
-        }
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (err: any) {
-      console.error("Recognition start error:", err);
-      setError("Impossible de démarrer la capture audio. Vous pouvez saisir le texte.");
+      setIsRecording(true);
+      timerRef.current = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch {
+      setError("Accès microphone refusé ou non supporté. Vous pouvez saisir votre phrase manuellement.");
       setEditingTranscript(true);
+      posAudioHaptics.playWarningSound();
+      posAudioHaptics.triggerHaptic("warning");
     }
   };
 
-  const stopRecording = () => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch {}
-    }
+  const stopRecording = async () => {
+    if (!engineRef.current || !isRecording) return;
+    if (timerRef.current) clearInterval(timerRef.current);
     setIsRecording(false);
+    setAnalyzing(true);
+
+    posAudioHaptics.playTapSound();
+    posAudioHaptics.triggerHaptic("light");
+
+    try {
+      const result = await engineRef.current.stopRecording();
+      let textToParse = cleanSpeechDuplicates(result.transcript.trim());
+
+      // If speech recognition didn't capture text, send the recorded audio blob to Whisper AI
+      if (!textToParse && result.audioBlob && result.audioBlob.size > 1000) {
+        try {
+          textToParse = await transcribeAudioFile(result.audioBlob);
+        } catch {
+          // Whisper fallback error
+        }
+      }
+
+      if (textToParse) {
+        setTranscript(textToParse);
+        await parseTranscriptText(textToParse);
+      } else {
+        setError("Aucune parole détectée. Veuillez parler plus distinctement ou saisir le texte.");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erreur de capture audio.";
+      setError(msg);
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const parseTranscriptText = async (textToParse: string) => {
@@ -229,8 +225,12 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
       } else {
         setSalesList([]);
       }
+      posAudioHaptics.playCashDrawerSound();
+      posAudioHaptics.triggerHaptic("success");
     } catch (err: any) {
       setError(err.message || "Erreur lors de l'analyse sémantique du texte.");
+      posAudioHaptics.playWarningSound();
+      posAudioHaptics.triggerHaptic("warning");
     } finally {
       setAnalyzing(false);
     }
@@ -270,6 +270,8 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
         payload = parseResult.offer;
       } else if (parseResult.intent === "procedure" && parseResult.procedure) {
         payload = parseResult.procedure;
+      } else if (parseResult.intent === "expense" && parseResult.expense) {
+        payload = parseResult.expense;
       }
 
       await serviceIaFetch("/voice/confirm", {
@@ -281,8 +283,9 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
         }),
       });
 
-      const countMsg = salesList.length > 1 ? `${salesList.length} ventes enregistrées` : "Vente enregistrée";
-      setSuccessMessage(`${countMsg} avec succès dans votre Registre !`);
+      const countMsg = salesList.length > 1 ? `${salesList.length} ventes enregistrées` : "Enregistrement validé";
+      setSuccessMessage(`${countMsg} avec succès dans votre registre !`);
+      posAudioHaptics.playCashDrawerSound();
       onSuccess();
       setTimeout(() => {
         onClose();
@@ -306,12 +309,6 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
     setRecordingSeconds(0);
   };
 
-  const formatTimer = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
-  };
-
   return (
     <Dialog
       open={open}
@@ -320,44 +317,34 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
         onClose();
         resetModal();
       }}
-      title="Dictée Vocale Intelligente de Vente"
-      description="Dictez naturellement vos ventes sur smartphone ou PC. L'IA extrait automatiquement l'article, le client, la quantité, le prix unitaire et le paiement."
+      title="Cockpit Vocal & Dictée Intelligente"
+      description="Dictez naturellement vos ventes, dépenses, offres ou procédures. L'IA extrait automatiquement les articles, montants et clients."
     >
       <div className="space-y-4">
-        {/* Recording Visualizer Card */}
-        <div className="p-6 rounded-3xl bg-muted/40 border border-border flex flex-col items-center justify-center text-center relative overflow-hidden">
-          {isRecording && (
-            <div className="absolute inset-0 bg-rose-500/10 animate-pulse pointer-events-none" />
-          )}
+        {/* Live Audio Waveform Component */}
+        <AudioWaveform
+          isRecording={isRecording}
+          decibelLevel={decibelLevel}
+          recordingSeconds={recordingSeconds}
+        />
 
-          <div className="mb-3 relative">
-            {isRecording && (
-              <div className="absolute -inset-3 rounded-full bg-rose-500/20 animate-ping pointer-events-none" />
-            )}
-            <button
-              type="button"
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={analyzing || saving}
-              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl cursor-pointer ${
-                isRecording
-                  ? "bg-rose-600 hover:bg-rose-700 text-white animate-pulse ring-8 ring-rose-500/30"
-                  : "bg-primary hover:opacity-90 text-primary-foreground active:scale-95"
-              }`}
-            >
-              {isRecording ? <Square size={28} /> : <Mic size={32} />}
-            </button>
-          </div>
-
-          <div>
-            <span className="font-mono text-xl font-black text-foreground block">
-              {isRecording ? formatTimer(recordingSeconds) : "Microphone prêt"}
-            </span>
-            <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-              {isRecording
-                ? "Parlez naturellement… Cliquez sur le carré rouge pour analyser."
-                : "Appuyez sur le micro et dictez : « Vente de 10 cartons de biscuit à 2000f payé par Moov Money client Koffi »."}
-            </p>
-          </div>
+        {/* Central Record Button */}
+        <div className="flex flex-col items-center justify-center p-3">
+          <button
+            type="button"
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={analyzing || saving}
+            className={`w-20 h-20 min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center transition-all duration-300 shadow-xl cursor-pointer ${
+              isRecording
+                ? "bg-rose-600 hover:bg-rose-700 text-white animate-pulse ring-8 ring-rose-500/30"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95"
+            }`}
+          >
+            {isRecording ? <Square size={28} /> : <Mic size={32} />}
+          </button>
+          <span className="text-xs text-muted-foreground font-bold mt-2">
+            {isRecording ? "Appuyez pour terminer la dictée" : "Appuyez pour commencer à parler"}
+          </span>
         </div>
 
         {/* Live Audio / Transcribed Text Review */}
@@ -389,14 +376,14 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
               <button
                 type="button"
                 onClick={() => parseTranscriptText(transcript)}
-                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-xs hover:bg-primary/90 transition cursor-pointer"
+                className="px-4 py-2 min-h-[44px] rounded-xl bg-emerald-600 text-white text-xs font-black shadow-xs hover:bg-emerald-700 transition cursor-pointer"
               >
                 Analyser et extraire
               </button>
             </div>
           ) : (
             <p className="p-3.5 rounded-2xl bg-card border border-border text-sm text-foreground italic leading-relaxed min-h-[44px]">
-              {transcript ? `« ${transcript} »` : <span className="text-muted-foreground not-italic">Appuyez sur le micro pour dicter votre vente.</span>}
+              {transcript ? `« ${transcript} »` : <span className="text-muted-foreground not-italic">Appuyez sur le micro pour dicter votre opération.</span>}
             </p>
           )}
         </div>
@@ -432,7 +419,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
                 <strong className="text-xs uppercase font-bold tracking-wider text-foreground">
                   {parseResult.intent === "sale" && salesList.length > 1
                     ? `${salesList.length} Ventes détectées`
-                    : `Vente détectée`}
+                    : `Opération détectée (${parseResult.intent})`}
                 </strong>
               </div>
               <span className="text-[11px] text-muted-foreground font-mono">
@@ -444,7 +431,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
             {parseResult.intent === "sale" && salesList.length > 0 && (
               <div className="space-y-3">
                 {salesList.map((item, idx) => (
-                  <div key={idx} className="p-3.5 rounded-2xl bg-card border border-border/80 space-y-2.5 shadow-sm">
+                  <div key={idx} className="p-3.5 rounded-2xl bg-card border border-border/80 space-y-2.5 shadow-xs">
                     {salesList.length > 1 && (
                       <div className="flex items-center justify-between border-b border-border/60 pb-1.5">
                         <span className="text-xs font-bold text-primary flex items-center gap-1.5">
@@ -464,7 +451,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
                           type="text"
                           value={item.item_label}
                           onChange={(e) => handleUpdateSale(idx, "item_label", e.target.value)}
-                          className="w-full px-2.5 py-1.5 rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-hidden"
+                          className="w-full px-2.5 py-1.5 min-h-[44px] rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-hidden"
                         />
                       </div>
                       <div className="col-span-2 sm:col-span-1">
@@ -474,7 +461,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
                           value={item.client_name || ""}
                           placeholder="Client comptoir"
                           onChange={(e) => handleUpdateSale(idx, "client_name", e.target.value)}
-                          className="w-full px-2.5 py-1.5 rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-hidden"
+                          className="w-full px-2.5 py-1.5 min-h-[44px] rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-hidden"
                         />
                       </div>
                       <div>
@@ -485,7 +472,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
                           min="1"
                           value={item.quantity}
                           onChange={(e) => handleUpdateSale(idx, "quantity", e.target.value)}
-                          className="w-full px-2.5 py-1.5 rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-hidden"
+                          className="w-full px-2.5 py-1.5 min-h-[44px] rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-hidden"
                         />
                       </div>
                       <div>
@@ -496,7 +483,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
                           value={item.total_amount}
                           onChange={(e) => handleUpdateSale(idx, "total_amount", e.target.value)}
                           placeholder="Prix total"
-                          className="w-full px-2.5 py-1.5 rounded-xl border border-border bg-background text-xs font-bold font-mono text-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
+                          className="w-full px-2.5 py-1.5 min-h-[44px] rounded-xl border border-border bg-background text-xs font-bold font-mono text-primary focus:ring-1 focus:ring-primary focus:outline-hidden"
                         />
                       </div>
                       <div className="col-span-2 sm:col-span-1">
@@ -504,7 +491,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
                         <select
                           value={item.currency}
                           onChange={(e) => handleUpdateSale(idx, "currency", e.target.value)}
-                          className="w-full px-2.5 py-1.5 rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-hidden"
+                          className="w-full px-2.5 py-1.5 min-h-[44px] rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-hidden"
                         >
                           {CURRENCY_OPTIONS.map((c) => (
                             <option key={c.code} value={c.code}>
@@ -520,7 +507,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
                           value={item.payment_method || "Espèces"}
                           onChange={(e) => handleUpdateSale(idx, "payment_method", e.target.value)}
                           placeholder="Moov Money, Wave, etc."
-                          className="w-full px-2.5 py-1.5 rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-hidden"
+                          className="w-full px-2.5 py-1.5 min-h-[44px] rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-hidden"
                         />
                       </div>
                     </div>
@@ -532,24 +519,26 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
                         <button
                           type="button"
                           onClick={() => handleUpdateSale(idx, "payment_status", "unpaid")}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                          className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
                             item.payment_status === "unpaid"
                               ? "bg-rose-500/15 text-rose-600 border border-rose-500/30"
                               : "bg-muted text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          ⏳ Non Payé
+                          <Clock size={12} />
+                          <span>Non Payé</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => handleUpdateSale(idx, "payment_status", "paid")}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                          className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
                             item.payment_status === "paid"
                               ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
                               : "bg-muted text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          🟢 Payé
+                          <CheckCircle2 size={12} />
+                          <span>Payé</span>
                         </button>
                       </div>
                     </div>
@@ -569,7 +558,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
               onClose();
               resetModal();
             }}
-            className="px-4 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition cursor-pointer"
+            className="px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition cursor-pointer"
           >
             Fermer
           </button>
@@ -579,7 +568,7 @@ export function VoiceCaptureModal({ open, onClose, onSuccess }: VoiceCaptureModa
               type="button"
               onClick={confirmRecord}
               disabled={saving}
-              className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition flex items-center gap-2 shadow-md cursor-pointer"
+              className="px-5 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center gap-2 cursor-pointer"
             >
               <CheckCircle2 size={16} />
               <span>
