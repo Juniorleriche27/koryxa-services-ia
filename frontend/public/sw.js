@@ -1,9 +1,11 @@
-const CACHE_NAME = "koryxa-pwa-v2.2";
+const CACHE_NAME = "cauri-pos-pwa-v2.3";
 const STATIC_ASSETS = [
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png",
   "/icons/apple-touch-icon.png",
+  "/manifest.json",
   "/manifest.webmanifest",
+  "/espace/caisse",
 ];
 
 // Install: Cache core static assets and skip waiting immediately
