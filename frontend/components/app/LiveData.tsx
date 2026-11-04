@@ -27,6 +27,7 @@ import { DocumentsSection } from "./sections/DocumentsSection";
 import { SettingsSection, RadarRule } from "./sections/SettingsSection";
 import { ImportsSection } from "./sections/ImportsSection";
 import { SaleItem } from "./RegistersTable";
+import { CashflowSummaryData } from "@/lib/radar/cashflow-projection";
 
 // Common API page structure
 export type ApiPage<T> = { items: T[]; total: number; page: number; page_size: number };
@@ -113,15 +114,26 @@ export function LiveActions() {
   );
 }
 
-// 4. LiveRadar Component
+// 4. LiveRadar Component - Cockpit Prédictif & Alertes
 export function LiveRadar() {
-  const q = useApi<AlertItem[]>("/radar/alerts");
+  const alertsApi = useApi<AlertItem[]>("/radar/alerts");
+  const cashflowApi = useApi<CashflowSummaryData>("/registers/cashflow-summary");
+  const salesApi = useApi<ApiPage<SaleItem>>("/registers/sales?payment_status=unpaid&page_size=50");
+  const orgApi = useApi<OrgData>("/organizations/current");
+
+  const reloadAll = async () => {
+    await Promise.all([alertsApi.reload(), cashflowApi.reload(), salesApi.reload()]);
+  };
+
   return (
     <RadarSection
-      data={q.data}
-      loading={q.loading}
-      error={q.error}
-      onReload={q.reload}
+      data={alertsApi.data}
+      loading={alertsApi.loading || cashflowApi.loading}
+      error={alertsApi.error || cashflowApi.error}
+      onReload={reloadAll}
+      cashflowData={cashflowApi.data}
+      unpaidSales={salesApi.data?.items ?? []}
+      organizationName={orgApi.data?.name}
     />
   );
 }
