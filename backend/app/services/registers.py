@@ -1,11 +1,14 @@
-from datetime import date
+from datetime import UTC, date, datetime
+from uuid import uuid4
 from decimal import Decimal
 
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApplicationError
+from app.models.organization import Organization
 from app.models.registers import (
+    RecordStatus,
     DocumentType,
     Expense,
     ExpenseDocumentType,
@@ -18,6 +21,10 @@ from app.models.registers import (
     Supplier,
 )
 from app.schemas.registers import (
+    PublicDocumentPayRequest,
+    PublicDocumentPaymentResponse,
+    PublicDocumentRead,
+    PublicDocumentSignRequest,
     ConvertDocumentRequest,
     ExpenseCreate,
     ExpenseUpdate,
@@ -774,3 +781,169 @@ class RegisterService:
             "receivables_not_due": sm["receivables_not_due"],
             "recent_expenses": list(snap.expenses[:10]),
         }
+
+    # ------------------ SMART DOCUMENTS VIVANTS ------------------
+    async def get_public_document(
+        self, s: AsyncSession, token: str, increment_view: bool = True
+    ) -> PublicDocumentRead:
+        stmt = select(Sale).where(Sale.public_token == token, Sale.is_archived.is_(False))
+        sale = await s.scalar(stmt)
+        if not sale:
+            raise ApplicationError("document_not_found", "Ce document est introuvable ou le lien a expiré.", 404)
+
+        org = await s.get(Organization, sale.organization_id)
+        org_name = org.name if org else "Entreprise KORYXA"
+
+        if increment_view:
+            sale.view_count = (sale.view_count or 0) + 1
+            sale.last_viewed_at = datetime.now(UTC)
+            await s.commit()
+            await s.refresh(sale)
+
+        total = sale.total_amount if sale.total_amount is not None else Decimal("0.00")
+        paid = sale.paid_amount if sale.paid_amount is not None else Decimal("0.00")
+        remaining = max(Decimal("0.00"), total - paid)
+
+        return PublicDocumentRead(
+            token=sale.public_token,
+            id=sale.id,
+            reference=sale.reference,
+            document_type=sale.document_type,
+            sale_date=sale.sale_date,
+            due_date=sale.due_date,
+            item_label=sale.item_label,
+            quantity=sale.quantity,
+            unit_price=sale.unit_price,
+            discount=sale.discount,
+            total_amount=total,
+            paid_amount=paid,
+            remaining_balance=remaining,
+            currency=sale.currency or "XOF",
+            payment_status=sale.payment_status,
+            payment_method=sale.payment_method,
+            payment_history=list(sale.payment_history or []),
+            comment=sale.comment,
+            organization_id=sale.organization_id,
+            organization_name=org_name,
+            organization_commercial_name=org_name,
+            organization_phone=None,
+            organization_email=None,
+            organization_address=org.country if org else None,
+            organization_logo_url=None,
+            client_name=sale.client_name,
+            client_phone=sale.client_phone,
+            client_email=sale.client_email,
+            signed_at=sale.signed_at,
+            signed_by_name=sale.signed_by_name,
+            signature_data=sale.signature_data,
+            view_count=sale.view_count or 0,
+            last_viewed_at=sale.last_viewed_at,
+        )
+
+    async def sign_public_document(
+        self, s: AsyncSession, token: str, data: PublicDocumentSignRequest
+    ) -> PublicDocumentRead:
+        stmt = select(Sale).where(Sale.public_token == token, Sale.is_archived.is_(False))
+        sale = await s.scalar(stmt)
+        if not sale:
+            raise ApplicationError("document_not_found", "Document introuvable.", 404)
+
+        now = datetime.now(UTC)
+        sale.signed_at = now
+        sale.signed_by_name = data.signer_name.strip()
+        sale.signature_data = data.signature_data
+
+        if sale.document_type == DocumentType.QUOTE:
+            sale.status = RecordStatus.VALIDATED
+
+        await self._history(
+            s,
+            sale.organization_id,
+            "sale",
+            sale.id,
+            "client_signed",
+            "client:public",
+            {"signed_by": data.signer_name, "signed_at": now.isoformat()},
+        )
+        await s.commit()
+        await s.refresh(sale)
+        return await self.get_public_document(s, token, increment_view=False)
+
+    async def pay_public_document(
+        self, s: AsyncSession, token: str, data: PublicDocumentPayRequest
+    ) -> tuple[PublicDocumentRead, str]:
+        stmt = select(Sale).where(Sale.public_token == token, Sale.is_archived.is_(False))
+        sale = await s.scalar(stmt)
+        if not sale:
+            raise ApplicationError("document_not_found", "Document introuvable.", 404)
+
+        total = sale.total_amount if sale.total_amount is not None else Decimal("0.00")
+        current_paid = sale.paid_amount if sale.paid_amount is not None else Decimal("0.00")
+        remaining = max(Decimal("0.00"), total - current_paid)
+
+        if remaining <= Decimal("0.00"):
+            raise ApplicationError("already_paid", "Ce document est déjà intégralement réglé.", 422)
+
+        amount = min(data.amount, remaining)
+        new_paid = current_paid + amount
+        sale.paid_amount = new_paid
+
+        if new_paid >= total and total > Decimal("0.00"):
+            sale.payment_status = PaymentStatus.PAID
+            if sale.document_type in (DocumentType.QUOTE, DocumentType.PROFORMA, DocumentType.INVOICE):
+                sale.document_type = DocumentType.RECEIPT
+        else:
+            sale.payment_status = PaymentStatus.PARTIAL
+
+        provider_label = data.payment_method.replace("_", " ").upper()
+        sale.payment_method = f"Mobile Money ({provider_label})"
+
+        tx_id = f"PAY-{uuid4().hex[:10].upper()}"
+        history_entry = {
+            "date": date.today().isoformat(),
+            "amount": str(amount),
+            "method": provider_label,
+            "transaction_id": tx_id,
+            "payer_name": data.payer_name or sale.client_name or "Client",
+            "client_phone": data.client_phone or sale.client_phone,
+            "comment": f"Paiement Mobile Money 1-Clic via {provider_label}",
+            "source": "online_smartdoc",
+            "resulting_balance": str(max(Decimal("0.00"), total - new_paid)),
+        }
+        history = list(sale.payment_history or [])
+        history.append(history_entry)
+        sale.payment_history = history
+
+        await self._history(
+            s,
+            sale.organization_id,
+            "sale",
+            sale.id,
+            "online_payment_received",
+            "client:public",
+            dict(history_entry),
+        )
+
+        try:
+            await add_financial_audit(
+                session=s,
+                organization_id=sale.organization_id,
+                event_type="smartdoc_payment",
+                actor_id=data.payer_name or "client:public",
+                entity_type="sale",
+                entity_id=sale.id,
+                payload={
+                    "transaction_id": tx_id,
+                    "amount": str(amount),
+                    "provider": data.payment_method,
+                    "new_balance": str(max(Decimal("0.00"), total - new_paid)),
+                    "total_amount": str(total),
+                },
+            )
+        except Exception:
+            pass
+
+        await s.commit()
+        await s.refresh(sale)
+        doc = await self.get_public_document(s, token, increment_view=False)
+        return doc, tx_id

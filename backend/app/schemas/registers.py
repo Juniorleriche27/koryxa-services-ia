@@ -113,6 +113,12 @@ class SaleBase(BaseModel):
     comment: str | None = None
     status: RecordStatus = RecordStatus.DRAFT
     source: RecordSource = RecordSource.MANUAL
+    public_token: str | None = None
+    signed_at: datetime | None = None
+    signed_by_name: str | None = None
+    signature_data: str | None = None
+    view_count: int = 0
+    last_viewed_at: datetime | None = None
 
     @field_validator("client_phone")
     @classmethod
@@ -218,6 +224,62 @@ class SaleRead(SaleBase):
     updated_by_user_id: str
     created_at: datetime
     updated_at: datetime
+
+
+class PublicDocumentRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    token: str
+    id: str
+    reference: str
+    document_type: DocumentType
+    sale_date: date
+    due_date: date | None = None
+    item_label: str
+    quantity: Decimal
+    unit_price: Decimal
+    discount: Decimal
+    total_amount: Decimal
+    paid_amount: Decimal
+    remaining_balance: Decimal
+    currency: str
+    payment_status: PaymentStatus
+    payment_method: str | None = None
+    payment_history: list[dict] = Field(default_factory=list)
+    comment: str | None = None
+    organization_id: str
+    organization_name: str
+    organization_commercial_name: str | None = None
+    organization_phone: str | None = None
+    organization_email: str | None = None
+    organization_address: str | None = None
+    organization_logo_url: str | None = None
+    client_name: str | None = None
+    client_phone: str | None = None
+    client_email: str | None = None
+    signed_at: datetime | None = None
+    signed_by_name: str | None = None
+    signature_data: str | None = None
+    view_count: int = 0
+    last_viewed_at: datetime | None = None
+
+
+class PublicDocumentSignRequest(BaseModel):
+    signer_name: str = Field(min_length=2, max_length=180, description="Nom et prénom du signataire")
+    signature_data: str = Field(min_length=10, description="Données graphiques de signature")
+
+
+class PublicDocumentPayRequest(BaseModel):
+    amount: Decimal = Field(gt=0, description="Montant à régler en ligne")
+    payment_method: str = Field(pattern="^(wave|orange_money|mtn_momo|moov_money|card)$")
+    client_phone: str | None = None
+    payer_name: str | None = None
+
+
+class PublicDocumentPaymentResponse(BaseModel):
+    success: bool
+    transaction_id: str
+    document: PublicDocumentRead
+    message: str
 
 
 class StepInput(BaseModel):

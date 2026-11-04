@@ -69,6 +69,12 @@ export interface SaleItem {
   comment?: string | null;
   status: string;
   source: string;
+  public_token?: string | null;
+  signed_at?: string | null;
+  signed_by_name?: string | null;
+  signature_data?: string | null;
+  view_count?: number;
+  last_viewed_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }

@@ -20,6 +20,11 @@ import {
   ShieldCheck,
   Tag,
   Receipt,
+  Copy,
+  Check,
+  Eye,
+  PenTool,
+  Sparkles,
 } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { formatMoney, formatDate } from "./RegistersTable";
@@ -92,6 +97,21 @@ export function CommercialDocumentViewer({
     window.print();
   };
 
+  const smartDocUrl =
+    typeof window !== "undefined" && doc.public_token
+      ? `${window.location.origin}/d/${doc.public_token}`
+      : doc.public_token
+      ? `/d/${doc.public_token}`
+      : null;
+
+  const handleCopySmartDocLink = () => {
+    if (smartDocUrl && typeof window !== "undefined") {
+      navigator.clipboard.writeText(smartDocUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
+
   const handleShareWhatsApp = () => {
     const cleanPhone = (doc.client_phone || "").replace(/[^0-9]/g, "");
     const lines = [
@@ -114,6 +134,10 @@ export function CommercialDocumentViewer({
       }
     } else {
       lines.push(`✅ *Statut : Document entièrement réglé et acquitté.*`);
+    }
+
+    if (smartDocUrl) {
+      lines.push(`\n👉 *Consulter, signer et régler en 1 clic :*\n${smartDocUrl}`);
     }
 
     lines.push(
@@ -170,6 +194,19 @@ export function CommercialDocumentViewer({
               </button>
             )}
 
+            {/* SmartDoc Link Copy & Open */}
+            {smartDocUrl && (
+              <button
+                type="button"
+                onClick={handleCopySmartDocLink}
+                className="px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-muted text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 transition cursor-pointer"
+                title="Copier le lien public SmartDoc"
+              >
+                {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                <span>{copied ? "Lien copié !" : "Lien SmartDoc"}</span>
+              </button>
+            )}
+
             {/* WhatsApp Share */}
             <button
               type="button"
@@ -195,6 +232,45 @@ export function CommercialDocumentViewer({
 
         {/* Printable Document Paper */}
         <div className="bg-white text-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6 text-sm font-sans">
+          {/* SmartDoc Live Telemetry & Tracking Banner */}
+          {smartDocUrl && (
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 print:hidden">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1.5 font-bold text-slate-700">
+                  <Sparkles size={13} className="text-emerald-600" />
+                  <span>SmartDoc Vivant</span>
+                </span>
+                <span className="text-slate-300">|</span>
+                <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                  <Eye size={12} className="text-slate-400" />
+                  <span>
+                    {(doc.view_count || 0) > 0
+                      ? `Consulté ${doc.view_count} fois par le client`
+                      : "Pas encore consulté en ligne"}
+                  </span>
+                </span>
+                {doc.signed_at && (
+                  <>
+                    <span className="text-slate-300">|</span>
+                    <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                      <PenTool size={12} />
+                      <span>Signé par {doc.signed_by_name || "Client"}</span>
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <a
+                href={smartDocUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline"
+              >
+                <span>Voir page client</span>
+                <ExternalLink size={11} />
+              </a>
+            </div>
+          )}
           {/* Header Block */}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b border-slate-200">
             <div>

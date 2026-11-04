@@ -19,6 +19,7 @@ from app.api.routes import (
     members,
     organizations,
     radar,
+    public_documents,
     registers,
     temporal_analytics,
     voice,
@@ -55,3 +56,4 @@ api_router.include_router(radar.router, prefix="/radar", tags=["radar"])
 
 api_router.include_router(workflow.router, prefix="/workflow", tags=["workflow"])
 api_router.include_router(billing.router, prefix="/billing", tags=["billing"])
+api_router.include_router(public_documents.router, prefix="/public/documents", tags=["public-documents"])

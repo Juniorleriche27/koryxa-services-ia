@@ -12,6 +12,15 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || request.nextUrl.hostname || "";
   const pathname = url.pathname;
 
+  // Bypass authentication for public Smart Documents and public API routes
+  if (
+    pathname.startsWith("/d/") ||
+    pathname.startsWith("/doc/") ||
+    pathname.startsWith("/api/public/")
+  ) {
+    return NextResponse.next();
+  }
+
   const isEntrepriseDomain =
     host.startsWith("entreprise.") ||
     host.includes("entreprise.koryxa.fr") ||

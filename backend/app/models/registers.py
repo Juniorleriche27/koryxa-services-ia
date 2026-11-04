@@ -146,6 +146,14 @@ class Sale(Base):
     source: Mapped[RecordSource] = mapped_column(
         str_enum_type(RecordSource), default=RecordSource.MANUAL
     )
+    public_token: Mapped[str] = mapped_column(
+        String(64), unique=True, index=True, default=lambda: f"doc_{uuid4().hex}"
+    )
+    signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    signed_by_name: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    signature_data: Mapped[str | None] = mapped_column(Text, nullable=True)
+    view_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_by_user_id: Mapped[str] = mapped_column(String(128))
     updated_by_user_id: Mapped[str] = mapped_column(String(128))
