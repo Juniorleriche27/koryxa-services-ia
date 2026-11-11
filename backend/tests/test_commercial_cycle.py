@@ -112,3 +112,63 @@ def test_commercial_cycle_full_flow() -> None:
         assert Decimal(str(final_sale["paid_amount"])) == Decimal("500000.00")
         assert final_sale["document_type"] == "receipt"
         assert len(final_sale["payment_history"]) == 2
+
+
+def test_quote_does_not_deduct_stock_until_converted() -> None:
+    with TestClient(app) as client:
+        auth = {"X-Tenant-ID": "tenant-quote-stock-test", "X-User-ID": "user-quote-stock"}
+        res_org = client.post(
+            "/api/v1/organizations",
+            headers=auth,
+            json={"name": "Alutrade Stock Quote Test", "slug": "alutrade-quote-stock"},
+        )
+        assert res_org.status_code == 201
+
+        res_offer = client.post(
+            "/api/v1/registers/offers",
+            headers=auth,
+            json={
+                "name": "FDT Small - T [Noir]",
+                "price": 19000,
+                "currency": "XOF",
+                "track_stock": True,
+                "stock_quantity": 20,
+                "min_stock_alert": 3,
+                "status": "validated",
+            },
+        )
+        assert res_offer.status_code == 201
+        offer = res_offer.json()
+
+        # Creating a QUOTE must NOT deduct physical stock
+        res_quote = client.post(
+            "/api/v1/registers/sales",
+            headers=auth,
+            json={
+                "document_type": "quote",
+                "sale_date": str(date.today()),
+                "client_name": "Atelier Test",
+                "offer_id": offer["id"],
+                "item_label": "FDT Small - T [Noir]",
+                "quantity": 5,
+                "unit_price": 19000,
+                "total_amount": 95000,
+                "paid_amount": 0,
+                "payment_status": "unpaid",
+            },
+        )
+        assert res_quote.status_code == 201
+        quote = res_quote.json()
+
+        offer_after_quote = client.get(f"/api/v1/registers/offers/{offer['id']}", headers=auth).json()
+        assert Decimal(str(offer_after_quote["stock_quantity"])) == Decimal("20.00")
+
+        # Converting Quote -> Invoice MUST deduct the 5 units once
+        res_conv = client.post(
+            f"/api/v1/registers/sales/{quote['id']}/convert",
+            headers=auth,
+            json={"target_type": "invoice"},
+        )
+        assert res_conv.status_code == 200
+        offer_after_convert = client.get(f"/api/v1/registers/offers/{offer['id']}", headers=auth).json()
+        assert Decimal(str(offer_after_convert["stock_quantity"])) == Decimal("15.00")

@@ -225,8 +225,12 @@ class RegisterService:
         s.add(obj)
         await s.flush()
 
-        # Automatic Stock Decrement if product tracks inventory
-        if target_offer and target_offer.track_stock:
+        # Automatic Stock Decrement only on actual sales (never for quotes or proformas)
+        if (
+            target_offer
+            and target_offer.track_stock
+            and doc_type not in (DocumentType.QUOTE, DocumentType.PROFORMA)
+        ):
             current_qty = (
                 target_offer.stock_quantity
                 if target_offer.stock_quantity is not None
@@ -302,6 +306,25 @@ class RegisterService:
         elif before_type != DocumentType.RECEIPT and data.target_type == DocumentType.RECEIPT:
             if obj.paid_amount < obj.total_amount or obj.payment_status != PaymentStatus.PAID:
                 raise ApplicationError("receipt_requires_payment", "Une facture ne peut être acquittée sans règlement enregistré", 422)
+
+        # Deduct physical stock when converting a non-committed Quote/Proforma into Invoice/Receipt
+        if (
+            before_type in (DocumentType.QUOTE, DocumentType.PROFORMA)
+            and data.target_type in (DocumentType.INVOICE, DocumentType.RECEIPT)
+            and obj.offer_id
+        ):
+            target_offer = await s.scalar(
+                select(Offer).where(Offer.id == obj.offer_id, Offer.organization_id == org)
+            )
+            if target_offer and target_offer.track_stock:
+                current_qty = (
+                    target_offer.stock_quantity
+                    if target_offer.stock_quantity is not None
+                    else Decimal("0.00")
+                )
+                sold_qty = obj.quantity if obj.quantity is not None else Decimal("1.00")
+                target_offer.stock_quantity = max(Decimal("0.00"), current_qty - sold_qty)
+                target_offer.updated_by_user_id = user
 
         obj.updated_by_user_id = user
         await self._history(
