@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { ActionsSection } from "@/components/app/sections/ActionsSection";
 import { RadarSection } from "@/components/app/sections/RadarSection";
@@ -24,7 +24,7 @@ describe("Modular App Sections", () => {
     expect(screen.getByText("Aucune action")).toBeTruthy();
   });
 
-  it("keeps all four Action statuses in a single full-width Kanban", () => {
+  it("displays prioritized action list by default and switches to 4-column board", () => {
     const items = [
       { id: "a1", title: "Relancer le fournisseur", status: "todo", priority: "normal" },
       { id: "a2", title: "Contrôler le paiement", status: "in_progress", priority: "high" },
@@ -34,10 +34,13 @@ describe("Modular App Sections", () => {
     );
     expect(screen.getByText("Relancer le fournisseur")).toBeTruthy();
     expect(screen.getByText("Contrôler le paiement")).toBeTruthy();
+    expect(container.querySelectorAll('.app-task').length).toBe(2);
+    expect(screen.getByRole("button", { name: /Nouvelle Tâche/i })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Tableau/i }));
     expect(container.querySelector('.cauri-actions-four-columns')?.children.length).toBe(4);
     expect(container.querySelectorAll('.cauri-actions-four-columns [data-empty="true"]').length).toBe(2);
     expect(container.querySelectorAll('.cauri-actions-four-columns .app-task').length).toBe(2);
-    expect(screen.getByRole("button", { name: /Nouvelle Tâche/i })).toBeTruthy();
   });
 
   it("renders RadarSection with alert list", () => {

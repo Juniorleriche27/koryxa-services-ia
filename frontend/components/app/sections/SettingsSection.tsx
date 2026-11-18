@@ -2,13 +2,12 @@
 import { useI18n } from "@/lib/i18n";
 
 import React from "react";
-import { PageHeader } from "../PageHeader";
 import { EmptyState } from "../Ui";
 import { serviceIaFetch } from "@/lib/service-ia/api";
 import { BusinessCategorySettings } from "../BusinessCategorySettings";
 import { AutomationsHubView } from "../AutomationsHubView";
 import Link from "next/link";
-import { ShieldCheck, AlertTriangle, CreditCard, ArrowRight, CircleHelp } from "lucide-react";
+import { ShieldCheck, AlertTriangle, CreditCard, ArrowRight } from "lucide-react";
 
 export type RadarRule = {
   id: string;
@@ -63,35 +62,28 @@ export function SettingsSection({
   };
 
   return (
-    <>
-      <PageHeader
-        eyebrow="DIRECTION / PARAMÈTRES"
-        title="Réglages et contrôles"
-        description="Configurez les règles de surveillance et les options de votre espace."
-      />
-      {/* Subscription access remains available below the primary page heading. */}
-      <div className="cauri-direction-subscription-banner mb-6 rounded-2xl p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <div className="cauri-direction-subscription-label inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold">
-              <CircleHelp size={14} />
-              DIRECTION / ABONNEMENT
-            </div>
-            <h3 className="cauri-direction-subscription-title text-lg font-bold">Offre Spéciale Lancement · Pack 3 Mois</h3>
-            <p className="cauri-direction-subscription-copy text-xs max-w-xl">
-              Passez à la formule Starter (19 900 F) ou Business Multi-Vendeurs (39 900 F pour 3 mois) et réglez en 1 clic par <strong>Wave, Orange Money ou MTN</strong>.
-            </p>
-          </div>
-          <Link
-            href="/espace/parametres/facturation"
-            className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400 px-4 py-2.5 text-xs font-extrabold text-slate-950 shadow-sm transition hover:bg-emerald-300 active:scale-95 cursor-pointer shrink-0"
-          >
-            <CreditCard size={14} />
-            <span>Consulter les formules</span>
-            <ArrowRight size={14} />
-          </Link>
+    <div className="flex flex-col gap-5">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between pb-4 border-b border-emerald-950/10">
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700">
+            Direction · Paramètres
+          </span>
+          <h1 className="mt-1 font-[family-name:var(--font-playfair)] text-2xl sm:text-3xl font-semibold tracking-tight text-slate-950">
+            Réglages et contrôles
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Configurez les règles de surveillance et les options de votre organisation.
+          </p>
         </div>
-      </div>
+        <Link
+          href="/espace/parametres/facturation"
+          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2 text-xs font-bold text-emerald-800 shadow-2xs transition hover:bg-emerald-50 shrink-0"
+        >
+          <CreditCard size={14} />
+          <span>Gérer l&apos;abonnement</span>
+          <ArrowRight size={14} />
+        </Link>
+      </header>
 
       <BusinessCategorySettings />
       <AutomationsHubView />
@@ -139,6 +131,6 @@ export function SettingsSection({
           </div>
         </section>
       )}
-    </>
+    </div>
   );
 }
