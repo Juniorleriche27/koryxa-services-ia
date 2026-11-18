@@ -32,7 +32,15 @@ export function DepartmentShell({ pathname, organizationName, organizationId, ch
           <div className={styles.mastheadTop}>
             <div className="flex items-center gap-3">
               <Link href="/" title="Retourner à l'accueil du Grand Siège" className="inline-flex items-center">
-                <Image src="/image(20261021-163619).png" alt="CAURI" width={2048} height={682} unoptimized priority className="h-7 w-auto object-contain" />
+                <Image
+                  src="/image(20261021-163619).png"
+                  alt="CAURI"
+                  width={2048}
+                  height={682}
+                  unoptimized
+                  priority
+                  style={{ width: "95px", height: "auto", maxHeight: "28px", objectFit: "contain" }}
+                />
               </Link>
               <Link className={styles.back} href="/"><ArrowLeft size={14} aria-hidden="true" /> Grand Siège</Link>
             </div>
