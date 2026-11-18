@@ -13,7 +13,7 @@ export default function RouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
 
-  if (pathname === "/espace" || pathname.startsWith("/espace/")) {
+  if (isHome || pathname === "/espace" || pathname.startsWith("/espace/")) {
     return children;
   }
 
