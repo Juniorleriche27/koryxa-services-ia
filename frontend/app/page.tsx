@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   Briefcase,
   ShoppingBag,
@@ -79,18 +80,19 @@ export default function HomePage() {
       {/* 1. Header Sobre — Style Grand Siège */}
       <header className="relative z-10 mx-auto flex w-full max-w-[1140px] items-center justify-between gap-3 rounded-2xl border border-emerald-900/10 bg-white/95 px-4 py-2 shadow-sm backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-800 text-white font-bold tracking-tight shadow-sm text-sm">
-            CA
-          </div>
-          <div>
-            <span className="flex items-center gap-2">
-              <strong className="text-base font-bold tracking-tight text-slate-950">CAURI</strong>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                Grand Siège
-              </span>
-            </span>
-          </div>
+          <Image
+            src="/image(20261021-163619).png"
+            alt="CAURI"
+            width={2048}
+            height={682}
+            priority
+            unoptimized
+            className="h-8 w-auto max-h-8 object-contain"
+          />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+            Grand Siège
+          </span>
         </div>
 
         <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-slate-600">
