@@ -1,5 +1,5 @@
-import { GrandHall } from "@/components/grand-siege/GrandHall";
+import { redirect } from "next/navigation";
 
 export default function EspaceHomePage() {
-  return <GrandHall />;
+  redirect("/");
 }

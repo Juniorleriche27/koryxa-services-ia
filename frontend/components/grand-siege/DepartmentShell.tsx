@@ -29,7 +29,7 @@ export function DepartmentShell({ pathname, organizationName, organizationId, ch
       <div className={`${styles.frame} ${isCompactDirection ? styles.actionsWorkspace : ''}`} data-cauri-department={department.id}>
         <header className={styles.masthead}>
           <div className={styles.mastheadTop}>
-            <Link className={styles.back} href="/espace"><ArrowLeft size={16} aria-hidden="true" /> Grand Hall</Link>
+            <Link className={styles.back} href="/"><ArrowLeft size={16} aria-hidden="true" /> Grand Siège</Link>
             <span className={styles.identity}><Building2 size={14} aria-hidden="true" /> CAURI{organizationName ? ` · ${organizationName}` : ""}</span>
           </div>
           {!isCompactDirection && <div className={styles.departmentBanner}>
@@ -56,7 +56,7 @@ export function DepartmentShell({ pathname, organizationName, organizationId, ch
           </div> : null}
         </header>
         <div className={styles.content} id="department-content">
-          {!isCompactDirection && <div className={styles.currentSection}><div className={styles.currentCopy}><span>RUBRIQUE ACTIVE</span><strong>{section.label}</strong><small>{department.name}</small></div><Link href="/espace" title="Retourner au Grand Hall">Tous les départements <ArrowUpRight size={15} aria-hidden="true" /></Link></div>}
+          {!isCompactDirection && <div className={styles.currentSection}><div className={styles.currentCopy}><span>RUBRIQUE ACTIVE</span><strong>{section.label}</strong><small>{department.name}</small></div><Link href="/" title="Retourner au Grand Siège">Tous les départements <ArrowUpRight size={15} aria-hidden="true" /></Link></div>}
           {allowed ? <>{!isCompactDirection && <IntelligenceEntry context={department.id} compact />}{children}</> : <div className={styles.accessState} role="status" aria-live="polite"><span className={styles.accessStateIcon}><ShieldCheck size={20} aria-hidden="true" /></span><div><strong>{catalogue.loading ? 'Vérification des autorisations' : catalogue.error ? 'Accès momentanément indisponible' : 'Département non accessible'}</strong><p>{catalogue.loading ? 'Nous vérifions vos droits d’accès pour cette entreprise.' : catalogue.error ? 'Impossible de confirmer vos autorisations. Actualisez la page pour réessayer.' : 'Ce département est indisponible pour votre rôle actuel.'}</p></div></div>}
         </div>
       </div>

@@ -106,10 +106,10 @@ export default function HomePage() {
 
         <div className="flex items-center gap-2">
           <Link
-            href="/espace"
+            href="/espace/ventes"
             className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-emerald-800 px-4 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
           >
-            Accéder à l’espace
+            Ouvrir la caisse & ventes
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -192,8 +192,8 @@ export default function HomePage() {
 
         <div className="flex items-center gap-3 text-[11px]">
           <span>© CAURI — Le siège de votre entreprise</span>
-          <Link href="/espace" className="font-bold text-emerald-800 hover:underline">
-            Ouvrir la session →
+          <Link href="/espace/actions" className="font-bold text-emerald-800 hover:underline">
+            Direction & Pilotage →
           </Link>
         </div>
       </footer>
