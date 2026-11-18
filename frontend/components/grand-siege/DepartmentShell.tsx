@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, ArrowUpRight, Building2, Compass, ShieldCheck, Layers3 } from "lucide-react";
 import { GrandSiegeThemeProvider } from "./index";
 import { DEPARTMENTS, resolveDepartment } from "./departments";
@@ -29,7 +30,12 @@ export function DepartmentShell({ pathname, organizationName, organizationId, ch
       <div className={`${styles.frame} ${isCompactDirection ? styles.actionsWorkspace : ''}`} data-cauri-department={department.id}>
         <header className={styles.masthead}>
           <div className={styles.mastheadTop}>
-            <Link className={styles.back} href="/"><ArrowLeft size={16} aria-hidden="true" /> Grand Siège</Link>
+            <div className="flex items-center gap-3">
+              <Link href="/" title="Retourner à l'accueil du Grand Siège" className="inline-flex items-center">
+                <Image src="/image(20261021-163619).png" alt="CAURI" width={2048} height={682} unoptimized priority className="h-7 w-auto object-contain" />
+              </Link>
+              <Link className={styles.back} href="/"><ArrowLeft size={14} aria-hidden="true" /> Grand Siège</Link>
+            </div>
             <span className={styles.identity}><Building2 size={14} aria-hidden="true" /> CAURI{organizationName ? ` · ${organizationName}` : ""}</span>
           </div>
           {!isCompactDirection && <div className={styles.departmentBanner}>

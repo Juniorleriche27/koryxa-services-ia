@@ -610,7 +610,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="app-main">
           <OfflineSyncBanner />
 
-          {pathname.startsWith("/espace") ? <GrandHallTopbar
+          {!isDepartment && (pathname.startsWith("/espace") ? <GrandHallTopbar
             searchLabel={t("search_prompt")}
             vocalLabel={t("vocal_btn")}
             departmentLabel={resolveDepartment(pathname)?.department.name || (pathname.includes('/actions') ? 'Direction' : undefined)}
@@ -689,7 +689,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
               <UserButton appearance={{ elements: { avatarBox: "h-9 w-9 sm:h-11 sm:w-11" } }} />
             </div>
-          </header>}
+          </header>)}
 
           <div key={organization.id || 'unverified-tenant'} className="app-content pb-24 lg:pb-8">
             {!organization.id ? <OrganizationGate loading={!organizationLoaded} errorCode={organizationErrorCode} onRetry={() => setOrganizationRetry(value => value + 1)} /> : isDepartment ? <DepartmentShell pathname={pathname} organizationName={organization.name} organizationId={organization.id}>{children}</DepartmentShell> : children}
