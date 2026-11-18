@@ -43,18 +43,18 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     return NextResponse.next();
   }
 
-  // 2. Domaine entreprise.koryxa.fr
+  // 2. Domaine entreprise.koryxa.fr / cauri.koryxa.fr
   if (isEntrepriseDomain) {
+    // La page d'accueil est accessible aux prospects sans redirection
+    if (pathname === "/" || pathname === "") {
+      return NextResponse.next();
+    }
+
     const { userId } = await auth();
     if (!userId) {
       const signInUrl = new URL("https://accounts.koryxa.fr/sign-in");
       signInUrl.searchParams.set("redirect_url", request.url);
       return NextResponse.redirect(signInUrl);
-    }
-
-    // Redirection automatique de la racine vers /espace
-    if (pathname === "/" || pathname === "") {
-      return NextResponse.redirect(new URL("/espace", request.url));
     }
 
     return NextResponse.next();
