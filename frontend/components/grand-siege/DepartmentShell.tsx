@@ -38,6 +38,63 @@ const SECTION_ICONS: Record<string, typeof CheckSquare> = {
   "/espace/whatsapp": MessageSquare,
 };
 
+interface SectionMeta {
+  title: string;
+  badge: string;
+  description: string;
+}
+
+const SECTION_TOOLTIPS: Record<string, SectionMeta> = {
+  // 01 Direction
+  "/espace/actions": {
+    title: "Actions & Décisions",
+    badge: "Priorités",
+    description: "Plan d'actions, arbitrage et décisions stratégiques",
+  },
+  "/espace/documents": {
+    title: "Documents Officiels",
+    badge: "Coffre-fort",
+    description: "Bilans, statuts, contrats et pièces probantes",
+  },
+  "/espace/parametres": {
+    title: "Paramètres Généraux",
+    badge: "Siège",
+    description: "Profil entreprise, membres et configuration",
+  },
+  "/espace/parametres/facturation": {
+    title: "Abonnement CAURI",
+    badge: "Forfait",
+    description: "Formule active, factures et consommation",
+  },
+  "/espace/aide": {
+    title: "Assistance & Support",
+    badge: "Guide",
+    description: "Documentation pratique et contact support",
+  },
+
+  // 02 Commerce
+  "/espace/ventes": {
+    title: "Ventes & Facturation",
+    badge: "POS & Factures",
+    description: "Registre des ventes, encaissements et caisse comptoir",
+  },
+  "/espace/offres": {
+    title: "Offres & Catalogue",
+    badge: "Tarifs & Marges",
+    description: "Catalogue produits/services, marges et alertes de stock",
+  },
+  "/espace/fournisseurs": {
+    title: "Fournisseurs & Partenaires",
+    badge: "Répertoire",
+    description: "Annuaire prestataires et délais de règlement",
+  },
+  "/espace/whatsapp": {
+    title: "WhatsApp & Relances",
+    badge: "Messagerie IA",
+    description: "Passerelle WhatsApp, relances 1-clic et solvabilité",
+  },
+};
+
 const SETTINGS_HREFS = new Set([
   "/espace/parametres",
   "/espace/parametres/facturation",
@@ -67,23 +124,62 @@ export function DepartmentShell({ pathname, organizationName, organizationId, ch
     const renderNavLink = (item: (typeof department.sections)[number]) => {
       const isActive = section.href === item.href;
       const Icon = SECTION_ICONS[item.href] || Layers3;
+      const meta = SECTION_TOOLTIPS[item.href];
+
       return (
         <Link
           key={item.href}
           href={item.href}
+          aria-label={item.label}
           aria-current={isActive ? "page" : undefined}
-          className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all whitespace-nowrap shrink-0 ${
+          title={meta ? `${meta.title} — ${meta.description}` : item.label}
+          className={`group relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all whitespace-nowrap shrink-0 ${
             isActive
               ? "bg-emerald-800 text-white font-semibold shadow-sm"
               : "text-slate-600 font-medium hover:bg-emerald-50/80 hover:text-emerald-950"
           }`}
         >
-          <Icon
-            size={16}
+          <span
             aria-hidden="true"
-            className={isActive ? "text-emerald-200 shrink-0" : "text-slate-400 group-hover:text-emerald-700 shrink-0"}
-          />
-          <span className="truncate">{item.label}</span>
+            className={`flex items-center justify-center w-6 h-6 rounded-lg shrink-0 transition-colors ${
+              isActive
+                ? "bg-emerald-700 text-emerald-100"
+                : "bg-slate-100 text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-800"
+            }`}
+          >
+            <Icon
+              size={15}
+              className={isActive ? "text-emerald-100 shrink-0" : "text-slate-500 group-hover:text-emerald-700 shrink-0"}
+            />
+          </span>
+          <span className="truncate flex-1">{item.label}</span>
+          {isActive && (
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 shrink-0" aria-hidden="true" />
+          )}
+
+          {/* Tooltip flottant sous le curseur au survol */}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 hidden lg:group-hover:flex flex-col gap-0.5 rounded-xl bg-slate-900/95 text-white px-3.5 py-2.5 text-xs shadow-2xl border border-slate-700/80 z-50 whitespace-nowrap backdrop-blur-md"
+          >
+            <span className="flex items-center gap-2">
+              <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-400" : "bg-emerald-500/70"}`} />
+              <strong className="font-bold text-slate-100 text-[12.5px]">
+                {meta?.title || item.label}
+              </strong>
+              {meta?.badge && (
+                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-700/40">
+                  {meta.badge}
+                </span>
+              )}
+            </span>
+            {meta?.description && (
+              <span className="text-[11px] text-slate-300 font-normal">
+                {meta.description}
+              </span>
+            )}
+            <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 rotate-45 bg-slate-900 border-l border-b border-slate-700/80" />
+          </span>
         </Link>
       );
     };
